@@ -55,7 +55,6 @@ fi
 }
 
 DB_USER_HOST=localhost
-VERSION=0.1.0
 project_dir=$project_name
 nginx_config_file=$project_name
 subdomain_localhost="${project_name}.localhost"
@@ -83,10 +82,9 @@ blue '######################################################################'
 blue '#                                                                    #'
 blue '# GAK PAKE LAMA - DRUPAL VARIATION 1                                 #'
 blue '#                                                                    #'
+blue '# Version 0.1.0                                                      #'
+blue '#                                                                    #'
 blue '######################################################################'
-____
-
-yellow Version $VERSION
 ____
 
 yellow -- START -------------------------------------------------------------
