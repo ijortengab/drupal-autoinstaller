@@ -40,21 +40,22 @@ done
 [[ $project_name = *" "* ]] && { echo "Options --project-name can not contain space."; exit 1; }
 project_name_safe_value=$(sed -E 's|[^a-zA-Z0-9]|_|g' <<< "$project_name" | sed -E 's|_+|_|g' )
 if [[ ! $project_name == $project_name_safe_value ]];then
-    echo "The value of --project-name only have to contain alphanumeric and underscore."
+    echo "The value of --project-name can only contain alphanumeric and underscores."
     echo "Suggest: --project-name="$project_name_safe_value
     exit
 fi
-
 [ -n "$project_parent_name" ] && {
     [[ $project_parent_name = *" "* ]] && { echo "Options --project-parnet-name can not contain space."; exit 1; }
     project_parent_name_safe_value=$(sed -E 's|[^a-zA-Z0-9]|_|g' <<< "$project_parent_name" | sed -E 's|_+|_|g' )
     if [[ ! $project_parent_name == $project_parent_name_safe_value ]];then
-        echo "The value of --project-parent-name only have to contain alphanumeric and underscore."
+        echo "The value of --project-parent-name can only contain alphanumeric and underscores."
         echo "Suggest: --project-parent-name="$project_parent_name_safe_value
         exit
     fi
 }
 
+DB_USER_HOST=localhost
+VERSION=0.1.0
 project_dir=$project_name
 nginx_config_file=$project_name
 subdomain_localhost="${project_name}.localhost"
@@ -63,8 +64,6 @@ subdomain_localhost="${project_name}.localhost"
     nginx_config_file=$project_parent_name
     subdomain_localhost="${project_name}.${project_parent_name}.localhost"
 }
-
-DB_USER_HOST=localhost
 db_name="${project_name}_drupal"
 sites_subdir=$project_name
 [ -n "$project_parent_name" ] && {
@@ -82,9 +81,12 @@ ____() { echo; }
 
 blue '######################################################################'
 blue '#                                                                    #'
-blue '# GAK PAKE LAMA - DRUPAL VARIATION 1 VERSION 1.0.0                   #'
+blue '# GAK PAKE LAMA - DRUPAL VARIATION 1                                 #'
 blue '#                                                                    #'
 blue '######################################################################'
+____
+
+yellow Version $VERSION
 ____
 
 yellow -- START -------------------------------------------------------------
