@@ -78,6 +78,12 @@ magenta() { echo -ne "\e[95m"; echo -n "$@"; echo -e "\e[39m"; }
 __() { echo -n '    '; [ -n "$1" ] && echo "$@" || echo -n ; }
 ____() { echo; }
 
+pregQuote() {
+    local string="$1"
+    # karakter dot (.), menjadi slash dot (\.)
+    sed "s/\./\\\./g" <<< "$string"
+}
+
 blue '######################################################################'
 blue '#                                                                    #'
 blue '# GAK PAKE LAMA - DRUPAL VARIATION 1                                 #'
@@ -249,14 +255,6 @@ if [ -n "$notfound" ];then
     fi
     ____
 fi
-
-yellow Memastikan command exists
-__ sudo mysql nginx php
-command -v "sudo" >/dev/null || { red "sudo command not found."; exit 1; }
-command -v "mysql" >/dev/null || { red "mysql command not found."; exit 1; }
-command -v "nginx" >/dev/null || { red "nginx command not found."; exit 1; }
-command -v "php" >/dev/null || { red "php command not found."; exit 1; }
-____
 
 yellow Mengecek konfigurasi MariaDB.
 if [ -f /etc/mysql/mariadb.conf.d/50-server.cnf ];then
@@ -466,7 +464,9 @@ installphp() {
 
 yellow Mengecek apakah PHP version 8.1 installed.
 notfound=
-if grep -q "^php8\.1/" <<< "$aptinstalled";then
+string=php8.1
+string_quoted=$(pregQuote "$string")
+if grep -q "^${string_quoted}/" <<< "$aptinstalled";then
     __ PHP 8.1 installed.
 else
     __ PHP 8.1 not found.
@@ -478,13 +478,21 @@ if [ -n "$notfound" ];then
     yellow Menginstall PHP 8.1
     installphp 8.1
     aptinstalled=$(apt --installed list 2>/dev/null)
-    if grep -q "^php8\.1/" <<< "$aptinstalled";then
+    if grep -q "^${string_quoted}/" <<< "$aptinstalled";then
         __; green PHP 8.1 installed.
     else
         __; red PHP 8.1 not found.; exit
     fi
     ____
 fi
+
+yellow Memastikan command exists
+__ sudo mysql nginx php
+command -v "sudo" >/dev/null || { red "sudo command not found."; exit 1; }
+command -v "mysql" >/dev/null || { red "mysql command not found."; exit 1; }
+command -v "nginx" >/dev/null || { red "nginx command not found."; exit 1; }
+command -v "php" >/dev/null || { red "php command not found."; exit 1; }
+____
 
 # Source: https://getcomposer.org/doc/faqs/how-to-install-composer-programmatically.md
 downloadComposer() {
@@ -872,12 +880,6 @@ EOF
     }
     ____
 fi
-
-pregQuote() {
-    local string="$1"
-    # karakter dot (.), menjadi slash dot (\.)
-    sed "s/\./\\\./g" <<< "$string"
-}
 
 yellow Mengecek domain di nginx config.
 reload=
