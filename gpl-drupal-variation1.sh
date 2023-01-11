@@ -251,29 +251,6 @@ else
 fi
 ____
 
-yellow Mengecek database '`'$db_name'`'.
-msg=$(mysql --silent --skip-column-names -e "select schema_name from information_schema.schemata where schema_name = '$db_name'")
-notfound=
-if [[ $msg == $db_name ]];then
-    __ Database ditemukan.
-else
-    __ Database tidak ditemukan
-    notfound=1
-fi
-____
-
-if [ -n "$notfound" ];then
-    yellow Membuat database.
-    mysql -e "create database $db_name character set utf8 collate utf8_general_ci;"
-    msg=$(mysql --silent --skip-column-names -e "select schema_name from information_schema.schemata where schema_name = '$db_name'")
-    if [[ $msg == $db_name ]];then
-        __; green Database ditemukan.
-    else
-        __; red Database tidak ditemukan; exit
-    fi
-    ____
-fi
-
 yellow Mengecek direktori project '`'/var/www/project/$project_dir'`'.
 notfound=
 if [ -d /var/www/project/$project_dir ] ;then
@@ -480,6 +457,29 @@ magenta conf_path="$conf_path"
 user_nginx=$(cat "$conf_path" | grep -o -P 'user\s+\K([^;]+)')
 magenta user_nginx="$user_nginx"
 ____
+
+yellow Mengecek database '`'$db_name'`'.
+msg=$(mysql --silent --skip-column-names -e "select schema_name from information_schema.schemata where schema_name = '$db_name'")
+notfound=
+if [[ $msg == $db_name ]];then
+    __ Database ditemukan.
+else
+    __ Database tidak ditemukan
+    notfound=1
+fi
+____
+
+if [ -n "$notfound" ];then
+    yellow Membuat database.
+    mysql -e "create database $db_name character set utf8 collate utf8_general_ci;"
+    msg=$(mysql --silent --skip-column-names -e "select schema_name from information_schema.schemata where schema_name = '$db_name'")
+    if [[ $msg == $db_name ]];then
+        __; green Database ditemukan.
+    else
+        __; red Database tidak ditemukan; exit
+    fi
+    ____
+fi
 
 # Source: https://getcomposer.org/doc/faqs/how-to-install-composer-programmatically.md
 downloadComposer() {
