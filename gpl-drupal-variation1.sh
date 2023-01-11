@@ -474,6 +474,13 @@ command -v "nginx" >/dev/null || { red "nginx command not found."; exit 1; }
 command -v "php" >/dev/null || { red "php command not found."; exit 1; }
 ____
 
+yellow Mencari informasi nginx.
+conf_path=$(nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)')
+magenta conf_path="$conf_path"
+user_nginx=$(cat "$conf_path" | grep -o -P 'user\s+\K([^;]+)')
+magenta user_nginx="$user_nginx"
+____
+
 # Source: https://getcomposer.org/doc/faqs/how-to-install-composer-programmatically.md
 downloadComposer() {
     EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
@@ -512,13 +519,6 @@ if [ -n "$notfound" ];then
     fi
     ____
 fi
-
-yellow Mencari informasi nginx.
-conf_path=$(nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)')
-magenta conf_path="$conf_path"
-user_nginx=$(cat "$conf_path" | grep -o -P 'user\s+\K([^;]+)')
-magenta user_nginx="$user_nginx"
-____
 
 yellow Mengecek file '`'composer.json'`' untuk project '`'drupal/recommended-project'`'
 notfound=
