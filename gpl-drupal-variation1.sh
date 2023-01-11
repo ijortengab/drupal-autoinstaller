@@ -1,27 +1,7 @@
 #!/bin/bash
-# @filename: gpl-drupal-variation1-v1.0.0.sh
+# @filename: gpl-drupal-variation1.sh
 # variation 1: drupal latest on ubuntu 22.04.
 
-# parse-options.sh \
-# --without-end-options-double-dash \
-# --compact \
-# --clean \
-# --no-hash-bang \
-# --no-rebuild-arguments \
-# --no-original-arguments \
-# --no-error-invalid-options \
-# --no-error-require-arguments << EOF
-# FLAG=(
-# --domain-strict
-# )
-# VALUE=(
-# --project-name
-# --project-parent-name
-# )
-# MULTIVALUE=(
-# --domain
-# )
-# EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --domain=*) domain+=("${1#*=}"); shift ;;
@@ -922,3 +902,25 @@ ____
 
 yellow -- FINISH ------------------------------------------------------------
 ____
+
+exit 0
+
+parse-options.sh \
+--without-end-options-double-dash \
+--compact \
+--clean \
+--no-hash-bang \
+--no-original-arguments \
+--no-error-invalid-options \
+--no-error-require-arguments << EOF | clip
+FLAG=(
+--domain-strict
+)
+VALUE=(
+--project-name
+--project-parent-name
+)
+MULTIVALUE=(
+--domain
+)
+EOF
