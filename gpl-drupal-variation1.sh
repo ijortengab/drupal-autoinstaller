@@ -68,9 +68,10 @@ blue '######################################################################'
 blue '#                                                                    #'
 blue '# GAK PAKE LAMA - DRUPAL VARIATION 1                                 #'
 blue '#                                                                    #'
-blue '# Version 0.1.0                                                      #'
-blue '#                                                                    #'
 blue '######################################################################'
+____
+
+e Version 0.1.0
 ____
 
 yellow -- START -------------------------------------------------------------
@@ -86,19 +87,18 @@ magenta 'project_name="'$project_name'"'
         _value+=" \"${domain[$i]}\""
     done
     magenta 'domain=('${_value:1}')'
+} || {
+    magenta 'domain=()'
 }
-____
-
-yellow Define variable.
-magenta 'DB_USER_HOST="'$DB_USER_HOST'"'
-____
-
-yellow Other variable.
 magenta 'db_name="'$db_name'"'
 magenta 'project_dir="'$project_dir'"'
 magenta 'nginx_config_file="'$nginx_config_file'"'
 magenta 'subdomain_localhost="'$subdomain_localhost'"'
 magenta 'sites_subdir="'$sites_subdir'"'
+____
+
+yellow Define variable.
+magenta 'DB_USER_HOST="'$DB_USER_HOST'"'
 ____
 
 yellow Mengecek akses root.
