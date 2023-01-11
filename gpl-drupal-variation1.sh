@@ -273,91 +273,6 @@ if [ -n "$notfound" ];then
     ____
 fi
 
-databaseCredential() {
-    if [ -f /var/www/project/$project_dir/credential/database ];then
-        local DB_USER DB_USER_PASSWORD
-        . /var/www/project/$project_dir/credential/database
-        db_user=$DB_USER
-        db_user_password=$DB_USER_PASSWORD
-    else
-        db_user="$project_name"
-        [ -n "$project_parent_name" ] && {
-            db_user=$project_parent_name
-        }
-        db_user_password=$(pwgen -s 32 -1)
-        mkdir -p /var/www/project/$project_dir/credential
-        cat << EOF > /var/www/project/$project_dir/credential/database
-DB_USER=$db_user
-DB_USER_PASSWORD=$db_user_password
-EOF
-        chmod 0500 /var/www/project/$project_dir/credential
-        chmod 0400 /var/www/project/$project_dir/credential/database
-    fi
-}
-
-yellow Mengecek database credentials.
-databaseCredential
-if [[ -z "$db_user" || -z "$db_user_password" ]];then
-    __; red Informasi credentials tidak lengkap: '`'/var/www/project/$project_dir/credential/database'`'.; exit
-else
-    magenta db_user="$db_user"
-    magenta db_user_password="$db_user_password"
-fi
-____
-
-yellow Mengecek user database '`'$db_user'`'.
-msg=$(mysql --silent --skip-column-names -e "select COUNT(*) FROM mysql.user WHERE user = '$db_user';")
-notfound=
-if [ $msg -gt 0 ];then
-    __ User database ditemukan.
-else
-    __ User database tidak ditemukan.
-    notfound=1
-fi
-____
-
-if [ -n "$notfound" ];then
-    yellow Membuat user database.
-    mysql -e "create user '${db_user}'@'${DB_USER_HOST}' identified by '${db_user_password}';"
-    msg=$(mysql --silent --skip-column-names -e "select COUNT(*) FROM mysql.user WHERE user = '$db_user';")
-    if [ $msg -gt 0 ];then
-        __; green User database ditemukan.
-    else
-        __; red User database tidak ditemukan; exit
-    fi
-    ____
-fi
-
-yellow Mengecek grants user '`'$db_user'`' ke database '`'$db_name'`'.
-notfound=
-msg=$(mysql "$db_name" --silent --skip-column-names -e "show grants for ${db_user}@${DB_USER_HOST}")
-# GRANT USAGE ON *.* TO `xxx`@`localhost` IDENTIFIED BY PASSWORD '*650AEE8441BAF8090D260F1E4A0430DD2AF92FBA'
-# GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `xxx\\_%`.* TO `xxx`@`localhost`
-# GRANT USAGE ON *.* TO `yyy`@`localhost` IDENTIFIED BY PASSWORD '*23FF9BDB84CBF879F19D46CB6B85F0550CB64F5C'
-# GRANT ALL PRIVILEGES ON `yyy_drupal`.* TO `yyy`@`localhost`
-# GRANT ALL PRIVILEGES ON `yyy_drupal\\_%`.* TO `yyy`@`localhost`
-# "The first grant was auto-generated." Source: https://phoenixnap.com/kb/mysql-show-user-privileges
-if grep -q "GRANT.*ON.*${db_name}.*TO.*${db_user}.*@.*${DB_USER_HOST}.*" <<< "$msg";then
-    __ Granted.
-else
-    __ Not granted.
-    notfound=1
-fi
-____
-
-if [ -n "$notfound" ];then
-    yellow Memberi grants user '`'$db_user'`' ke database '`'$db_name'`'.
-    mysql -e "grant all privileges on \`${db_name}\`.* TO '${db_user}'@'${DB_USER_HOST}';"
-    mysql -e "grant all privileges on \`${db_name}\_%\`.* TO '${db_user}'@'${DB_USER_HOST}';"
-    msg=$(mysql "$db_name" --silent --skip-column-names -e "show grants for ${db_user}@${DB_USER_HOST}")
-    if grep -q "GRANT.*ON.*${db_name}.*TO.*${db_user}.*@.*${DB_USER_HOST}.*" <<< "$msg";then
-        __; green Granted.
-    else
-        __; red Not granted.; exit
-    fi
-    ____
-fi
-
 # Credit:
 # https://launchpad.net/~ondrej/+archive/ubuntu/php
 addRepositoryPpaOndrejPhp() {
@@ -477,6 +392,91 @@ if [ -n "$notfound" ];then
         __; green Database ditemukan.
     else
         __; red Database tidak ditemukan; exit
+    fi
+    ____
+fi
+
+databaseCredential() {
+    if [ -f /var/www/project/$project_dir/credential/database ];then
+        local DB_USER DB_USER_PASSWORD
+        . /var/www/project/$project_dir/credential/database
+        db_user=$DB_USER
+        db_user_password=$DB_USER_PASSWORD
+    else
+        db_user="$project_name"
+        [ -n "$project_parent_name" ] && {
+            db_user=$project_parent_name
+        }
+        db_user_password=$(pwgen -s 32 -1)
+        mkdir -p /var/www/project/$project_dir/credential
+        cat << EOF > /var/www/project/$project_dir/credential/database
+DB_USER=$db_user
+DB_USER_PASSWORD=$db_user_password
+EOF
+        chmod 0500 /var/www/project/$project_dir/credential
+        chmod 0400 /var/www/project/$project_dir/credential/database
+    fi
+}
+
+yellow Mengecek database credentials.
+databaseCredential
+if [[ -z "$db_user" || -z "$db_user_password" ]];then
+    __; red Informasi credentials tidak lengkap: '`'/var/www/project/$project_dir/credential/database'`'.; exit
+else
+    magenta db_user="$db_user"
+    magenta db_user_password="$db_user_password"
+fi
+____
+
+yellow Mengecek user database '`'$db_user'`'.
+msg=$(mysql --silent --skip-column-names -e "select COUNT(*) FROM mysql.user WHERE user = '$db_user';")
+notfound=
+if [ $msg -gt 0 ];then
+    __ User database ditemukan.
+else
+    __ User database tidak ditemukan.
+    notfound=1
+fi
+____
+
+if [ -n "$notfound" ];then
+    yellow Membuat user database.
+    mysql -e "create user '${db_user}'@'${DB_USER_HOST}' identified by '${db_user_password}';"
+    msg=$(mysql --silent --skip-column-names -e "select COUNT(*) FROM mysql.user WHERE user = '$db_user';")
+    if [ $msg -gt 0 ];then
+        __; green User database ditemukan.
+    else
+        __; red User database tidak ditemukan; exit
+    fi
+    ____
+fi
+
+yellow Mengecek grants user '`'$db_user'`' ke database '`'$db_name'`'.
+notfound=
+msg=$(mysql "$db_name" --silent --skip-column-names -e "show grants for ${db_user}@${DB_USER_HOST}")
+# GRANT USAGE ON *.* TO `xxx`@`localhost` IDENTIFIED BY PASSWORD '*650AEE8441BAF8090D260F1E4A0430DD2AF92FBA'
+# GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `xxx\\_%`.* TO `xxx`@`localhost`
+# GRANT USAGE ON *.* TO `yyy`@`localhost` IDENTIFIED BY PASSWORD '*23FF9BDB84CBF879F19D46CB6B85F0550CB64F5C'
+# GRANT ALL PRIVILEGES ON `yyy_drupal`.* TO `yyy`@`localhost`
+# GRANT ALL PRIVILEGES ON `yyy_drupal\\_%`.* TO `yyy`@`localhost`
+# "The first grant was auto-generated." Source: https://phoenixnap.com/kb/mysql-show-user-privileges
+if grep -q "GRANT.*ON.*${db_name}.*TO.*${db_user}.*@.*${DB_USER_HOST}.*" <<< "$msg";then
+    __ Granted.
+else
+    __ Not granted.
+    notfound=1
+fi
+____
+
+if [ -n "$notfound" ];then
+    yellow Memberi grants user '`'$db_user'`' ke database '`'$db_name'`'.
+    mysql -e "grant all privileges on \`${db_name}\`.* TO '${db_user}'@'${DB_USER_HOST}';"
+    mysql -e "grant all privileges on \`${db_name}\_%\`.* TO '${db_user}'@'${DB_USER_HOST}';"
+    msg=$(mysql "$db_name" --silent --skip-column-names -e "show grants for ${db_user}@${DB_USER_HOST}")
+    if grep -q "GRANT.*ON.*${db_name}.*TO.*${db_user}.*@.*${DB_USER_HOST}.*" <<< "$msg";then
+        __; green Granted.
+    else
+        __; red Not granted.; exit
     fi
     ____
 fi
