@@ -317,14 +317,18 @@ installphp() {
                         7.4)
                             addRepositoryPpaOndrejPhp
                             yellow Menginstall php7.4
-                            magenta apt install php7.4 -y
-                            apt install php7.4 -y
+                            downloadApplication php7.4 php7.4-{xml,fpm,cli,gd,zip,common,curl,mbstring,mysql}
+                            validateApplication php7.4 php7.4-{xml,fpm,cli,gd,zip,common,curl,mbstring,mysql}
                             ;;
                         8.1)
                             yellow Menginstall php8.1
-                            magenta apt install php -y
-                            apt install php -y
-                            # libapache2-mod-php8.1 php php8.1 php8.1-cli php8.1-common php8.1-opcache php8.1-readline
+                            downloadApplication php8.1 php8.1-{xml,fpm,cli,gd,zip,common,curl,mbstring,mysql}
+                            validateApplication php8.1 php8.1-{xml,fpm,cli,gd,zip,common,curl,mbstring,mysql}
+                            ;;
+                        8.2)
+                            yellow Menginstall php8.2
+                            downloadApplication php8.2 php8.2-{xml,fpm,cli,gd,zip,common,curl,mbstring,mysql}
+                            validateApplication php8.2 php8.2-{xml,fpm,cli,gd,zip,common,curl,mbstring,mysql}
                     esac
                 ;;
                 *) red OS "$ID" version "$VERSION_ID" not supported; exit;
@@ -334,26 +338,26 @@ installphp() {
     esac
 }
 
-yellow Mengecek apakah PHP version 8.1 installed.
+yellow Mengecek apakah PHP version 8.2 installed.
 notfound=
-string=php8.1
+string=php8.2
 string_quoted=$(pregQuote "$string")
 if grep -q "^${string_quoted}/" <<< "$aptinstalled";then
-    __ PHP 8.1 installed.
+    __ PHP 8.2 installed.
 else
-    __ PHP 8.1 not found.
+    __ PHP 8.2 not found.
     notfound=1
 fi
 ____
 
 if [ -n "$notfound" ];then
-    yellow Menginstall PHP 8.1
-    installphp 8.1
+    yellow Menginstall PHP 8.2
+    installphp 8.2
     aptinstalled=$(apt --installed list 2>/dev/null)
     if grep -q "^${string_quoted}/" <<< "$aptinstalled";then
-        __; green PHP 8.1 installed.
+        __; green PHP 8.2 installed.
     else
-        __; red PHP 8.1 not found.; exit
+        __; red PHP 8.2 not found.; exit
     fi
     ____
 fi
@@ -555,8 +559,6 @@ ____
 
 if [ -n "$notfound" ];then
     yellow Mendownload dependencies menggunakan Composer.
-    downloadApplication php8.1-xml php8.1-gd
-    validateApplication php8.1-xml php8.1-gd
     cd /var/www/project/$project_dir/drupal
     magenta composer -v install
     sudo -u $user_nginx HOME='/tmp' -s composer -v install
@@ -792,13 +794,10 @@ for string in "${domain[@]}" ;do
 done
 ____
 
-downloadApplication php8.1-fpm
-validateApplication php8.1-fpm
-____
-
 yellow Mengecek apakah nginx configuration
 notfound=
 file_config=$(grep -R -l -E "^\s*root\s+/var/www/project/${project_dir}/drupal/web\s*;" /etc/nginx/sites-enabled)
+# @todo, file_config itu bisa multiline.
 [ -n "$file_config" ] && {
     file_config=$(realpath $file_config)
     __ File config found: '`'$file_config'`'.;
@@ -842,7 +841,7 @@ server {
     }
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
     }
 }
 EOF
