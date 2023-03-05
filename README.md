@@ -81,5 +81,5 @@ drush status --uri=finance.bta.my.id
 
 ### Variation 1
 
- - Install Drupal latest, PHP 8.1, nginx latest, mariadb latest, tested on Ubuntu 22.04.
+ - Install Drupal latest, PHP 8.2, nginx latest, mariadb latest, tested on Ubuntu 22.04.
  - Direcotry of project is inside `/var/www/project/`
