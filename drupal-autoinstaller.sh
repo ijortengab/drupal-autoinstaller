@@ -28,7 +28,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.1'
+    echo '0.1.2'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -164,6 +164,7 @@ fi
 
 chapter Available:
 _ 'Variation '; yellow 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.
+_ 'Variation '; yellow 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.
 ____
 
 read -p "Select variation: " variation
