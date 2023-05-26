@@ -28,7 +28,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.0'
+    echo '0.1.1'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -162,11 +162,8 @@ if [ -z "$binary_directory_exists_sure" ];then
     fi
 fi
 
-yellow Variation; _, ' '; magenta '1'; _, '.'; _.
-cat << 'EOF'
-Debian 11, Drupal 10
-Nginx 1.18.0, MariaDB 10.5.19, PHP 8.2
-EOF
+chapter Available:
+_ 'Variation '; yellow 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.
 ____
 
 read -p "Select variation: " variation
