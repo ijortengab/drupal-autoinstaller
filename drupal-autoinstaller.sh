@@ -12,6 +12,8 @@ while [[ $# -gt 0 ]]; do
         --binary-directory-exists-sure) binary_directory_exists_sure=1; shift ;;
         --fast) fast=1; shift ;;
         --root-sure) root_sure=1; shift ;;
+        --variation=*) variation="${1#*=}"; shift ;;
+        --variation) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then variation="$2"; shift; fi; shift ;;
         --) shift
             while [[ $# -gt 0 ]]; do
                 case "$1" in
@@ -28,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.2'
+    echo '0.1.3'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -40,7 +42,16 @@ EOF
     cat << 'EOF'
 Usage: drupal-autoinstaller.sh <file>
 
-Global Options.
+Options:
+   --variation=n
+        Auto select variation.
+   --binary-directory-exists-sure
+        Bypass binary directory checking.
+   --
+        Every arguments after double dash will pass to gpl-drupal-setup-variation${n}.sh command.
+        Example: drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
+
+Global Options:
    --fast
         No delay every subtask.
    --version
@@ -49,11 +60,6 @@ Global Options.
         Show this help.
    --root-sure
         Bypass root checking.
-   --binary-directory-exists-sure
-        Bypass binary directory checking.
-   --
-        Every arguments after double dash will pass to gpl-drupal-setup command.
-        Example: drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
 Environment Variables:
    BINARY_DIRECTORY
         Default to $HOME/bin
@@ -125,6 +131,7 @@ chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=$HOME/bin}
 code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
+code 'variation="'$variation'"'
 code '-- '"$@"
 ____
 
@@ -167,7 +174,11 @@ _ 'Variation '; yellow 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.
 _ 'Variation '; yellow 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.
 ____
 
-read -p "Select variation: " variation
+if [ -n "$variation" ];then
+    e Select variation: $variation
+else
+    read -p "Select variation: " variation
+fi
 ____
 
 DrupalAutoinstaller_getGplDependencyManager
@@ -200,6 +211,7 @@ gpl-drupal-setup-variation${variation}.sh $isfast --root-sure "$@"
 # --binary-directory-exists-sure
 # )
 # VALUE=(
+# --variation
 # )
 # MULTIVALUE=(
 # )
