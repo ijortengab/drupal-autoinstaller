@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.3'
+    echo '0.1.4'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -120,6 +120,19 @@ EOF
     fi
     fileMustExists "$BINARY_DIRECTORY/$each"
 }
+
+if [ -z "$fast" ];then
+    seconds=2
+    start="$(($(date +%s) + $seconds))"
+    yellow It is highly recommended that you use; _, ' ' ; magenta --fast; _, ' ' ; yellow option.; _.
+    while [ "$start" -ge `date +%s` ]; do
+        time="$(( $start - `date +%s` ))"
+        yellow .
+        sleep .8
+    done
+    _.
+    ____
+fi
 
 title Drupal Auto-Installer
 e https://github.com/ijortengab/drupal-autoinstaller
