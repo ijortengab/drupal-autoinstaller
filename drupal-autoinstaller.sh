@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.4'
+    echo '0.1.5'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -125,6 +125,42 @@ EOF
     fi
     fileMustExists "$BINARY_DIRECTORY/$each"
 }
+[[ $(type -t ArraySearch) == function ]] || ArraySearch() {
+    # Find element in Array. Searches the array for a given value and returns the
+    # first corresponding key if successful.
+    #
+    # Globals:
+    #   Modified: _return
+    #
+    # Arguments:
+    #   1 = The searched value.
+    #   2 = Parameter of the array.
+    #
+    # Returns:
+    #   0 if value found in the array.
+    #   1 otherwise.
+    #
+    # Example:
+    #   ```
+    #   my=("cherry" "manggo" "blackberry" "manggo" "blackberry")
+    #   ArraySearch "manggo" my[@]
+    #   if ArraySearch "blackberry" my[@];then
+    #       echo 'FOUND'
+    #   else
+    #       echo 'NOT FOUND'
+    #   fi
+    #   # Get result in variable `$_return`.
+    #   # _return=2
+    #   ```
+    local index match="$1"
+    local source=("${!2}")
+    for index in "${!source[@]}"; do
+       if [[ "${source[$index]}" == "${match}" ]]; then
+           _return=$index; return 0
+       fi
+    done
+    return 1
+}
 
 if [ -z "$fast" ];then
     seconds=2
@@ -150,6 +186,11 @@ delay=.5; [ -n "$fast" ] && unset delay
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=$HOME/bin}
 code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
 code 'variation="'$variation'"'
+if [ -f /etc/os-release ];then
+    . /etc/os-release
+fi
+code 'ID="'$ID'"'
+code 'VERSION_ID="'$VERSION_ID'"'
 code '-- '"$@"
 ____
 
@@ -188,14 +229,22 @@ if [ -z "$binary_directory_exists_sure" ];then
 fi
 
 chapter Available:
-_ 'Variation '; yellow 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.
-_ 'Variation '; yellow 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.
+eligible=()
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.; eligible+=("1debian11")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.; eligible+=("2debian11")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, Drupal 10, PHP 8.2. ; _.; eligible+=("3ubuntu22.04")
 ____
 
 if [ -n "$variation" ];then
     e Select variation: $variation
 else
-    read -p "Select variation: " variation
+    until [[ -n "$variation" ]];do
+        read -p "Select variation: " variation
+        if ! ArraySearch "${variation}${ID}${VERSION_ID}" eligible[@];then
+            error Not eligible.
+            variation=
+        fi
+    done
 fi
 ____
 
