@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.5'
+    echo '0.1.6'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -248,13 +248,26 @@ else
 fi
 ____
 
-DrupalAutoinstaller_getGplDependencyManager
-PATH="${BINARY_DIRECTORY}:${PATH}"
-____
-
 chapter Execute:
 code gpl-dependency-manager.sh gpl-drupal-setup-variation${variation}.sh
 code gpl-drupal-setup-variation${variation}.sh "$@"
+____
+
+if [ -z "$fast" ];then
+    seconds=2
+    start="$(($(date +%s) + $seconds))"
+    yellow It is highly recommended that you use; _, ' ' ; magenta --fast; _, ' ' ; yellow option.; _.
+    while [ "$start" -ge `date +%s` ]; do
+        time="$(( $start - `date +%s` ))"
+        yellow .
+        sleep .8
+    done
+    _.
+fi
+____
+
+DrupalAutoinstaller_getGplDependencyManager
+PATH="${BINARY_DIRECTORY}:${PATH}"
 ____
 
 [ -n "$fast" ] && isfast='--fast' || isfast=''
