@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.6'
+    echo '0.1.7'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -63,12 +63,20 @@ Global Options:
 Environment Variables:
    BINARY_DIRECTORY
         Default to $HOME/bin
+
+Dependency:
+   wget
 EOF
 }
 
 # Help and Version.
 [ -n "$help" ] && { DrupalAutoinstaller_printHelp; exit 1; }
 [ -n "$version" ] && { DrupalAutoinstaller_printVersion; exit 1; }
+
+# Dependency.
+while IFS= read -r line; do
+    command -v "${line}" >/dev/null || { echo -e "\e[91m""Unable to proceed, ${line} command not found." "\e[39m"; exit 1; }
+done <<< `DrupalAutoinstaller_printHelp | sed -n '/^Dependency:/,$p' | sed -n '2,/^$/p' | sed 's/^ *//g'`
 
 # Common Functions.
 [[ $(type -t red) == function ]] || red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -100,8 +108,9 @@ EOF
         __; red File '`'$(basename "$1")'`' tidak ditemukan.; x
     fi
 }
-[[ $(type -t DrupalAutoinstaller_getGplDependencyManager) == function ]] || DrupalAutoinstaller_getGplDependencyManager() {
-    each=gpl-dependency-manager.sh
+[[ $(type -t DrupalAutoinstaller_GplDownloader) == function ]] || DrupalAutoinstaller_GplDownloader() {
+    each="$1"
+    inside_directory="$2"
     chapter Requires command: "$each".
     if [[ -f "$BINARY_DIRECTORY/$each" && ! -s "$BINARY_DIRECTORY/$each" ]];then
         __ Empty file detected.
@@ -110,8 +119,13 @@ EOF
     fi
     if [ ! -f "$BINARY_DIRECTORY/$each" ];then
         __ Memulai download.
-        __; magenta wget https://github.com/ijortengab/gpl/raw/master/"$each" -O "$BINARY_DIRECTORY/$each"; _.
-        wget -q https://github.com/ijortengab/gpl/raw/master/"$each" -O "$BINARY_DIRECTORY/$each"
+        if [ -z "$inside_directory" ];then
+            __; magenta wget https://github.com/ijortengab/gpl/raw/master/"$each" -O "$BINARY_DIRECTORY/$each"; _.
+            wget -q https://github.com/ijortengab/gpl/raw/master/"$each" -O "$BINARY_DIRECTORY/$each"
+        else
+            __; magenta wget https://github.com/ijortengab/gpl/raw/master/$(cut -d- -f2 <<< "$each")/"$each" -O "$BINARY_DIRECTORY/$each"; _.
+            wget -q https://github.com/ijortengab/gpl/raw/master/$(cut -d- -f2 <<< "$each")/"$each" -O "$BINARY_DIRECTORY/$each"
+        fi
         if [ ! -s "$BINARY_DIRECTORY/$each" ];then
             __; magenta rm "$BINARY_DIRECTORY/$each"; _.
             rm "$BINARY_DIRECTORY/$each"
@@ -161,7 +175,53 @@ EOF
     done
     return 1
 }
-
+[[ $(type -t DrupalAutoinstaller_GplPromptOptions) == function ]] || DrupalAutoinstaller_GplPromptOptions() {
+    command="$1"
+    argument_pass=()
+    options=`gpl-drupal-setup-variation${variation}.sh --help | sed -n '/^Options[:\.]$/,$p' | sed -n '2,/^$/p'`
+    until [[ -z "$options" ]];do
+        parameter=`sed -n 1p <<< "$options" | xargs`
+        is_required=
+        is_flag=
+        if [[ "${parameter:(-1):1}" == '*' ]];then
+            is_required=1
+            parameter="${parameter::-1}"
+            parameter=`xargs <<< "$parameter"`
+        fi
+        if [[ "${parameter:(-1):1}" == '^' ]];then
+            is_flag=1
+            parameter="${parameter::-1}"
+            parameter=`xargs <<< "$parameter"`
+        fi
+        label=`sed -n 2p <<< "$options" | xargs`
+        options=`sed -n '3,$p' <<< "$options"`
+        if [ -n "$is_required" ];then
+            _ 'Argument '; magenta ${parameter};_, ' is '; yellow required; _, ". ${label}"; _.
+            value=
+            until [[ -n "$value" ]];do
+                read -p "Set the value: " value
+            done
+            argument_pass+=("${parameter}=${value}")
+        elif [ -n "$is_flag" ];then
+            _ 'Argument '; magenta ${parameter};_, ' is '; _, optional; _, ". ${label}"; _.
+            read -p "Add this argument [yN]? " value
+            until [[ "$value" =~ ^[yYnN]*$ ]]; do
+                echo "$value: invalid selection."
+                read -p "Add this argument [yN]? " value
+            done
+            if [[ "$value" =~ ^[yY]$ ]]; then
+                argument_pass+=("${parameter}")
+            fi
+        else
+            _ 'Argument '; magenta ${parameter};_, ' is '; _, optional; _, ". ${label}"; _.
+            read -p "Set the value: " value
+            if [ -n "$value" ];then
+                argument_pass+=("${parameter}=${value}")
+            fi
+        fi
+        ____
+    done
+}
 if [ -z "$fast" ];then
     seconds=2
     start="$(($(date +%s) + $seconds))"
@@ -228,6 +288,10 @@ if [ -z "$binary_directory_exists_sure" ];then
     fi
 fi
 
+PATH="${BINARY_DIRECTORY}:${PATH}"
+DrupalAutoinstaller_GplDownloader gpl-dependency-manager.sh
+____
+
 chapter Available:
 eligible=()
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.; eligible+=("1debian11")
@@ -248,6 +312,17 @@ else
 fi
 ____
 
+DrupalAutoinstaller_GplDownloader gpl-drupal-setup-variation${variation}.sh true
+____
+
+if [ $# -eq 0 ];then
+    DrupalAutoinstaller_GplPromptOptions gpl-drupal-setup-variation${variation}.sh
+    if [[ "${#argument_pass[@]}" -gt 0 ]];then
+        set -- "${argument_pass[@]}"
+        unset argument_pass
+    fi
+fi
+
 chapter Execute:
 code gpl-dependency-manager.sh gpl-drupal-setup-variation${variation}.sh
 code gpl-drupal-setup-variation${variation}.sh "$@"
@@ -263,12 +338,8 @@ if [ -z "$fast" ];then
         sleep .8
     done
     _.
+    ____
 fi
-____
-
-DrupalAutoinstaller_getGplDependencyManager
-PATH="${BINARY_DIRECTORY}:${PATH}"
-____
 
 [ -n "$fast" ] && isfast='--fast' || isfast=''
 command -v "gpl-dependency-manager.sh" >/dev/null || { red "Unable to proceed, gpl-dependency-manager.sh command not found." "\e[39m"; x; }
