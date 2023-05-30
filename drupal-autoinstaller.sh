@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.8'
+    echo '0.1.9'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -341,11 +341,25 @@ if [ -z "$fast" ];then
     ____
 fi
 
+chapter Timer Start.
+e Begin: $(date +%Y%m%d-%H%M%S)
+DrupalAutoinstaller_BEGIN=$SECONDS
+____
+
 [ -n "$fast" ] && isfast='--fast' || isfast=''
 command -v "gpl-dependency-manager.sh" >/dev/null || { red "Unable to proceed, gpl-dependency-manager.sh command not found." "\e[39m"; x; }
 gpl-dependency-manager.sh gpl-drupal-setup-variation${variation}.sh $isfast --root-sure --binary-directory-exists-sure
 command -v "gpl-drupal-setup-variation${variation}.sh" >/dev/null || { red "Unable to proceed, gpl-drupal-setup-variation${variation}.sh command not found."; x; }
 gpl-drupal-setup-variation${variation}.sh $isfast --root-sure "$@"
+
+chapter Timer Finish.
+e End: $(date +%Y%m%d-%H%M%S)
+DrupalAutoinstaller_END=$SECONDS
+duration=$(( DrupalAutoinstaller_END - DrupalAutoinstaller_BEGIN ))
+hours=$((duration / 3600)); minutes=$(( (duration % 3600) / 60 )); seconds=$(( (duration % 3600) % 60 ));
+runtime=`printf "%02d:%02d:%02d" $hours $minutes $seconds`
+_ Duration: $runtime; if [ $duration -gt 60 ];then _, " (${duration} seconds)"; fi; _, '.'; _.
+____
 
 # parse-options.sh \
 # --compact \
