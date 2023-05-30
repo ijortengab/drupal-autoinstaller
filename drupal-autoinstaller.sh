@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.9'
+    echo '0.1.10'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -174,53 +174,57 @@ done <<< `DrupalAutoinstaller_printHelp | sed -n '/^Dependency:/,$p' | sed -n '2
         chmod a+x "$BINARY_DIRECTORY/$each"
     fi
     fileMustExists "$BINARY_DIRECTORY/$each"
+    ____
 }
 [[ $(type -t DrupalAutoinstaller_GplPromptOptions) == function ]] || DrupalAutoinstaller_GplPromptOptions() {
     command="$1"
     argument_pass=()
     options=`$command --help | sed -n '/^Options[:\.]$/,$p' | sed -n '2,/^$/p'`
-    until [[ -z "$options" ]];do
-        parameter=`sed -n 1p <<< "$options" | xargs`
-        is_required=
-        is_flag=
-        if [[ "${parameter:(-1):1}" == '*' ]];then
-            is_required=1
-            parameter="${parameter::-1}"
-            parameter=`xargs <<< "$parameter"`
-        fi
-        if [[ "${parameter:(-1):1}" == '^' ]];then
-            is_flag=1
-            parameter="${parameter::-1}"
-            parameter=`xargs <<< "$parameter"`
-        fi
-        label=`sed -n 2p <<< "$options" | xargs`
-        options=`sed -n '3,$p' <<< "$options"`
-        if [ -n "$is_required" ];then
-            _ 'Argument '; magenta ${parameter};_, ' is '; yellow required; _, ". ${label}"; _.
-            value=
-            until [[ -n "$value" ]];do
-                read -p "Set the value: " value
-            done
-            argument_pass+=("${parameter}=${value}")
-        elif [ -n "$is_flag" ];then
-            _ 'Argument '; magenta ${parameter};_, ' is '; _, optional; _, ". ${label}"; _.
-            read -p "Add this argument [yN]? " value
-            until [[ "$value" =~ ^[yYnN]*$ ]]; do
-                echo "$value: invalid selection."
-                read -p "Add this argument [yN]? " value
-            done
-            if [[ "$value" =~ ^[yY]$ ]]; then
-                argument_pass+=("${parameter}")
+    if [ -n "$options" ];then
+        chapter Prepare argument for command '`'$command'`'.
+        until [[ -z "$options" ]];do
+            parameter=`sed -n 1p <<< "$options" | xargs`
+            is_required=
+            is_flag=
+            if [[ "${parameter:(-1):1}" == '*' ]];then
+                is_required=1
+                parameter="${parameter::-1}"
+                parameter=`xargs <<< "$parameter"`
             fi
-        else
-            _ 'Argument '; magenta ${parameter};_, ' is '; _, optional; _, ". ${label}"; _.
-            read -p "Set the value: " value
-            if [ -n "$value" ];then
+            if [[ "${parameter:(-1):1}" == '^' ]];then
+                is_flag=1
+                parameter="${parameter::-1}"
+                parameter=`xargs <<< "$parameter"`
+            fi
+            label=`sed -n 2p <<< "$options" | xargs`
+            options=`sed -n '3,$p' <<< "$options"`
+            if [ -n "$is_required" ];then
+                _ 'Argument '; magenta ${parameter};_, ' is '; yellow required; _, ". ${label}"; _.
+                value=
+                until [[ -n "$value" ]];do
+                    read -p "Set the value: " value
+                done
                 argument_pass+=("${parameter}=${value}")
+            elif [ -n "$is_flag" ];then
+                _ 'Argument '; magenta ${parameter};_, ' is '; _, optional; _, ". ${label}"; _.
+                read -p "Add this argument [yN]? " value
+                until [[ "$value" =~ ^[yYnN]*$ ]]; do
+                    echo "$value: invalid selection."
+                    read -p "Add this argument [yN]? " value
+                done
+                if [[ "$value" =~ ^[yY]$ ]]; then
+                    argument_pass+=("${parameter}")
+                fi
+            else
+                _ 'Argument '; magenta ${parameter};_, ' is '; _, optional; _, ". ${label}"; _.
+                read -p "Set the value: " value
+                if [ -n "$value" ];then
+                    argument_pass+=("${parameter}=${value}")
+                fi
             fi
-        fi
+        done
         ____
-    done
+    fi
 }
 if [ -z "$fast" ];then
     seconds=2
@@ -313,7 +317,6 @@ fi
 ____
 
 DrupalAutoinstaller_GplDownloader gpl-drupal-setup-variation${variation}.sh true
-____
 
 if [ $# -eq 0 ];then
     DrupalAutoinstaller_GplPromptOptions gpl-drupal-setup-variation${variation}.sh
