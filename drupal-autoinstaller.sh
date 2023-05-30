@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.10'
+    echo '0.1.11'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -60,6 +60,7 @@ Global Options:
         Show this help.
    --root-sure
         Bypass root checking.
+
 Environment Variables:
    BINARY_DIRECTORY
         Default to $HOME/bin
@@ -349,11 +350,13 @@ e Begin: $(date +%Y%m%d-%H%M%S)
 DrupalAutoinstaller_BEGIN=$SECONDS
 ____
 
+_ -----------------------------------------------------------------------;_.;_.;
 [ -n "$fast" ] && isfast='--fast' || isfast=''
 command -v "gpl-dependency-manager.sh" >/dev/null || { red "Unable to proceed, gpl-dependency-manager.sh command not found." "\e[39m"; x; }
-gpl-dependency-manager.sh gpl-drupal-setup-variation${variation}.sh $isfast --root-sure --binary-directory-exists-sure
+INDENT="    " gpl-dependency-manager.sh gpl-drupal-setup-variation${variation}.sh $isfast --root-sure --binary-directory-exists-sure
 command -v "gpl-drupal-setup-variation${variation}.sh" >/dev/null || { red "Unable to proceed, gpl-drupal-setup-variation${variation}.sh command not found."; x; }
-gpl-drupal-setup-variation${variation}.sh $isfast --root-sure "$@"
+INDENT="    " gpl-drupal-setup-variation${variation}.sh $isfast --root-sure "$@"
+_ -----------------------------------------------------------------------;_.;_.;
 
 chapter Timer Finish.
 e End: $(date +%Y%m%d-%H%M%S)
