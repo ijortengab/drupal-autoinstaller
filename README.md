@@ -1,6 +1,11 @@
 # Simple Bash Script for Auto Installation Drupal
 
-Assume your domain is example.com. Download and execute this script inside server.
+## Prerequisite
+
+```
+sudo apt update
+sudo apt install wget -y
+```
 
 ## Quick Mode Install
 
@@ -17,8 +22,7 @@ Alternative 1. Change binary directory to all user inside `/usr/local/bin`.
 ```
 cd /tmp
 wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-chmod a+x drupal-autoinstaller.sh
-sudo BINARY_DIRECTORY=/usr/local/bin -E bash ./drupal-autoinstaller.sh
+sudo BINARY_DIRECTORY=/usr/local/bin -E bash drupal-autoinstaller.sh
 ```
 
 Alternative 1.1. Change binary directory per project.
@@ -30,8 +34,7 @@ cd /tmp
 unset project_name
 until [[ -n "$project_name" ]];do read -p "Argument --project-name is required: " project_name; done
 wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-chmod a+x drupal-autoinstaller.sh
-sudo BINARY_DIRECTORY=/var/www/project/"$project_name"/bin -E bash ./drupal-autoinstaller.sh -- --project-name "$project_name"
+sudo BINARY_DIRECTORY=/var/www/project/"$project_name"/bin -E bash drupal-autoinstaller.sh -- --project-name "$project_name"
 ```
 
 Alternative 2. Pass some argument to setup.
@@ -39,8 +42,7 @@ Alternative 2. Pass some argument to setup.
 ```
 cd /tmp
 wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-chmod a+x drupal-autoinstaller.sh
-sudo -E bash ./drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
+sudo -E bash drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
 ```
 
 Alternative 3. Fast version.
@@ -48,8 +50,7 @@ Alternative 3. Fast version.
 ```
 cd /tmp
 wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-chmod a+x drupal-autoinstaller.sh
-sudo -E bash ./drupal-autoinstaller.sh --fast
+sudo -E bash drupal-autoinstaller.sh --fast
 ```
 
 ## User Guide
@@ -57,7 +58,7 @@ sudo -E bash ./drupal-autoinstaller.sh --fast
 Set the project name as identifier.
 
 ```
-sudo -E bash ./drupal-autoinstaller.sh -- --project-name mysite
+sudo -E bash drupal-autoinstaller.sh -- --project-name mysite
 ```
 
 Drupal will be installed quickly. Point browser to address http://mysite.drupal.localhost to see the results.
@@ -71,7 +72,7 @@ Install Drupal site with domain `systemix.id`.
 We decide to set the project name similar to domain, namely `systemix`.
 
 ```
-sudo -E bash ./drupal-autoinstaller.sh -- --project-name systemix --domain systemix.id
+sudo -E bash drupal-autoinstaller.sh -- --project-name systemix --domain systemix.id
 ```
 
 Drupal will be installed quickly. Point browser to address http://systemix.drupal.localhost to see the results.
@@ -90,7 +91,7 @@ Create main site first but it is not mandatory. We use domain `bta.my.id`.
 We decide to set the project name similar to domain, namely `bta`.
 
 ```
-sudo -E bash ./drupal-autoinstaller.sh -- --project-name bta --domain bta.my.id
+sudo -E bash drupal-autoinstaller.sh -- --project-name bta --domain bta.my.id
 ```
 
 Create sub site. We use domain `finance.bta.my.id`.
@@ -98,7 +99,7 @@ We decide to set the project name similar to subdomain, namely `finance`.
 We have to set the project parent name to `bta`, so we use the codebase of project `bta`.
 
 ```
-sudo -E bash ./drupal-autoinstaller.sh -- --project-parent-name bta --project-name finance --domain finance.bta.my.id
+sudo -E bash drupal-autoinstaller.sh -- --project-parent-name bta --project-name finance --domain finance.bta.my.id
 ```
 
 Drupal will installed quickly. Point browser to address `http://bta.drupal.localhost` for mainsite,
