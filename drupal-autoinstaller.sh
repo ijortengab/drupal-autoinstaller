@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.7'
+    echo '0.1.8'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -108,37 +108,6 @@ done <<< `DrupalAutoinstaller_printHelp | sed -n '/^Dependency:/,$p' | sed -n '2
         __; red File '`'$(basename "$1")'`' tidak ditemukan.; x
     fi
 }
-[[ $(type -t DrupalAutoinstaller_GplDownloader) == function ]] || DrupalAutoinstaller_GplDownloader() {
-    each="$1"
-    inside_directory="$2"
-    chapter Requires command: "$each".
-    if [[ -f "$BINARY_DIRECTORY/$each" && ! -s "$BINARY_DIRECTORY/$each" ]];then
-        __ Empty file detected.
-        __; magenta rm "$BINARY_DIRECTORY/$each"; _.
-        rm "$BINARY_DIRECTORY/$each"
-    fi
-    if [ ! -f "$BINARY_DIRECTORY/$each" ];then
-        __ Memulai download.
-        if [ -z "$inside_directory" ];then
-            __; magenta wget https://github.com/ijortengab/gpl/raw/master/"$each" -O "$BINARY_DIRECTORY/$each"; _.
-            wget -q https://github.com/ijortengab/gpl/raw/master/"$each" -O "$BINARY_DIRECTORY/$each"
-        else
-            __; magenta wget https://github.com/ijortengab/gpl/raw/master/$(cut -d- -f2 <<< "$each")/"$each" -O "$BINARY_DIRECTORY/$each"; _.
-            wget -q https://github.com/ijortengab/gpl/raw/master/$(cut -d- -f2 <<< "$each")/"$each" -O "$BINARY_DIRECTORY/$each"
-        fi
-        if [ ! -s "$BINARY_DIRECTORY/$each" ];then
-            __; magenta rm "$BINARY_DIRECTORY/$each"; _.
-            rm "$BINARY_DIRECTORY/$each"
-            __; red HTTP Response: 404 Not Found; x
-        fi
-        __; magenta chmod a+x "$BINARY_DIRECTORY/$each"; _.
-        chmod a+x "$BINARY_DIRECTORY/$each"
-    elif [[ ! -x "$BINARY_DIRECTORY/$each" ]];then
-        __; magenta chmod a+x "$BINARY_DIRECTORY/$each"; _.
-        chmod a+x "$BINARY_DIRECTORY/$each"
-    fi
-    fileMustExists "$BINARY_DIRECTORY/$each"
-}
 [[ $(type -t ArraySearch) == function ]] || ArraySearch() {
     # Find element in Array. Searches the array for a given value and returns the
     # first corresponding key if successful.
@@ -175,10 +144,41 @@ done <<< `DrupalAutoinstaller_printHelp | sed -n '/^Dependency:/,$p' | sed -n '2
     done
     return 1
 }
+[[ $(type -t DrupalAutoinstaller_GplDownloader) == function ]] || DrupalAutoinstaller_GplDownloader() {
+    each="$1"
+    inside_directory="$2"
+    chapter Requires command: "$each".
+    if [[ -f "$BINARY_DIRECTORY/$each" && ! -s "$BINARY_DIRECTORY/$each" ]];then
+        __ Empty file detected.
+        __; magenta rm "$BINARY_DIRECTORY/$each"; _.
+        rm "$BINARY_DIRECTORY/$each"
+    fi
+    if [ ! -f "$BINARY_DIRECTORY/$each" ];then
+        __ Memulai download.
+        if [ -z "$inside_directory" ];then
+            __; magenta wget https://github.com/ijortengab/gpl/raw/master/"$each" -O "$BINARY_DIRECTORY/$each"; _.
+            wget -q https://github.com/ijortengab/gpl/raw/master/"$each" -O "$BINARY_DIRECTORY/$each"
+        else
+            __; magenta wget https://github.com/ijortengab/gpl/raw/master/$(cut -d- -f2 <<< "$each")/"$each" -O "$BINARY_DIRECTORY/$each"; _.
+            wget -q https://github.com/ijortengab/gpl/raw/master/$(cut -d- -f2 <<< "$each")/"$each" -O "$BINARY_DIRECTORY/$each"
+        fi
+        if [ ! -s "$BINARY_DIRECTORY/$each" ];then
+            __; magenta rm "$BINARY_DIRECTORY/$each"; _.
+            rm "$BINARY_DIRECTORY/$each"
+            __; red HTTP Response: 404 Not Found; x
+        fi
+        __; magenta chmod a+x "$BINARY_DIRECTORY/$each"; _.
+        chmod a+x "$BINARY_DIRECTORY/$each"
+    elif [[ ! -x "$BINARY_DIRECTORY/$each" ]];then
+        __; magenta chmod a+x "$BINARY_DIRECTORY/$each"; _.
+        chmod a+x "$BINARY_DIRECTORY/$each"
+    fi
+    fileMustExists "$BINARY_DIRECTORY/$each"
+}
 [[ $(type -t DrupalAutoinstaller_GplPromptOptions) == function ]] || DrupalAutoinstaller_GplPromptOptions() {
     command="$1"
     argument_pass=()
-    options=`gpl-drupal-setup-variation${variation}.sh --help | sed -n '/^Options[:\.]$/,$p' | sed -n '2,/^$/p'`
+    options=`$command --help | sed -n '/^Options[:\.]$/,$p' | sed -n '2,/^$/p'`
     until [[ -z "$options" ]];do
         parameter=`sed -n 1p <<< "$options" | xargs`
         is_required=
