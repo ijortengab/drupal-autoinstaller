@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.11'
+    echo '0.1.12'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -40,7 +40,7 @@ Version `DrupalAutoinstaller_printVersion`
 
 EOF
     cat << 'EOF'
-Usage: drupal-autoinstaller.sh <file>
+Usage: drupal-autoinstaller.sh
 
 Options:
    --variation=n
@@ -187,23 +187,30 @@ done <<< `DrupalAutoinstaller_printHelp | sed -n '/^Dependency:/,$p' | sed -n '2
             parameter=`sed -n 1p <<< "$options" | xargs`
             is_required=
             is_flag=
+            value_addon=
+            is_flagvalue=
             if [[ "${parameter:(-1):1}" == '*' ]];then
                 is_required=1
                 parameter="${parameter::-1}"
                 parameter=`xargs <<< "$parameter"`
-            fi
-            if [[ "${parameter:(-1):1}" == '^' ]];then
+            elif [[ "${parameter:(-1):1}" == '^' ]];then
                 is_flag=1
                 parameter="${parameter::-1}"
                 parameter=`xargs <<< "$parameter"`
             fi
             label=`sed -n 2p <<< "$options" | xargs`
+            if grep -q -i -E '(^|\.\s)Multivalue\.' <<< "$label";then
+                value_addon=multivalue
+            fi
+            if grep -q -i -E '(^|\.\s)Can have value\.' <<< "$label";then
+                value_addon=canhavevalue
+            fi
             options=`sed -n '3,$p' <<< "$options"`
             if [ -n "$is_required" ];then
                 _ 'Argument '; magenta ${parameter};_, ' is '; yellow required; _, ". ${label}"; _.
                 value=
                 until [[ -n "$value" ]];do
-                    read -p "Set the value: " value
+                    read -p "Type the value: " value
                 done
                 argument_pass+=("${parameter}=${value}")
             elif [ -n "$is_flag" ];then
@@ -214,14 +221,56 @@ done <<< `DrupalAutoinstaller_printHelp | sed -n '/^Dependency:/,$p' | sed -n '2
                     read -p "Add this argument [yN]? " value
                 done
                 if [[ "$value" =~ ^[yY]$ ]]; then
-                    argument_pass+=("${parameter}")
+                    if [[ "$value_addon" == 'canhavevalue' ]];then
+                        read -p "Do you want fill with value [yN]? " value
+                        until [[ "$value" =~ ^[yYnN]*$ ]]; do
+                            echo "$value: invalid selection."
+                            read -p "Do you want fill with value [yN]? " value
+                        done
+                        if [[ "$value" =~ ^[yY]$ ]]; then
+                            read -p "Type the value: " value
+                            argument_pass+=("${parameter}=${value}")
+                        else
+                            argument_pass+=("${parameter}")
+                        fi
+                    else
+                        argument_pass+=("${parameter}")
+                    fi
                 fi
             else
                 _ 'Argument '; magenta ${parameter};_, ' is '; _, optional; _, ". ${label}"; _.
-                read -p "Set the value: " value
+                read -p "Type the value: " value
                 if [ -n "$value" ];then
                     argument_pass+=("${parameter}=${value}")
                 fi
+            fi
+            if [[ "$value_addon" == 'multivalue' ]];then
+                again=1
+                until [ -z "$again" ]; do
+                    if [ -n "$is_flag" ];then
+                        read -p "Add this argument again [yN]? " value
+                    else
+                        read -p "Add other value [yN]? " value
+                    fi
+                    until [[ "$value" =~ ^[yYnN]*$ ]]; do
+                        echo "$value: invalid selection."
+                        if [ -n "$is_flag" ];then
+                            read -p "Add this argument again [yN]? " value
+                        else
+                            read -p "Add other value [yN]? " value
+                        fi
+                    done
+                    if [[ "$value" =~ ^[yY]$ ]]; then
+                        if [ -n "$is_flag" ];then
+                            argument_pass+=("${parameter}")
+                        else
+                            read -p "Type the value: " value
+                            [ -n "$value" ] && argument_pass+=("${parameter}=${value}")
+                        fi
+                    else
+                        again=
+                    fi
+                done
             fi
         done
         ____
