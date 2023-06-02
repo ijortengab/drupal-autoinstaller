@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.12'
+    echo '0.1.13'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -276,19 +276,22 @@ done <<< `DrupalAutoinstaller_printHelp | sed -n '/^Dependency:/,$p' | sed -n '2
         ____
     fi
 }
+
+# Prompt.
 if [ -z "$fast" ];then
-    seconds=2
-    start="$(($(date +%s) + $seconds))"
     yellow It is highly recommended that you use; _, ' ' ; magenta --fast; _, ' ' ; yellow option.; _.
-    while [ "$start" -ge `date +%s` ]; do
-        time="$(( $start - `date +%s` ))"
-        yellow .
+    countdown=5
+    while [ "$countdown" -ge 0 ]; do
+        printf "\r\033[K" >&2
+        printf %"$countdown"s | tr " " "." >&2
+        printf "\r"
+        countdown=$((countdown - 1))
         sleep .8
     done
-    _.
     ____
 fi
 
+# Title.
 title Drupal Auto-Installer
 e https://github.com/ijortengab/drupal-autoinstaller
 _ 'Version '; yellow `DrupalAutoinstaller_printVersion`; _.
@@ -324,6 +327,7 @@ if [ -z "$binary_directory_exists_sure" ];then
     notfound=
     if [ -d "$BINARY_DIRECTORY" ];then
         __ Direktori '`'$BINARY_DIRECTORY'`' ditemukan.
+        binary_directory_exists_sure=1
     else
         __ Direktori '`'$BINARY_DIRECTORY'`' tidak ditemukan.
         notfound=1
@@ -335,6 +339,7 @@ if [ -z "$binary_directory_exists_sure" ];then
         mkdir -p "$BINARY_DIRECTORY"
         if [ -d "$BINARY_DIRECTORY" ];then
             __; green Direktori '`'$BINARY_DIRECTORY'`' ditemukan.; _.
+            binary_directory_exists_sure=1
         else
             __; red Direktori '`'$BINARY_DIRECTORY'`' tidak ditemukan.; x
         fi
@@ -377,20 +382,22 @@ if [ $# -eq 0 ];then
 fi
 
 chapter Execute:
-code gpl-dependency-manager.sh gpl-drupal-setup-variation${variation}.sh
-code gpl-drupal-setup-variation${variation}.sh "$@"
+[ -n "$fast" ] && isfast='--fast ' || isfast=''
+code gpl-dependency-manager.sh ${isfast}gpl-drupal-setup-variation${variation}.sh
+code gpl-drupal-setup-variation${variation}.sh ${isfast}"$@"
 ____
 
+# Prompt.
 if [ -z "$fast" ];then
-    seconds=2
-    start="$(($(date +%s) + $seconds))"
     yellow It is highly recommended that you use; _, ' ' ; magenta --fast; _, ' ' ; yellow option.; _.
-    while [ "$start" -ge `date +%s` ]; do
-        time="$(( $start - `date +%s` ))"
-        yellow .
+    countdown=5
+    while [ "$countdown" -ge 0 ]; do
+        printf "\r\033[K" >&2
+        printf %"$countdown"s | tr " " "." >&2
+        printf "\r"
+        countdown=$((countdown - 1))
         sleep .8
     done
-    _.
     ____
 fi
 
@@ -400,7 +407,6 @@ DrupalAutoinstaller_BEGIN=$SECONDS
 ____
 
 _ -----------------------------------------------------------------------;_.;_.;
-[ -n "$fast" ] && isfast='--fast' || isfast=''
 command -v "gpl-dependency-manager.sh" >/dev/null || { red "Unable to proceed, gpl-dependency-manager.sh command not found." "\e[39m"; x; }
 INDENT="    " gpl-dependency-manager.sh gpl-drupal-setup-variation${variation}.sh $isfast --root-sure --binary-directory-exists-sure
 command -v "gpl-drupal-setup-variation${variation}.sh" >/dev/null || { red "Unable to proceed, gpl-drupal-setup-variation${variation}.sh command not found."; x; }
