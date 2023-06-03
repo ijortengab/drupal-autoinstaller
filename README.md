@@ -9,48 +9,79 @@ sudo apt install wget -y
 
 ## Quick Mode Install
 
-You will be prompt to some required value.
+Login as root.
 
 ```
-cd /tmp && wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh && sudo -E bash drupal-autoinstaller.sh
+sudo su
+```
+
+Download.
+
+```
+mkdir -p ~/bin
+cd ~/bin
+wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
+chmod a+x drupal-autoinstaller.sh
+cd -
+```
+
+Make sure that directory `~/bin` has been include as `$PATH` in `~/.bashrc`.
+
+```
+cat << 'EOF' >> ~/.bashrc
+
+export PATH=~/bin:$PATH
+EOF
+export PATH=~/bin:$PATH
+```
+
+then feels free to execute command. You will be prompt to some required value.
+
+```
+drupal-autoinstaller.sh
 ```
 
 ## Advanced Install
 
-Alternative 1. Change binary directory to all user inside `/usr/local/bin`.
+Example 1. Change binary directory to `/usr/local/bin`.
+
+Download.
 
 ```
-cd /tmp
+cd /usr/local/bin
 wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-sudo BINARY_DIRECTORY=/usr/local/bin -E bash drupal-autoinstaller.sh
+chmod a+x drupal-autoinstaller.sh
+cd -
 ```
 
-Alternative 1.1. Change binary directory per project.
+If you change binary directory from default `$HOME/bin`, to others (i.e `/usr/local/bin`) then we must prepend environment variable (`$BINARY_DIRECTORY`) before execute the command.
 
-Attention. Variable project_name can only contain alphanumeric and underscores.
+Execute:
 
 ```
-cd /tmp
+BINARY_DIRECTORY=/usr/local/bin drupal-autoinstaller.sh
+```
+
+Example 2. Change binary directory per project.
+
+Attention. Variable project_name have to contain alphanumeric and underscores only.
+
+```
 unset project_name
 until [[ -n "$project_name" ]];do read -p "Argument --project-name is required: " project_name; done
-wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-sudo BINARY_DIRECTORY=/var/www/project/"$project_name"/bin -E bash drupal-autoinstaller.sh -- --project-name "$project_name"
+BINARY_DIRECTORY=/var/www/project/"$project_name"/bin drupal-autoinstaller.sh -- --project-name "$project_name"
 ```
 
-Alternative 2. Pass some argument to setup.
+Example 3. Pass some argument to command `gpl-drupal-setup-variation{n}.sh` using double dash as separator `--`.
 
 ```
-cd /tmp
-wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-sudo -E bash drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
+drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
 ```
 
-Alternative 3. Fast version.
+Example 4. Fast version.
 
 ```
-cd /tmp
-wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-sudo -E bash drupal-autoinstaller.sh --fast
+drupal-autoinstaller.sh --fast
 ```
 
 ## User Guide
@@ -58,7 +89,7 @@ sudo -E bash drupal-autoinstaller.sh --fast
 Set the project name as identifier.
 
 ```
-sudo -E bash drupal-autoinstaller.sh -- --project-name mysite
+drupal-autoinstaller.sh -- --project-name mysite
 ```
 
 Drupal will be installed quickly. Point browser to address http://mysite.drupal.localhost to see the results.
@@ -72,7 +103,7 @@ Install Drupal site with domain `systemix.id`.
 We decide to set the project name similar to domain, namely `systemix`.
 
 ```
-sudo -E bash drupal-autoinstaller.sh -- --project-name systemix --domain systemix.id
+drupal-autoinstaller.sh -- --project-name systemix --domain systemix.id
 ```
 
 Drupal will be installed quickly. Point browser to address http://systemix.drupal.localhost to see the results.
@@ -91,7 +122,7 @@ Create main site first but it is not mandatory. We use domain `bta.my.id`.
 We decide to set the project name similar to domain, namely `bta`.
 
 ```
-sudo -E bash drupal-autoinstaller.sh -- --project-name bta --domain bta.my.id
+drupal-autoinstaller.sh -- --project-name bta --domain bta.my.id
 ```
 
 Create sub site. We use domain `finance.bta.my.id`.
@@ -99,7 +130,7 @@ We decide to set the project name similar to subdomain, namely `finance`.
 We have to set the project parent name to `bta`, so we use the codebase of project `bta`.
 
 ```
-sudo -E bash drupal-autoinstaller.sh -- --project-parent-name bta --project-name finance --domain finance.bta.my.id
+drupal-autoinstaller.sh -- --project-parent-name bta --project-name finance --domain finance.bta.my.id
 ```
 
 Drupal will installed quickly. Point browser to address `http://bta.drupal.localhost` for mainsite,
