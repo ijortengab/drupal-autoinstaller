@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.15'
+    echo '0.1.16'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -250,8 +250,8 @@ chapter Available:
 eligible=()
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.; eligible+=("1debian11")
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.; eligible+=("2debian11")
-_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, Drupal 10, PHP 8.2. ; _.; eligible+=("3ubuntu22.04")
-_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, Drupal 9, PHP 8.1. ; _.; eligible+=("4ubuntu22.04")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, Drupal 10, Drush 12, PHP 8.2. ; _.; eligible+=("3ubuntu22.04")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, Drupal 9, Drush 11, PHP 8.1. ; _.; eligible+=("4ubuntu22.04")
 ____
 
 if [ -n "$variation" ];then
@@ -268,27 +268,20 @@ fi
 ____
 
 chapter Execute:
-[ -n "$fast" ] && isfast='--fast ' || isfast=''
-code rcm ${isfast}rcm-drupal-setup-variation${variation}.sh -- "$@"
+[ -n "$fast" ] && isfast=' --fast' || isfast=''
+code rcm${isfast} rcm-drupal-setup-variation${variation}.sh -- "$@"
 ____
+_ _______________________________________________________________________;_.;_.;
 
-chapter Timer Start.
-e Begin: $(date +%Y%m%d-%H%M%S)
-DrupalAutoinstaller_BEGIN=$SECONDS
-____
+INDENT+="    "
+command -v "rcm" >/dev/null || { error "Unable to proceed, rcm command not found."; x; }
+INDENT="$INDENT" rcm${isfast} rcm-drupal-setup-variation${variation}.sh --root-sure --binary-directory-exists-sure -- "$@"
+INDENT=${INDENT::-4}
+_ _______________________________________________________________________;_.;_.;
 
-_ -----------------------------------------------------------------------;_.;_.;
-command -v "rcm" >/dev/null || { red "Unable to proceed, rcm command not found." "\e[39m"; x; }
-INDENT="    " rcm ${isfast}rcm-drupal-setup-variation${variation}.sh --root-sure --binary-directory-exists-sure -- "$@"
-_ -----------------------------------------------------------------------;_.;_.;
-
-chapter Timer Finish.
-e End: $(date +%Y%m%d-%H%M%S)
-DrupalAutoinstaller_END=$SECONDS
-duration=$(( DrupalAutoinstaller_END - DrupalAutoinstaller_BEGIN ))
-hours=$((duration / 3600)); minutes=$(( (duration % 3600) / 60 )); seconds=$(( (duration % 3600) % 60 ));
-runtime=`printf "%02d:%02d:%02d" $hours $minutes $seconds`
-_ Duration: $runtime; if [ $duration -gt 60 ];then _, " (${duration} seconds)"; fi; _, '.'; _.
+chapter Finish
+e If you want to see the credentials again, please execute this command:
+code sudo -E $(command -v rcm-drupal-setup-dump-variables.sh)
 ____
 
 # parse-options.sh \
