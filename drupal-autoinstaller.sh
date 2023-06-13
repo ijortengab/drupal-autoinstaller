@@ -30,7 +30,7 @@ unset _new_arguments
 
 # Functions.
 [[ $(type -t DrupalAutoinstaller_printVersion) == function ]] || DrupalAutoinstaller_printVersion() {
-    echo '0.1.14'
+    echo '0.1.15'
 }
 [[ $(type -t DrupalAutoinstaller_printHelp) == function ]] || DrupalAutoinstaller_printHelp() {
     cat << EOF
@@ -49,7 +49,8 @@ Options:
         Bypass binary directory checking.
    --
         Every arguments after double dash will pass to gpl-drupal-setup-variation${n}.sh command.
-        Example: drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
+
+Example: drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
 
 Global Options:
    --fast
@@ -250,6 +251,7 @@ eligible=()
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.; eligible+=("1debian11")
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.; eligible+=("2debian11")
 _ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, Drupal 10, PHP 8.2. ; _.; eligible+=("3ubuntu22.04")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, Drupal 9, PHP 8.1. ; _.; eligible+=("4ubuntu22.04")
 ____
 
 if [ -n "$variation" ];then
