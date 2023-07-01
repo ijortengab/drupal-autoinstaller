@@ -244,7 +244,16 @@ fi
 
 PATH="${BINARY_DIRECTORY}:${PATH}"
 
-DrupalAutoinstaller_RcmDownloader
+chapter Requires command.
+_ Requires command: rcm
+if command -v rcm > /dev/null;then
+    _, ' [FOUND].'; _.
+    ____
+else
+    _, ' [NOTFOUND].'; _.
+    ____
+    DrupalAutoinstaller_RcmDownloader
+fi
 
 chapter Available:
 eligible=()
@@ -278,11 +287,6 @@ command -v "rcm" >/dev/null || { error "Unable to proceed, rcm command not found
 INDENT="$INDENT" rcm${isfast} rcm-drupal-setup-variation${variation}.sh --root-sure --binary-directory-exists-sure -- "$@"
 INDENT=${INDENT::-4}
 _ _______________________________________________________________________;_.;_.;
-
-chapter Finish
-e If you want to see the credentials again, please execute this command:
-code sudo -E $(command -v rcm-drupal-setup-dump-variables.sh)
-____
 
 # parse-options.sh \
 # --compact \
