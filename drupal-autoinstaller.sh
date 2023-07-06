@@ -27,7 +27,7 @@ unset _new_arguments
 
 # Functions.
 printVersion() {
-    echo '0.2.0'
+    echo '0.2.1'
 }
 printHelp() {
     cat << EOF
@@ -45,7 +45,7 @@ Options:
    --binary-directory-exists-sure
         Bypass binary directory checking.
    --
-        Every arguments after double dash will pass to gpl-drupal-setup-variation${n}.sh command.
+        Every arguments after double dash will pass to rcm-drupal-setup-variation{n}.sh command.
 
 Example: drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
 
@@ -172,7 +172,7 @@ RcmDownloader() {
 # Prompt.
 if [ -z "$fast" ];then
     yellow It is highly recommended that you use; _, ' ' ; magenta --fast; _, ' ' ; yellow option.; _.
-    countdown=5
+    countdown=1
     while [ "$countdown" -ge 0 ]; do
         printf "\r\033[K" >&2
         printf %"$countdown"s | tr " " "." >&2
