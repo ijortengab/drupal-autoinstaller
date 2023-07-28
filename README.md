@@ -83,7 +83,7 @@ until [[ -n "$project_name" ]];do read -p "Argument --project-name is required: 
 BINARY_DIRECTORY=/var/www/project/"$project_name"/bin drupal-autoinstaller.sh -- --project-name "$project_name"
 ```
 
-Example 3. Pass some argument to command `gpl-drupal-setup-variation{n}.sh` using double dash as separator `--`.
+Example 3. Pass some argument to command `rcm-drupal-setup-variation{n}.sh` using double dash as separator `--`.
 
 ```
 drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
