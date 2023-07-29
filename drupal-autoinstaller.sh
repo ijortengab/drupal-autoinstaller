@@ -278,10 +278,13 @@ fi
 
 chapter Available:
 eligible=()
-_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.; eligible+=("1debian11")
-_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.; eligible+=("2debian11")
-_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, Drupal 10, Drush 12, PHP 8.2. ; _.; eligible+=("3ubuntu22.04")
-_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, Drupal 9, Drush 11, PHP 8.1. ; _.; eligible+=("4ubuntu22.04")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.; eligible+=("1;debian;11")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.; eligible+=("2;debian;11")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, Drupal 10, Drush 12, PHP 8.2. ; _.; eligible+=("3;ubuntu;22.04")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, Drupal 9, Drush 11, PHP 8.1. ; _.; eligible+=("4;ubuntu;22.04")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 1; _, . Debian 12, Drupal 10, PHP 8.2. ; _.; eligible+=("1;debian;11")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 2; _, . Debian 12, Drupal 9, PHP 8.1. ; _.; eligible+=("2;debian;11")
+
 ____
 
 if [ -n "$variation" ];then
@@ -289,7 +292,7 @@ if [ -n "$variation" ];then
 else
     until [[ -n "$variation" ]];do
         read -p "Select variation: " variation
-        if ! ArraySearch "${variation}${ID}${VERSION_ID}" eligible[@];then
+        if ! ArraySearch "${variation};${ID};${VERSION_ID}" eligible[@];then
             error Not eligible.
             variation=
         fi
