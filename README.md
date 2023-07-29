@@ -2,6 +2,8 @@
 
 ## Prerequisite
 
+Login as root.
+
 ```
 sudo apt update
 sudo apt install wget -y
@@ -11,7 +13,7 @@ To avoid interruption because of kernel update, it is recommend to restart
 machine after upgrade if you start from empty virtual machine instance.
 
 ```
-apt upgrade
+apt upgrade -y
 init 6
 ```
 
@@ -54,26 +56,33 @@ drupal-autoinstaller.sh --fast
 
 ## Advanced Install
 
-Example 1. Change binary directory to `/usr/local/bin`.
+**Example 1.**
 
-Download.
+Save script to `/usr/local/bin`.
+
+Download and execute.
 
 ```
 cd /usr/local/bin
 wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
 chmod a+x drupal-autoinstaller.sh
 cd -
+drupal-autoinstaller.sh --fast
 ```
 
-If you change binary directory from default `$HOME/bin`, to others (i.e `/usr/local/bin`) then we must prepend environment variable (`$BINARY_DIRECTORY`) before execute the command.
+All dependency script will be download to same location of `drupal-autoinstaller.sh`.
+If you wish to store dependency to other location, use the environment variable
+`BINARY_DIRECTORY` before execute the command.
 
-Execute:
+Example: Store all script to `$HOME/bin`, then execute.
 
 ```
-BINARY_DIRECTORY=/usr/local/bin drupal-autoinstaller.sh
+BINARY_DIRECTORY=$HOME/bin drupal-autoinstaller.sh --fast
 ```
 
-Example 2. Change binary directory per project.
+**Example 2.**
+
+Change binary directory per project.
 
 Attention. Variable project_name have to contain alphanumeric and underscores only.
 
@@ -83,17 +92,39 @@ until [[ -n "$project_name" ]];do read -p "Argument --project-name is required: 
 BINARY_DIRECTORY=/var/www/project/"$project_name"/bin drupal-autoinstaller.sh -- --project-name "$project_name"
 ```
 
-Example 3. Pass some argument to command `rcm-drupal-setup-variation{n}.sh` using double dash as separator `--`.
+**Example 3.**
+
+Avoid prompt with non interractive mode with passing all required
+argument of command `rcm-drupal-setup-variation{n}.sh` using double dash as
+separator `--`.
 
 ```
-drupal-autoinstaller.sh -- --timezone=Asia/Jakarta
+drupal-autoinstaller.sh --fast \
+    --variation 1 \
+    -- \
+    --project-name=$project_name \
+    --project-parent-name='' \
+    --domain='' \
+    --timezone=Asia/Jakarta
 ```
 
-Example 4. Fast version.
+## Available Variation
 
-```
-drupal-autoinstaller.sh --fast
-```
+**Variation 1**
+
+ > Variation 1. Debian 11, Drupal 10, PHP 8.2.
+
+**Variation 2**
+
+ > Variation 2. Debian 11, Drupal 9, PHP 8.1.
+
+**Variation 3**
+
+ > Variation 3. Ubuntu 22.04, Drupal 10, PHP 8.2.
+
+**Variation 4**
+
+ > Variation 4. Ubuntu 22.04, Drupal 9, PHP 8.1.
 
 ## User Guide
 
