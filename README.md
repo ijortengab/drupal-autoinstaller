@@ -128,11 +128,11 @@ drupal-autoinstaller.sh --fast \
 
 **Variation 5**
 
- > Variation 1. Debian 12, Drupal 10, PHP 8.2.
+ > Variation 5. Debian 12, Drupal 10, PHP 8.2.
 
 **Variation 6**
 
- > Variation 2. Debian 12, Drupal 9, PHP 8.1.
+ > Variation 6. Debian 12, Drupal 9, PHP 8.1.
 
 ## User Guide
 
