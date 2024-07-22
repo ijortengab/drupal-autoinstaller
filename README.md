@@ -25,7 +25,17 @@ Login as root.
 sudo su
 ```
 
-Download.
+Download and put the script in directory of `$PATH`.
+
+```
+wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
+chmod a+x drupal-autoinstaller.sh
+mv drupal-autoinstaller.sh -t /usr/local/bin
+```
+
+## Alternate Mode Install
+
+Create personal binary directory.
 
 ```
 mkdir -p ~/bin
@@ -48,27 +58,27 @@ EOF
 }
 ```
 
-then feels free to execute command. You will be prompt to some required value.
-
-```
-drupal-autoinstaller.sh --fast
-```
-
-## Advanced Install
+## How to Use
 
 **Example 1.**
 
-Save script to `/usr/local/bin`.
-
-Download and execute.
+Feels free to execute command. You will be prompt to some required value.
 
 ```
-cd /usr/local/bin
-wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-chmod a+x drupal-autoinstaller.sh
-cd -
 drupal-autoinstaller.sh --fast
 ```
+
+**Example 2.**
+
+Set the project name as identifier.
+
+```
+drupal-autoinstaller.sh -- --project-name mysite
+```
+
+Drupal will be installed quickly. Point browser to address http://mysite.drupal.localhost to see the results.
+
+**Example 3.**
 
 All dependency script will be download to same location of `drupal-autoinstaller.sh`.
 If you wish to store dependency to other location, use the environment variable
@@ -80,7 +90,7 @@ Example: Store all script to `$HOME/bin`, then execute.
 BINARY_DIRECTORY=$HOME/bin drupal-autoinstaller.sh --fast
 ```
 
-**Example 2.**
+**Example 4.**
 
 Change binary directory per project.
 
@@ -89,10 +99,10 @@ Attention. Variable project_name have to contain alphanumeric and underscores on
 ```
 unset project_name
 until [[ -n "$project_name" ]];do read -p "Argument --project-name is required: " project_name; done
-BINARY_DIRECTORY=/var/www/project/"$project_name"/bin drupal-autoinstaller.sh -- --project-name "$project_name"
+BINARY_DIRECTORY=/var/www/drupal-project/"$project_name"/bin drupal-autoinstaller.sh -- --project-name "$project_name"
 ```
 
-**Example 3.**
+**Example 5.**
 
 Avoid prompt with non interractive mode with passing all required
 argument of command `rcm-drupal-setup-variation{n}.sh` using double dash as
@@ -110,41 +120,17 @@ drupal-autoinstaller.sh --fast \
 
 ## Available Variation
 
-**Variation 1**
+| Variation |  OS           |  Drupal |  PHP |
+|:---------:|---------------|--------:|-----:|
+|     1     |  Debian 11    |      10 |  8.2 |
+|     2     |  Debian 11    |       9 |  8.1 |
+|     3     |  Ubuntu 22.04 |      10 |  8.2 |
+|     4     |  Ubuntu 22.04 |       9 |  8.1 |
+|     5     |  Debian 12    |      10 |  8.2 |
+|     6     |  Debian 12    |       9 |  8.1 |
+|     7     |  Debian 12    |      10 |  8.3 |
 
- > Variation 1. Debian 11, Drupal 10, PHP 8.2.
-
-**Variation 2**
-
- > Variation 2. Debian 11, Drupal 9, PHP 8.1.
-
-**Variation 3**
-
- > Variation 3. Ubuntu 22.04, Drupal 10, PHP 8.2.
-
-**Variation 4**
-
- > Variation 4. Ubuntu 22.04, Drupal 9, PHP 8.1.
-
-**Variation 5**
-
- > Variation 5. Debian 12, Drupal 10, PHP 8.2.
-
-**Variation 6**
-
- > Variation 6. Debian 12, Drupal 9, PHP 8.1.
-
-## User Guide
-
-Set the project name as identifier.
-
-```
-drupal-autoinstaller.sh -- --project-name mysite
-```
-
-Drupal will be installed quickly. Point browser to address http://mysite.drupal.localhost to see the results.
-
-## Example
+## Case Study
 
 1. Simple Site
 
@@ -197,7 +183,7 @@ We can manage multisite with `drush`, don't forget to use the `--uri` options.
 
 ```
 project_dir=bta
-PATH=/var/www/project/$project_dir/drupal/vendor/bin:$PATH
-cd /var/www/project/$project_dir/drupal
+PATH=/var/www/drupal-project/$project_dir/drupal/vendor/bin:$PATH
+cd /var/www/drupal-project/$project_dir/drupal
 drush status --uri=finance.bta.my.id
 ```
