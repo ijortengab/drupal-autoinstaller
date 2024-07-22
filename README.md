@@ -129,6 +129,7 @@ drupal-autoinstaller.sh --fast \
 |     5     |  Debian 12    |      10 |  8.2 |
 |     6     |  Debian 12    |       9 |  8.1 |
 |     7     |  Debian 12    |      10 |  8.3 |
+|     8     |  Debian 11    |      10 |  8.3 |
 
 ## Case Study
 
