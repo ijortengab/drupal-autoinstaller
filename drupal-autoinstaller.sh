@@ -278,16 +278,16 @@ fi
 
 chapter Available:
 eligible=()
-_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, Drupal 10, PHP 8.2. ; _.; eligible+=("1;debian;11")
-_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, Drupal 9, PHP 8.1. ; _.; eligible+=("2;debian;11")
-_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, Drupal 10, Drush 12, PHP 8.2. ; _.; eligible+=("3;ubuntu;22.04")
-_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, Drupal 9, Drush 11, PHP 8.1. ; _.; eligible+=("4;ubuntu;22.04")
-_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 5; _, . Debian 12, Drupal 10, PHP 8.2. ; _.; eligible+=("5;debian;12")
-_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 6; _, . Debian 12, Drupal 9, PHP 8.1. ; _.; eligible+=("6;debian;12")
-_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 7; _, . Debian 12, Drupal 10, PHP 8.3. ; _.; eligible+=("7;debian;12")
-_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 8; _, . Debian 11, Drupal 10, PHP 8.3. ; _.; eligible+=("8;debian;11")
-_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 9; _, . Ubuntu 22.04, Drupal 10, Drush 12, PHP 8.3. ; _.; eligible+=("9;ubuntu;22.04")
-
+_ 'Variation '; green 0; _, . Create a new Drupal instance. ; _.; eligible+=("0;all;all")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, '   'PHP 8.2, Drupal 10, Drush 12.; _.; eligible+=("1;debian;11")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("2;debian;11")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("3;ubuntu;22.04")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("4;ubuntu;22.04")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 5; _, . Debian 12, '   'PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("5;debian;12")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 6; _, . Debian 12, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("6;debian;12")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 7; _, . Debian 12, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("7;debian;12")
+_ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 8; _, . Debian 11, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("8;debian;11")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 9; _, . Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("9;ubuntu;22.04")
 ____
 
 if [ -n "$variation" ];then
@@ -295,6 +295,10 @@ if [ -n "$variation" ];then
 else
     until [[ -n "$variation" ]];do
         read -p "Select variation: " variation
+        if [[ "$variation" == "0" ]];then
+            ID=all
+            VERSION_ID=all
+        fi
         if ! ArraySearch "${variation};${ID};${VERSION_ID}" eligible[@];then
             error Not eligible.
             variation=
@@ -305,15 +309,15 @@ ____
 
 chapter Execute:
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
-code rcm${isfast} rcm-drupal-setup-variation${variation}.sh -- "$@"
+if [ $# -gt 0 ];then
+    code rcm${isfast} rcm-drupal-setup-variation${variation}.sh -- "$@"
+else
+    code rcm${isfast} rcm-drupal-setup-variation${variation}.sh
+fi
 ____
-_ _______________________________________________________________________;_.;_.;
 
-INDENT+="    "
 command -v "rcm" >/dev/null || { error "Unable to proceed, rcm command not found."; x; }
-INDENT="$INDENT" rcm${isfast} rcm-drupal-setup-variation${variation}.sh --root-sure --binary-directory-exists-sure -- "$@"
-INDENT=${INDENT::-4}
-_ _______________________________________________________________________;_.;_.;
+INDENT+="    " rcm${isfast} rcm-drupal-setup-variation${variation}.sh --root-sure --binary-directory-exists-sure -- "$@"
 
 # parse-options.sh \
 # --compact \
