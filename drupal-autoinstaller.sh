@@ -27,7 +27,7 @@ unset _new_arguments
 
 # Functions.
 printVersion() {
-    echo '0.2.1'
+    echo '0.3.0'
 }
 printHelp() {
     cat << EOF
