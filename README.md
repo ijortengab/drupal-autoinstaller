@@ -130,6 +130,7 @@ drupal-autoinstaller.sh --fast \
 |     6     |  Debian 12    |       9 |  8.1 |
 |     7     |  Debian 12    |      10 |  8.3 |
 |     8     |  Debian 11    |      10 |  8.3 |
+|     9     |  Ubuntu 22.04 |      10 |  8.3 |
 
 ## Case Study
 
@@ -180,11 +181,10 @@ curl 127.0.0.1 -H "Host: bta.my.id"
 curl 127.0.0.1 -H "Host: finance.bta.my.id"
 ```
 
-We can manage multisite with `drush`, don't forget to use the `--uri` options.
+## Drush
+
+We can manage all project and all multisite with `drush`, don't forget to use the `--uri` options.
 
 ```
-project_dir=bta
-PATH=/var/www/drupal-project/$project_dir/drupal/vendor/bin:$PATH
-cd /var/www/drupal-project/$project_dir/drupal
-drush status --uri=finance.bta.my.id
+. cd-drupal
 ```

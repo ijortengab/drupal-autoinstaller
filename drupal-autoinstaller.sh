@@ -286,6 +286,7 @@ _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || c
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 6; _, . Debian 12, Drupal 9, PHP 8.1. ; _.; eligible+=("6;debian;12")
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 7; _, . Debian 12, Drupal 10, PHP 8.3. ; _.; eligible+=("7;debian;12")
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 8; _, . Debian 11, Drupal 10, PHP 8.3. ; _.; eligible+=("8;debian;11")
+_ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 9; _, . Ubuntu 22.04, Drupal 10, Drush 12, PHP 8.3. ; _.; eligible+=("9;ubuntu;22.04")
 
 ____
 
