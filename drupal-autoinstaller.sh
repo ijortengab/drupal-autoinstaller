@@ -278,7 +278,7 @@ fi
 
 chapter Available:
 eligible=()
-_ 'Variation '; green 0; _, . Create a new Drupal instance. ; _.; eligible+=("0;all;all")
+_ 'Variation '; green 0; _, . Just Drupal without LEMP Stack setup. ; _.; eligible+=("0;all;all")
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, '   'PHP 8.2, Drupal 10, Drush 12.; _.; eligible+=("1;debian;11")
 _ 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("2;debian;11")
 _ 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("3;ubuntu;22.04")
