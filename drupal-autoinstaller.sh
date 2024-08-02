@@ -367,6 +367,17 @@ else
 fi
 ____
 
+chapter Requires command.
+_ Requires command: rcm
+if command -v rcm > /dev/null;then
+    _, ' [FOUND].'; _.
+else
+    _, ' [NOTFOUND].'; _.
+    RcmDownloader
+    command -v "rcm" >/dev/null || { error "Unable to proceed, rcm command not found."; x; }
+fi
+____
+
 chapter Execute:
 if [ $# -gt 0 ];then
     code rcm${isfast} rcm-drupal-setup-variation${variation}.sh -- "$@"
@@ -375,22 +386,6 @@ else
 fi
 ____
 
-chapter Requires command.
-_ Requires command: rcm
-found=
-if command -v rcm > /dev/null;then
-    _, ' [FOUND].'; _.
-    found=1
-else
-    _, ' [NOTFOUND].'; _.
-fi
-____
-
-if [ -z "$found" ];then
-    RcmDownloader
-fi
-
-command -v "rcm" >/dev/null || { error "Unable to proceed, rcm command not found."; x; }
 INDENT+="    " rcm${isfast} rcm-drupal-setup-variation${variation}.sh --root-sure --binary-directory-exists-sure -- "$@"
 
 # parse-options.sh \
