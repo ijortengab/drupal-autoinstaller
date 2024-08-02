@@ -73,7 +73,7 @@ drupal-autoinstaller.sh --fast
 Set the project name as identifier.
 
 ```
-drupal-autoinstaller.sh -- --project-name mysite
+drupal-autoinstaller.sh --fast -- --project-name mysite
 ```
 
 Drupal will be installed quickly. Point browser to address http://mysite.drupal.localhost to see the results.
@@ -92,18 +92,6 @@ BINARY_DIRECTORY=$HOME/bin drupal-autoinstaller.sh --fast
 
 **Example 4.**
 
-Change binary directory per project.
-
-Attention. Variable project_name have to contain alphanumeric and underscores only.
-
-```
-unset project_name
-until [[ -n "$project_name" ]];do read -p "Argument --project-name is required: " project_name; done
-BINARY_DIRECTORY=/var/www/drupal-project/"$project_name"/bin drupal-autoinstaller.sh -- --project-name "$project_name"
-```
-
-**Example 5.**
-
 Avoid prompt with non interractive mode with passing all required
 argument of command `rcm-drupal-setup-variation{n}.sh` using double dash as
 separator `--`.
@@ -118,20 +106,6 @@ drupal-autoinstaller.sh --fast \
     --timezone=Asia/Jakarta
 ```
 
-## Available Variation
-
-| Variation |  OS           |  Drupal |  PHP |
-|:---------:|---------------|--------:|-----:|
-|     1     |  Debian 11    |      10 |  8.2 |
-|     2     |  Debian 11    |       9 |  8.1 |
-|     3     |  Ubuntu 22.04 |      10 |  8.2 |
-|     4     |  Ubuntu 22.04 |       9 |  8.1 |
-|     5     |  Debian 12    |      10 |  8.2 |
-|     6     |  Debian 12    |       9 |  8.1 |
-|     7     |  Debian 12    |      10 |  8.3 |
-|     8     |  Debian 11    |      10 |  8.3 |
-|     9     |  Ubuntu 22.04 |      10 |  8.3 |
-
 ## Case Study
 
 1. Simple Site
@@ -141,7 +115,7 @@ Install Drupal site with domain `systemix.id`.
 We decide to set the project name similar to domain, namely `systemix`.
 
 ```
-drupal-autoinstaller.sh -- --project-name systemix --domain systemix.id
+drupal-autoinstaller.sh --fast -- --project-name systemix --domain systemix.id
 ```
 
 Drupal will be installed quickly. Point browser to address http://systemix.drupal.localhost to see the results.
@@ -160,7 +134,7 @@ Create main site first but it is not mandatory. We use domain `bta.my.id`.
 We decide to set the project name similar to domain, namely `bta`.
 
 ```
-drupal-autoinstaller.sh -- --project-name bta --domain bta.my.id
+drupal-autoinstaller.sh --fast -- --project-name bta --domain bta.my.id
 ```
 
 Create sub site. We use domain `finance.bta.my.id`.
@@ -168,7 +142,7 @@ We decide to set the project name similar to subdomain, namely `finance`.
 We have to set the project parent name to `bta`, so we use the codebase of project `bta`.
 
 ```
-drupal-autoinstaller.sh -- --project-parent-name bta --project-name finance --domain finance.bta.my.id
+drupal-autoinstaller.sh --fast -- --project-parent-name bta --project-name finance --domain finance.bta.my.id
 ```
 
 Drupal will installed quickly. Point browser to address `http://bta.drupal.localhost` for mainsite,
@@ -183,8 +157,22 @@ curl 127.0.0.1 -H "Host: finance.bta.my.id"
 
 ## Drush
 
-We can manage all project and all multisite with `drush`, don't forget to use the `--uri` options.
+We can manage all project and all multisite with `drush`, execute the launcher with command:
 
 ```
 . cd-drupal
 ```
+
+## Available Variation
+
+| Variation |  OS           |  Drupal |  PHP |
+|:---------:|---------------|--------:|-----:|
+|     1     |  Debian 11    |      10 |  8.2 |
+|     2     |  Debian 11    |       9 |  8.1 |
+|     3     |  Ubuntu 22.04 |      10 |  8.2 |
+|     4     |  Ubuntu 22.04 |       9 |  8.1 |
+|     5     |  Debian 12    |      10 |  8.2 |
+|     6     |  Debian 12    |       9 |  8.1 |
+|     7     |  Debian 12    |      10 |  8.3 |
+|     8     |  Debian 11    |      10 |  8.3 |
+|     9     |  Ubuntu 22.04 |      10 |  8.3 |
