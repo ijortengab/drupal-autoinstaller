@@ -17,142 +17,57 @@ apt upgrade -y
 init 6
 ```
 
-## Quick Mode Install
+## Install
 
-Login as root.
+### RCM
+
+Download `rcm` from Github.
 
 ```
-sudo su
+wget git.io/rcm
+chmod a+x rcm
 ```
+
+You can put `rcm` file anywhere in $PATH:
+
+```
+mv rcm -t /usr/local/bin
+```
+
+then..
+
+```
+rcm install drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
+```
+
+or if you want alternate binary directory:
+
+```
+BINARY_DIRECTORY=$HOME/bin \
+    rcm install drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
+```
+
+### Direct Download
 
 Download and put the script in directory of `$PATH`.
 
 ```
 wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
 chmod a+x drupal-autoinstaller.sh
+```
+
+You can put `drupal-autoinstaller.sh` file anywhere in $PATH:
+
+```
 mv drupal-autoinstaller.sh -t /usr/local/bin
 ```
 
-## Alternate Mode Install
-
-Create personal binary directory.
-
-```
-mkdir -p ~/bin
-cd ~/bin
-wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-chmod a+x drupal-autoinstaller.sh
-cd - >/dev/null
-```
-
-Make sure that directory `~/bin` has been include as `$PATH` in `~/.profile`.
-
-```
-command -v drupal-autoinstaller.sh >/dev/null || {
-    PATH="$HOME/bin:$PATH"
-    cat << 'EOF' >> ~/.profile
-if [ -d "$HOME/bin" ] ; then
-    PATH="$HOME/bin:$PATH"
-fi
-EOF
-}
-```
-
 ## How to Use
-
-**Example 1.**
 
 Feels free to execute command. You will be prompt to some required value.
 
 ```
 drupal-autoinstaller.sh --fast
-```
-
-**Example 2.**
-
-Set the project name as identifier.
-
-```
-drupal-autoinstaller.sh --fast -- --project-name mysite
-```
-
-Drupal will be installed quickly. Point browser to address http://mysite.drupal.localhost to see the results.
-
-**Example 3.**
-
-All dependency script will be download to same location of `drupal-autoinstaller.sh`.
-If you wish to store dependency to other location, use the environment variable
-`BINARY_DIRECTORY` before execute the command.
-
-Example: Store all script to `$HOME/bin`, then execute.
-
-```
-BINARY_DIRECTORY=$HOME/bin drupal-autoinstaller.sh --fast
-```
-
-**Example 4.**
-
-Avoid prompt with non interractive mode with passing all required
-argument of command `rcm-drupal-setup-variation{n}.sh` using double dash as
-separator `--`.
-
-```
-drupal-autoinstaller.sh --fast \
-    --variation 1 \
-    -- \
-    --project-name=$project_name \
-    --project-parent-name='' \
-    --domain='' \
-    --timezone=Asia/Jakarta
-```
-
-## Case Study
-
-1. Simple Site
-
-Install Drupal site with domain `systemix.id`.
-
-We decide to set the project name similar to domain, namely `systemix`.
-
-```
-drupal-autoinstaller.sh --fast -- --project-name systemix --domain systemix.id
-```
-
-Drupal will be installed quickly. Point browser to address http://systemix.drupal.localhost to see the results.
-
-To review with the domain of `systemix.id`, then we use `curl`.
-
-```
-curl 127.0.0.1 -H "Host: systemix.id"
-```
-
-2. Multisite
-
-Drupal has nice feature, that is multisite. We can create more than one site with the same of codebase.
-
-Create main site first but it is not mandatory. We use domain `bta.my.id`.
-We decide to set the project name similar to domain, namely `bta`.
-
-```
-drupal-autoinstaller.sh --fast -- --project-name bta --domain bta.my.id
-```
-
-Create sub site. We use domain `finance.bta.my.id`.
-We decide to set the project name similar to subdomain, namely `finance`.
-We have to set the project parent name to `bta`, so we use the codebase of project `bta`.
-
-```
-drupal-autoinstaller.sh --fast -- --project-parent-name bta --project-name finance --domain finance.bta.my.id
-```
-
-Drupal will installed quickly. Point browser to address `http://bta.drupal.localhost` for mainsite,
-and `http://finance.bta.drupal.localhost` for subsite.
-
-To review with the domain of `bta.my.id` and `finance.bta.my.id` then we use `curl`.
-
-```
-curl 127.0.0.1 -H "Host: bta.my.id"
-curl 127.0.0.1 -H "Host: finance.bta.my.id"
 ```
 
 ## Drush
