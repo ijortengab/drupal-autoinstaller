@@ -333,7 +333,7 @@ if [ "$command" == 'self-update' ];then
     ____
 
     INDENT+="    " rcm${isfast} update${isrollback} drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
-    x
+    exit 0
 fi
 
 chapter Available:
@@ -359,9 +359,11 @@ else
             ID=all
             VERSION_ID=all
         fi
-        if ! ArraySearch "${variation};${ID};${VERSION_ID}" eligible[@];then
-            error Not eligible.
-            variation=
+        if [ -n "$variation" ];then
+            if ! ArraySearch "${variation};${ID};${VERSION_ID}" eligible[@];then
+                error Not eligible.
+                variation=
+            fi
         fi
     done
 fi

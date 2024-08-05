@@ -19,11 +19,12 @@ init 6
 
 ## Install
 
-### RCM
+### Alternative 1: with RCM
 
 Download `rcm` from Github.
 
 ```
+cd /tmp
 wget git.io/rcm
 chmod a+x rcm
 ```
@@ -47,7 +48,7 @@ BINARY_DIRECTORY=$HOME/bin \
     rcm install drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
 ```
 
-### Direct Download
+### Alternative 2: with Direct Download
 
 Download and put the script in directory of `$PATH`.
 
