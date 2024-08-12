@@ -6,9 +6,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --binary-directory-exists-sure) binary_directory_exists_sure=1; shift ;;
         --fast) fast=1; shift ;;
-        --root-sure) root_sure=1; shift ;;
+        --non-interactive) non_interactive=1; shift ;;
         --variation=*) variation="${1#*=}"; shift ;;
         --variation) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then variation="$2"; shift; fi; shift ;;
         --) shift
@@ -19,25 +18,27 @@ while [[ $# -gt 0 ]]; do
             done
             ;;
         --[^-]*) shift ;;
-        *)
+        self-update|selfupdate)
             while [[ $# -gt 0 ]]; do
                 case "$1" in
                     *) _new_arguments+=("$1"); shift ;;
                 esac
             done
             ;;
+        *) _new_arguments+=("$1"); shift ;;
     esac
 done
 set -- "${_new_arguments[@]}"
 unset _new_arguments
 
 # Command.
-command="$1"; shift
+command="$1"
+
 if [ -n "$command" ];then
     case "$command" in
         self-update) root_sure=1; binary_directory_exists_sure=1 ;;
         selfupdate) root_sure=1; binary_directory_exists_sure=1; command=self-update ;;
-        *) echo -e "\e[91m""Command ${command} is unknown.""\e[39m"; exit 1
+        *) command=setup
     esac
 else
     command=setup # internal only.
@@ -87,7 +88,7 @@ ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
 # Functions.
 printVersion() {
-    echo '0.5.0'
+    echo '0.7.1'
 }
 printHelp() {
     title Drupal Auto-Installer
@@ -100,12 +101,10 @@ Usage: drupal-autoinstaller.sh
 Available command: self-update, selfupdate.
 
 Options:
-   --variation=n
+   --variation
         Auto select variation.
-   --binary-directory-exists-sure
-        Bypass binary directory checking.
    --
-        Every arguments after double dash will pass to rcm-drupal-setup-variation{n}.sh command.
+        Every arguments after double dash will pass to rcm-drupal-setup-variation-* command.
 
 Commands:
    self-update, selfupdate
@@ -124,8 +123,6 @@ Global Options:
         Print version of this script.
    --help
         Show this help.
-   --root-sure
-        Bypass root checking.
 
 Environment Variables:
    BINARY_DIRECTORY
@@ -261,7 +258,9 @@ ____
 # Requirement, validate, and populate value.
 chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
-[ -n "$fast" ] && isfast=' --fast' || isfast=''
+code 'command="'$command'"'
+[ -n "$fast" ] && is_fast=' --fast' || is_fast=''
+[ -n "$non_interactive" ] && is_non_interactive=' --non-interactive' || is_non_interactive=''
 case "$command" in
     self-update)
         code 'rollback="'$rollback'"'
@@ -328,11 +327,11 @@ if [ "$command" == 'self-update' ];then
     command -v "rcm" >/dev/null || { error "Unable to proceed, rcm command not found."; x; }
 
     chapter Execute:
-    [ -n "$rollback" ] && isrollback=' --rollback' || isfast=''
-    code rcm${isfast} update${isrollback} drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
+    [ -n "$rollback" ] && is_rollback=' --rollback' || is_rollback=''
+    code rcm${is_fast}${is_non_interactive} update${is_rollback} drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
     ____
 
-    INDENT+="    " rcm${isfast} update${isrollback} drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
+    INDENT+="    " rcm${is_fast}${is_non_interactive} update${is_rollback} drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
     exit 0
 fi
 
@@ -367,6 +366,11 @@ else
         fi
     done
 fi
+
+case "$variation" in
+    0) rcm_operand=rcm-drupal-setup-variation-default ;;
+    *) rcm_operand=rcm-drupal-setup-variation-lemp-stack ;;
+esac
 ____
 
 chapter Requires command.
@@ -382,13 +386,13 @@ ____
 
 chapter Execute:
 if [ $# -gt 0 ];then
-    code rcm${isfast} rcm-drupal-setup-variation${variation}.sh -- "$@"
+    code rcm${is_fast}${is_non_interactive} $rcm_operand -- --variation="$variation" "$@"
+    INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${is_fast}${is_non_interactive} $rcm_operand --root-sure --binary-directory-exists-sure -- --variation="$variation" "$@"
 else
-    code rcm${isfast} rcm-drupal-setup-variation${variation}.sh
+    code rcm${is_fast}${is_non_interactive} $rcm_operand -- --variation="$variation"
+    INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${is_fast}${is_non_interactive} $rcm_operand --root-sure --binary-directory-exists-sure -- --variation="$variation"
 fi
 ____
-
-INDENT+="    " rcm${isfast} rcm-drupal-setup-variation${variation}.sh --root-sure --binary-directory-exists-sure -- "$@"
 
 # parse-options.sh \
 # --compact \
@@ -396,14 +400,14 @@ INDENT+="    " rcm${isfast} rcm-drupal-setup-variation${variation}.sh --root-sur
 # --no-hash-bang \
 # --no-original-arguments \
 # --no-error-invalid-options \
-# --with-end-options-first-operand \
+# --with-end-options-specific-operand \
+# --with-end-options-double-dash \
 # --no-error-require-arguments << EOF | clip
 # FLAG=(
 # --fast
 # --version
 # --help
-# --root-sure
-# --binary-directory-exists-sure
+# --non-interactive
 # )
 # VALUE=(
 # --variation
@@ -413,6 +417,10 @@ INDENT+="    " rcm${isfast} rcm-drupal-setup-variation${variation}.sh --root-sur
 # FLAG_VALUE=(
 # )
 # CSV=(
+# )
+# OPERAND=(
+# self-update
+# selfupdate
 # )
 # EOF
 # clear
