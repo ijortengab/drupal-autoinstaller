@@ -38,14 +38,14 @@ mv rcm -t /usr/local/bin
 then..
 
 ```
-rcm install drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
+rcm install drupal-autoinstaller ijortengab/drupal-autoinstaller drupal-autoinstaller.sh
 ```
 
 or if you want alternate binary directory:
 
 ```
 BINARY_DIRECTORY=$HOME/bin \
-    rcm install drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
+    rcm install drupal-autoinstaller ijortengab/drupal-autoinstaller drupal-autoinstaller.sh
 ```
 
 ### Alternative 2: with Direct Download
@@ -53,14 +53,14 @@ BINARY_DIRECTORY=$HOME/bin \
 Download and put the script in directory of `$PATH`.
 
 ```
-wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller.sh
-chmod a+x drupal-autoinstaller.sh
+wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller
+chmod a+x drupal-autoinstaller
 ```
 
-You can put `drupal-autoinstaller.sh` file anywhere in $PATH:
+You can put `drupal-autoinstaller` file anywhere in $PATH:
 
 ```
-mv drupal-autoinstaller.sh -t /usr/local/bin
+mv drupal-autoinstaller -t /usr/local/bin
 ```
 
 ## How to Use
@@ -68,7 +68,7 @@ mv drupal-autoinstaller.sh -t /usr/local/bin
 Feels free to execute command. You will be prompt to some required value.
 
 ```
-drupal-autoinstaller.sh --fast
+drupal-autoinstaller --fast
 ```
 
 ## Drush
