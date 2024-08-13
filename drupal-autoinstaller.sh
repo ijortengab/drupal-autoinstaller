@@ -88,7 +88,7 @@ ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
 # Functions.
 printVersion() {
-    echo '0.7.1'
+    echo '0.8.0'
 }
 printHelp() {
     title Drupal Auto-Installer
@@ -103,6 +103,8 @@ Available command: self-update, selfupdate.
 Options:
    --variation
         Auto select variation.
+   --non-interactive ^
+        Skip prompt for every options.
    --
         Every arguments after double dash will pass to rcm-drupal-setup-variation-* command.
 
@@ -252,7 +254,7 @@ if [ -z "$fast" ];then
 fi
 
 # Title.
-title drupal-autoinstaller.sh
+title drupal-autoinstaller
 ____
 
 # Requirement, validate, and populate value.
@@ -328,10 +330,10 @@ if [ "$command" == 'self-update' ];then
 
     chapter Execute:
     [ -n "$rollback" ] && is_rollback=' --rollback' || is_rollback=''
-    code rcm${is_fast}${is_non_interactive} update${is_rollback} drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
+    code rcm${is_fast}${is_non_interactive} update${is_rollback} drupal-autoinstaller ijortengab/drupal-autoinstaller drupal-autoinstaller.sh
     ____
 
-    INDENT+="    " rcm${is_fast}${is_non_interactive} update${is_rollback} drupal-autoinstaller.sh ijortengab/drupal-autoinstaller
+    INDENT+="    " rcm${is_fast}${is_non_interactive} update${is_rollback} drupal-autoinstaller ijortengab/drupal-autoinstaller drupal-autoinstaller.sh
     exit 0
 fi
 
@@ -368,8 +370,8 @@ else
 fi
 
 case "$variation" in
-    0) rcm_operand=rcm-drupal-setup-variation-default ;;
-    *) rcm_operand=rcm-drupal-setup-variation-lemp-stack ;;
+    0) rcm_operand=drupal-setup-variation-default ;;
+    *) rcm_operand=drupal-setup-variation-lemp-stack ;;
 esac
 ____
 
