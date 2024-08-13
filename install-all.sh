@@ -28,8 +28,8 @@ while read line; do
     case "$line" in
         drupal-autoinstaller\.sh)
             chmod a+x "$line"
-            echo ln -sf '"''$__DIR__'/"$line"'"'
-            ln -sf "$PWD/$line" /usr/local/bin/"$line"
+            echo ln -sf '"''$__DIR__'/"$line"'"' '"'$(basename "$line" | sed s,\.sh$,,)'"'
+            ln -sf "$PWD/$line" /usr/local/bin/$(basename "$line" | sed s,\.sh$,,)
             ;;
     esac
 done <<< `find * -mindepth 0 -maxdepth 0 -type f -name '*.sh'`

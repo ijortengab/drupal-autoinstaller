@@ -337,6 +337,24 @@ if [ "$command" == 'self-update' ];then
     exit 0
 fi
 
+chapter Requires command.
+_ Requires command: rcm
+if command -v rcm > /dev/null;then
+    _, ' [FOUND].'; _.
+    rcm_version="$(rcm --version)"
+else
+    _, ' [NOTFOUND].'; _.
+    RcmDownloader
+    command -v "rcm" >/dev/null || { error "Unable to proceed, rcm command not found."; x; }
+fi
+
+if [[ ! "$rcm_version" == `printVersion` ]];then
+    __ Current version: '`'`printVersion`'`'
+    __ The version of rcm command: '`'$rcm_version'`'
+    error Versi harus sama untuk bisa melanjutkan.; x
+fi
+____
+
 chapter Available:
 eligible=()
 _ 'Variation '; green 0; _, . Just Drupal without LEMP Stack setup. ; _.; eligible+=("0;all;all")
@@ -373,17 +391,6 @@ case "$variation" in
     0) rcm_operand=drupal-setup-variation-default ;;
     *) rcm_operand=drupal-setup-variation-lemp-stack ;;
 esac
-____
-
-chapter Requires command.
-_ Requires command: rcm
-if command -v rcm > /dev/null;then
-    _, ' [FOUND].'; _.
-else
-    _, ' [NOTFOUND].'; _.
-    RcmDownloader
-    command -v "rcm" >/dev/null || { error "Unable to proceed, rcm command not found."; x; }
-fi
 ____
 
 chapter Execute:
