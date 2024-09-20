@@ -27,11 +27,7 @@ cd "$__DIR__"
 # https://stackoverflow.com/a/11145362
 string='printVersion()'
 while read file; do
-    case "$file" in
-        drupal-autoinstaller\.sh)
-            number=$(grep -n -F "$string" "$file" | head -1 | cut -d: -f1)
-            number_below=$((number + 1))
-            sed -i "$number_below"'s/.*/'"    echo '$version'"'/' "$file"
-            ;;
-    esac
-done <<< `find * -mindepth 0 -maxdepth 0 -type f -name '*.sh'`
+    number=$(grep -n -F "$string" "$file" | head -1 | cut -d: -f1)
+    number_below=$((number + 1))
+    sed -i "$number_below"'s/.*/'"    echo '$version'"'/' "$file"
+done <<< `find * -mindepth 1 -type f -name '*.sh'`
