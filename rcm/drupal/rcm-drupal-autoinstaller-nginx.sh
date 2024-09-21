@@ -119,7 +119,7 @@ Dependency:
    curl
    rcm-nginx-setup-drupal
    rcm-mariadb-setup-project-database
-   
+
 Download:
    [rcm-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/nginx/rcm-nginx-setup-drupal.sh)
 EOF
@@ -628,8 +628,17 @@ if [[ -z "$is_access" ]];then
     if [[ -n "$auto_add_group" ]];then
         __ Flag --auto-add-group ditemukan.
         __ Memberi akses Group PHP-FPM User kepada Nginx User.
-        usermod -a -G "$php_fpm_user" "$nginx_user"
         code usermod -a -G '"'"$php_fpm_user"'"' '"'"$nginx_user"'"'
+        usermod -a -G "$php_fpm_user" "$nginx_user"
+        __ Memberi akses Permission kepada direktori.
+        path="${prefix}/${project_container}/${project_dir}/drupal/web"
+        until [[ "$path" == / || "$path" == /home ]];do
+            __; magenta chmod g+rx "$path"; _.
+            chmod g+rx "$path"
+            sudo -u "www-data" bash -c "cd '$path'" && break
+            path=$(dirname "$path")
+            sleep .1
+        done
     else
         __ Flag --auto-add-group tidak ditemukan.
     fi
@@ -638,7 +647,7 @@ if [[ -z "$is_access" ]];then
     if sudo -u "$nginx_user" bash -c "cd ${prefix}/${project_container}/${project_dir}/drupal/web" 2>/dev/null;then
         success Direktori dapat diakses.
     else
-        error Direktori tidak dapat diakses oleh Nginx User '('"$nginx_user"')'.
+        error Direktori tidak dapat diakses oleh Nginx User '('"$nginx_user"')'.; x
     fi
 fi
 ____
