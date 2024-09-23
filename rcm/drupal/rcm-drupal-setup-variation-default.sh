@@ -145,12 +145,12 @@ Dependency:
    rcm-php-fpm-setup-pool
 
 Download:
-   [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
-   [rcm-drupal-setup-wrapper-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-setup-drupal.sh)
-   [rcm-drupal-setup-drush-alias](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/drupal/rcm-drupal-setup-drush-alias.sh)
-   [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
-   [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
-   [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
+   [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
+   [rcm-drupal-setup-wrapper-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-setup-drupal.sh)
+   [rcm-drupal-setup-drush-alias](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-drush-alias.sh)
+   [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
+   [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
+   [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
 EOF
 }
 

@@ -121,7 +121,7 @@ Dependency:
    rcm-mariadb-setup-project-database
 
 Download:
-   [rcm-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/nginx/rcm-nginx-setup-drupal.sh)
+   [rcm-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/nginx/rcm-nginx-setup-drupal.sh)
 EOF
 }
 

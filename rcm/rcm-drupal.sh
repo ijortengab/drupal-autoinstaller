@@ -91,8 +91,8 @@ Dependency:
    rcm-drupal-setup-variation-lemp-stack
 
 Download:
-   [rcm-drupal-setup-variation-default](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/drupal/rcm-drupal-setup-variation-default.sh)
-   [rcm-drupal-setup-variation-lemp-stack](https://github.com/ijortengab/drupal-autoinstaller/blob/master/rcm/drupal/rcm-drupal-setup-variation-lemp-stack.sh)
+   [rcm-drupal-setup-variation-default](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-default.sh)
+   [rcm-drupal-setup-variation-lemp-stack](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-lemp-stack.sh)
 EOF
 }
 
