@@ -63,12 +63,6 @@ printHelp() {
     _ 'Homepage '; yellow https://github.com/ijortengab/drupal-autoinstaller; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
-    nginx_user=
-    conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
-    if [ -f "$conf_nginx" ];then
-        nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
-    fi
-    [ -n "$nginx_user" ] && { nginx_user=" ${nginx_user},"; }
     cat << EOF
 Usage: rcm-drupal [command] [options]
 
@@ -85,6 +79,10 @@ Global Options.
         Show this help.
    --root-sure
         Bypass root checking.
+   --non-interactive
+        Skip prompt for every options.
+   --
+        Every arguments after double dash will pass to rcm-drupal-setup-variation-* command.
 
 Dependency:
    rcm-drupal-setup-variation-default:`printVersion`
@@ -123,9 +121,7 @@ eligible() {
     __; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 7; _, . Debian 12, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("7;debian;12")
     __; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 8; _, . Debian 11, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("8;debian;11")
     __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 9; _, . Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("9;ubuntu;22.04")
-    COLUMNS=$(tput cols)
     for each in "${eligible[@]}";do
-        # echo "$each"
         variation=$(cut -d';' -f1 <<< "$each")
         _id=$(cut -d';' -f2 <<< "$each")
         _version_id=$(cut -d';' -f3 <<< "$each")
