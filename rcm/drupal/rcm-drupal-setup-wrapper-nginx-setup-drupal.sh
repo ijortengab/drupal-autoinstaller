@@ -97,7 +97,7 @@ Global Options.
         Bypass root checking.
 
 Dependency:
-   rcm-nginx-setup-drupal
+   rcm-nginx-setup-drupal:`printVersion`
    rcm-php-fpm-setup-pool
    
 Download:

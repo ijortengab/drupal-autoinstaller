@@ -87,8 +87,8 @@ Global Options.
         Bypass root checking.
 
 Dependency:
-   rcm-drupal-setup-variation-default
-   rcm-drupal-setup-variation-lemp-stack
+   rcm-drupal-setup-variation-default:`printVersion`
+   rcm-drupal-setup-variation-lemp-stack:`printVersion`
 
 Download:
    [rcm-drupal-setup-variation-default](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-default.sh)

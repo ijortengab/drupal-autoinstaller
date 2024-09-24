@@ -136,12 +136,12 @@ Dependency:
    rcm-php-setup-adjust-cli-version
    rcm-wsl-setup-lemp-stack
    rcm-composer-autoinstaller
-   rcm-drupal-autoinstaller-nginx
-   rcm-drupal-setup-wrapper-nginx-setup-drupal
-   rcm-drupal-setup-drush-alias
-   rcm-drupal-setup-internal-command-cd-drupal
-   rcm-drupal-setup-internal-command-ls-drupal
-   rcm-drupal-setup-dump-variables
+   rcm-drupal-autoinstaller-nginx:`printVersion`
+   rcm-drupal-setup-wrapper-nginx-setup-drupal:`printVersion`
+   rcm-drupal-setup-drush-alias:`printVersion`
+   rcm-drupal-setup-internal-command-cd-drupal:`printVersion`
+   rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
+   rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-pool
 
 Download:

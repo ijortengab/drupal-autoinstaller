@@ -117,7 +117,7 @@ Dependency:
    composer
    pwgen
    curl
-   rcm-nginx-setup-drupal
+   rcm-nginx-setup-drupal:`printVersion`
    rcm-mariadb-setup-project-database
 
 Download:
