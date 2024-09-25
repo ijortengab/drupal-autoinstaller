@@ -56,7 +56,7 @@ fi
 
 # Functions.
 printVersion() {
-    echo '0.10.0'
+    echo '0.10.1'
 }
 printHelp() {
     title Drupal Auto-Installer
