@@ -314,6 +314,9 @@ if [ -n "$domain" ];then
         --php-fpm-user="$php_fpm_user" \
         --prefix="$prefix" \
         --project-container="$project_container" \
+        && INDENT+="    " \
+    rcm-certbot-deploy-nginx $isfast --root-sure \
+        --domain="${domain}" \
         ; [ ! $? -eq 0 ] && x
 fi
 
