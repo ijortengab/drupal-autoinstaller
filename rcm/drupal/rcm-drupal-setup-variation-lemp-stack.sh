@@ -113,6 +113,7 @@ Global Options.
 Dependency:
    nginx
    rcm-ubuntu-22.04-setup-basic
+   rcm-ubuntu-24.04-setup-basic
    rcm-debian-11-setup-basic
    rcm-debian-12-setup-basic
    rcm-nginx-autoinstaller
@@ -200,7 +201,9 @@ case "$variation" in
     6) os=debian; os_version=12   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
     7) os=debian; os_version=12   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
     8) os=debian; os_version=11   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    9) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=10; drush_version=12 ;;
+    10) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    11) os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    12) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
     *) error "Argument --variation is not valid."; x;;
 esac
 
@@ -366,6 +369,7 @@ e If you want to see the credentials again, please execute this command:
 [ -n "$domain" ] && has_domain=' --domain='"'${domain}'" || has_domain=''
 code rcm drupal-setup-dump-variables${isfast} --non-interactive -- --project-name="'${project_name}'"${has_project_parent_name}${has_domain}
 e It is recommended for you to level up file system directory outside web root, please execute this command:
+code rcm install drupal-adjust-file-system-outside-web-root --source drupal${isfast} -- --project-name="'${project_parent_name:-$project_name}'"
 code rcm drupal-adjust-file-system-outside-web-root${isfast} -- --project-name="'${project_parent_name:-$project_name}'"
 e There are helpful commands to browse all projects:
 code cd-drupal --help

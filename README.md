@@ -63,9 +63,7 @@ rcm drupal
 Install the additional extension.
 
 ```
-rcm install drupal-adjust-file-system-outside-web-root \
-    --url=https://github.com/ijortengab/drupal-autoinstaller \
-    --path=rcm/rcm-drupal-adjust-file-system-outside-web-root.sh
+rcm install drupal-adjust-file-system-outside-web-root --source drupal
 ```
 
 Just execute.
