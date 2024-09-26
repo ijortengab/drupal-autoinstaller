@@ -1,16 +1,18 @@
-# Simple Bash Script for Auto Installation Drupal
+# Drupal Auto Installer
+
+The extension of `rcm`.
 
 ## Prerequisite
 
-Login as root.
+Login as root, then make sure `wget` command is exist.
 
 ```
-sudo apt update
-sudo apt install wget -y
+apt update
+apt install -y wget
 ```
 
-To avoid interruption because of kernel update, it is recommend to restart
-machine after upgrade if you start from empty virtual machine instance.
+If you start from empty virtual machine instance, it is recommend to upgrade
+then restart machine to avoid interruption because of kernel update.
 
 ```
 apt upgrade -y
@@ -19,76 +21,81 @@ init 6
 
 ## Install
 
-### Alternative 1: with RCM
-
 Download `rcm` from Github.
 
 ```
-cd /tmp
 wget git.io/rcm
 chmod a+x rcm
 ```
 
-You can put `rcm` file anywhere in $PATH:
+You can put `rcm` file anywhere in `$PATH`:
 
 ```
 mv rcm -t /usr/local/bin
 ```
 
-then..
+## Install Drupal Extension
+
+Install `drupal` extension.
 
 ```
-rcm install drupal-autoinstaller ijortengab/drupal-autoinstaller drupal-autoinstaller.sh
+rcm install drupal
 ```
 
-or if you want alternate binary directory:
+Enter value for `--url` option:
 
 ```
-BINARY_DIRECTORY=$HOME/bin \
-    rcm install drupal-autoinstaller ijortengab/drupal-autoinstaller drupal-autoinstaller.sh
+https://github.com/ijortengab/drupal-autoinstaller
 ```
 
-### Alternative 2: with Direct Download
-
-Download and put the script in directory of `$PATH`.
-
-```
-wget -q https://github.com/ijortengab/drupal-autoinstaller/raw/master/drupal-autoinstaller.sh -O drupal-autoinstaller
-chmod a+x drupal-autoinstaller
-```
-
-You can put `drupal-autoinstaller` file anywhere in $PATH:
-
-```
-mv drupal-autoinstaller -t /usr/local/bin
-```
+Skip value for `--path` option. We use the default value.
 
 ## How to Use
 
-Feels free to execute command. You will be prompt to some required value.
+Feels free to execute `drupal` command. You will be prompt to some required value.
 
 ```
-drupal-autoinstaller --fast
+rcm drupal
 ```
 
-## Drush
+## Tips 1
 
-We can manage all project and all multisite with `drush`, execute the launcher with command:
+Install the additional extension.
+
+```
+rcm install drupal-adjust-file-system-outside-web-root \
+    --url=https://github.com/ijortengab/drupal-autoinstaller \
+    --path=rcm/rcm-drupal-adjust-file-system-outside-web-root.sh
+```
+
+Just execute.
+
+```
+rcm drupal-adjust-file-system-outside-web-root
+```
+
+## Tips 2
+
+There are two additional commands for you.
+
+```
+ls-drupal
+```
 
 ```
 . cd-drupal
 ```
 
-## Available Variation
+Select the projects, then run drush.
 
-| Variation |  OS           |  Drupal |  PHP |
-|:---------:|---------------|--------:|-----:|
-|     1     |  Debian 11    |      10 |  8.2 |
-|     2     |  Debian 11    |       9 |  8.1 |
-|     3     |  Ubuntu 22.04 |      10 |  8.2 |
-|     4     |  Ubuntu 22.04 |       9 |  8.1 |
-|     5     |  Debian 12    |      10 |  8.2 |
-|     6     |  Debian 12    |       9 |  8.1 |
-|     7     |  Debian 12    |      10 |  8.3 |
-|     8     |  Debian 11    |      10 |  8.3 |
-|     9     |  Ubuntu 22.04 |      10 |  8.3 |
+```
+drush status
+```
+
+## Tips 3
+
+Always fast.
+
+```
+alias rcm='rcm --fast'
+```
