@@ -100,10 +100,11 @@ resolve_relative_path() {
 }
 databaseCredentialDrupal() {
     if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/database" ];then
-        local DRUPAL_DB_USER DRUPAL_DB_USER_PASSWORD
+        local DB_USER DB_USER_PASSWORD
+        # Populate.
         . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/database"
-        drupal_db_user=$DRUPAL_DB_USER
-        drupal_db_user_password=$DRUPAL_DB_USER_PASSWORD
+        db_user=$DB_USER
+        db_user_password=$DB_USER_PASSWORD
     fi
 }
 websiteCredentialDrupal() {
@@ -181,7 +182,6 @@ databaseCredentialDrupal
 e ' - 'username: $drupal_db_user
 e '   'password: $drupal_db_user_password
 ____
-
 
 list_uri=("${drupal_fqdn_localhost}")
 if [ -n "$domain" ];then
