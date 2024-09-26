@@ -60,6 +60,15 @@ rcm drupal
 
 ## Tips 1
 
+Update if necessary.
+
+```
+rcm self-update
+rcm update drupal
+```
+
+## Tips 2
+
 Install the additional extension.
 
 ```
@@ -72,7 +81,13 @@ Just execute.
 rcm drupal-adjust-file-system-outside-web-root
 ```
 
-## Tips 2
+Update if necessary.
+
+```
+rcm update drupal-adjust-file-system-outside-web-root
+```
+
+## Tips 3
 
 There are two additional commands for you.
 
@@ -90,7 +105,7 @@ Select the projects, then run drush.
 drush status
 ```
 
-## Tips 3
+## Tips 4
 
 Always fast.
 

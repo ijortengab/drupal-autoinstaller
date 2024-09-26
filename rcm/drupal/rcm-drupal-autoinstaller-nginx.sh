@@ -113,6 +113,7 @@ Environment Variables.
         Default to users
 
 Dependency:
+   nginx
    sudo
    composer
    pwgen
@@ -444,6 +445,10 @@ code 'drupal_nginx_config_file="'$drupal_nginx_config_file'"'
 code 'drupal_fqdn_localhost="'$drupal_fqdn_localhost'"'
 code 'drupal_db_name="'$drupal_db_name'"'
 code 'sites_subdir="'$sites_subdir'"'
+if [[ "$php_fpm_user" == - ]];then
+    php_fpm_user=
+    prefix=
+fi
 nginx_user=
 conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
 if [ -f "$conf_nginx" ];then

@@ -65,12 +65,6 @@ printHelp() {
     _ 'Variation '; yellow LEMP Stack; _, . Setup Linux, '(E)'Nginx, MySQL/MariaDB, PHP. ; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
-    nginx_user=
-    conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
-    if [ -f "$conf_nginx" ];then
-        nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
-    fi
-    [ -n "$nginx_user" ] && { nginx_user=" ${nginx_user},"; }
     cat << EOF
 Usage: rcm-drupal-setup-variation-lemp-stack [options]
 
@@ -88,7 +82,7 @@ Options:
    --domain-strict ^
         Prevent installing drupal inside directory sites/default.
    --php-fpm-user
-        Set the system user of PHP FPM. Available values:${nginx_user}`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other.
+        Set the system user of PHP FPM. Available values:`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other.
    --prefix
         Set prefix directory for project. Default to home directory of --php-fpm-user or /usr/local/share.
    --project-container
@@ -111,7 +105,6 @@ Global Options.
         Bypass root checking.
 
 Dependency:
-   nginx
    rcm-ubuntu-22.04-setup-basic
    rcm-ubuntu-24.04-setup-basic
    rcm-debian-11-setup-basic
@@ -231,30 +224,14 @@ if [ -f /proc/sys/kernel/osrelease ];then
     fi
 fi
 code 'is_wsl="'$is_wsl'"'
-nginx_user=
-conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
-if [ -f "$conf_nginx" ];then
-    nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
-fi
-code 'nginx_user="'$nginx_user'"'
-if [ -z "$nginx_user" ];then
-    error "Variable \$nginx_user failed to populate."; x
-fi
 if [ -z "$php_fpm_user" ];then
-    php_fpm_user="$nginx_user"
+    # It will auto populate by rcm-drupal-autoinstaller-nginx.
+    php_fpm_user="-"
+    prefix="-"
 fi
 code 'php_fpm_user="'$php_fpm_user'"'
-if [ -z "$prefix" ];then
+if [[ -n "$php_fpm_user" && -z "$prefix" ]];then
     prefix=$(getent passwd "$php_fpm_user" | cut -d: -f6 )
-fi
-# Jika $php_fpm_user adalah nginx, maka $HOME nya adalah /nonexistent, maka
-# perlu kita verifikasi lagi.
-if [ ! -d "$prefix" ];then
-    prefix=
-fi
-if [ -z "$prefix" ];then
-    prefix=/usr/local/share
-    project_container=drupal
 fi
 if [ -z "$project_container" ];then
     project_container=drupal-projects
@@ -369,7 +346,7 @@ e If you want to see the credentials again, please execute this command:
 [ -n "$domain" ] && has_domain=' --domain='"'${domain}'" || has_domain=''
 code rcm drupal-setup-dump-variables${isfast} --non-interactive -- --project-name="'${project_name}'"${has_project_parent_name}${has_domain}
 e It is recommended for you to level up file system directory outside web root, please execute this command:
-code rcm install drupal-adjust-file-system-outside-web-root --source drupal${isfast} -- --project-name="'${project_parent_name:-$project_name}'"
+code rcm install drupal-adjust-file-system-outside-web-root --source drupal
 code rcm drupal-adjust-file-system-outside-web-root${isfast} -- --project-name="'${project_parent_name:-$project_name}'"
 e There are helpful commands to browse all projects:
 code cd-drupal --help
