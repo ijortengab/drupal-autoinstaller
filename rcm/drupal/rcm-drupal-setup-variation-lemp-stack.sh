@@ -122,7 +122,7 @@ Dependency:
    rcm-drupal-setup-internal-command-cd-drupal:`printVersion`
    rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
-   rcm-php-fpm-setup-pool
+   rcm-php-fpm-setup-project-config
 
 Download:
    [rcm-php-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/php/rcm-php-setup-drupal.sh)
@@ -278,9 +278,12 @@ if [ -n "$is_wsl" ];then
 fi
 
 INDENT+="    " \
-rcm-php-fpm-setup-pool $isfast --root-sure \
+rcm-php-fpm-setup-project-config $isfast --root-sure \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
+    --project-name="$project_name" \
+    --project-parent-name="$project_parent_name" \
+    --config-suffix-name="drupal" \
     ; [ ! $? -eq 0 ] && x
 
 INDENT+="    " \

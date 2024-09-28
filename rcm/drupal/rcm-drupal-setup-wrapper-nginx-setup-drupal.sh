@@ -98,7 +98,7 @@ Global Options.
 
 Dependency:
    rcm-nginx-setup-drupal:`printVersion`
-   rcm-php-fpm-setup-pool
+   rcm-php-fpm-setup-project-config
    
 Download:
    [rcm-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/nginx/rcm-nginx-setup-drupal.sh)
@@ -220,7 +220,7 @@ fi
 ____
 
 chapter Prepare arguments.
-____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-pool $isfast --root-sure --php-version="$php_version" --php-fpm-user="$php_fpm_user" get listen)
+____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --root-sure --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name" --project-parent-name="$project_parent_name" --config-suffix-name="drupal" get listen)
 if [ -z "$socket_filename" ];then
     __; red Socket Filename of PHP-FPM not found.; x
 fi
