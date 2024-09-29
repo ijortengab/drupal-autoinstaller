@@ -80,7 +80,7 @@ Options:
    --drupal-version *
         Set the version of Drupal.
    --php-fpm-user
-        Set the system user of PHP FPM. Available values:${nginx_user}`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. Default to Nginx User.
+        Set the Unix user that used by PHP FPM. Default value is the user that used by web server. Available values:${nginx_user}`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. If the user does not exists, it will be autocreate as reguler user.
    --prefix
         Set prefix directory for project. Default to home directory of --php-fpm-user or /usr/local/share.
    --project-container
