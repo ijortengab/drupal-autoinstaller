@@ -4,22 +4,30 @@ The extension of `rcm`.
 
 ## Prerequisite
 
-Login as root, then make sure `wget` command is exist.
+Login as root.
 
 ```
-apt update
-apt install -y wget
+su -
 ```
 
 If you start from empty virtual machine instance, it is recommend to upgrade
 then restart machine to avoid interruption because of kernel update.
 
 ```
+apt update -y
 apt upgrade -y
 init 6
 ```
 
+Make sure `wget` command is exist.
+
+```
+apt install -y wget
+```
+
 ## Install
+
+### rcm
 
 Download `rcm` from Github.
 
@@ -34,7 +42,13 @@ You can put `rcm` file anywhere in `$PATH`:
 mv rcm -t /usr/local/bin
 ```
 
-## Install Drupal Extension
+Always fast.
+
+```
+alias rcm='rcm --fast'
+```
+
+### rcm-drupal
 
 Install `drupal` extension.
 
@@ -63,7 +77,6 @@ rcm drupal
 Update if necessary.
 
 ```
-rcm self-update
 rcm update drupal
 ```
 
@@ -103,12 +116,4 @@ Select the projects, then run drush.
 
 ```
 drush status
-```
-
-## Tips 4
-
-Always fast.
-
-```
-alias rcm='rcm --fast'
 ```
