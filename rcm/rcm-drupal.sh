@@ -85,7 +85,7 @@ Global Options.
         Every arguments after double dash will pass to rcm-drupal-setup-variation-* command.
 
 Dependency:
-   rcm:0.16.1
+   rcm:0.16.2
    rcm-drupal-setup-variation-default:`printVersion`
    rcm-drupal-setup-variation-lemp-stack:`printVersion`
 
