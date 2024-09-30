@@ -123,6 +123,7 @@ Dependency:
    rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
+   rcm-certbot-deploy-nginx
 
 Download:
    [rcm-php-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/php/rcm-php-setup-drupal.sh)
