@@ -245,6 +245,8 @@ BINARY_MASTER=${BINARY_MASTER:=bin}
 code 'BINARY_MASTER="'$BINARY_MASTER'"'
 SITES_MASTER=${SITES_MASTER:=sites}
 code 'SITES_MASTER="'$SITES_MASTER'"'
+NEW_VERSION=`printVersion`
+code 'NEW_VERSION="'$NEW_VERSION'"'
 mktemp=
 ____
 
@@ -275,7 +277,6 @@ if [ -n "$found" ];then
     if [[ "$old_version" =~ [^0-9\.]+ ]];then
         old_version=0
     fi
-    NEW_VERSION=`printVersion`
     vercomp $NEW_VERSION $old_version
     if [[ $? -eq 1 ]];then
         __ Command perlu diupdate. Versi saat ini ${NEW_VERSION}.

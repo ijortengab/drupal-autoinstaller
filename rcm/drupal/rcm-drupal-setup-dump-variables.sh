@@ -179,8 +179,8 @@ ____
 
 chapter Database Credential
 databaseCredentialDrupal
-e ' - 'username: $drupal_db_user
-e '   'password: $drupal_db_user_password
+e ' - 'username: $db_user
+e '   'password: $db_user_password
 ____
 
 list_uri=("${drupal_fqdn_localhost}")
