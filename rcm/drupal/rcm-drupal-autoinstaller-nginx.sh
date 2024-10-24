@@ -193,41 +193,10 @@ databaseCredentialDrupal() {
         mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
         chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
         link_symbolic "$source" "$target"
-
-        # Karena belum ada function link_symbolic untuk directory, maka:
-        chapter Membuat symbolic link directory.
-        mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
-        source="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
-        target="${prefix}/${project_container}/${project_dir}/credential"
-        __ source: '`'$source'`'
-        __ target: '`'$target'`'
-        if [ -d "$target" ];then
-            if [ -h "$target" ];then
-                _dereference=$(stat ${stat_cached} "$target" -c %N)
-                source_current=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
-                __; _, Mengecek apakah symbolic link merujuk ke '`'$source'`':
-                if [[ "$source_current" == "$source" ]];then
-                    _, ' 'Merujuk.; _.
-                else
-                    _, ' 'Tidak merujuk.; _.
-                    __; red Symbolic link merujuk ke: '`'$source_current'`'.; _.
-                    __ Mohon hapus manual untuk melanjutkan.
-                    __; magenta rm '"'$target'"'
-                    x
-                fi
-            else
-                __; red Direktori exists: '`'$target'`'.; _.
-                __ Mohon pindahkan manual untuk melanjutkan.
-                __; magenta mv '"'$target'"' -t '"'$PREFIX_MASTER/$PROJECTS_CONTAINER_MASTER/${project_dir}'"'
-                x
-            fi
-        fi
-
-        # Sebagai referensi.
-        cd "${prefix}/${project_container}/${project_dir}"
-        ln -sf "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
-        cd - >/dev/null
     fi
+    source="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
+    target="${prefix}/${project_container}/${project_dir}/credential"
+    link_symbolic_dir "$source" "$target" - absolute
 
     # Populate.
     . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/database"
@@ -422,6 +391,82 @@ backupDir() {
     fi
     mv "$oldpath" "$newpath"
 }
+link_symbolic_dir() {
+    local source="$1"
+    local target="$2"
+    local sudo="$3"
+    local source_mode="$4"
+    local create
+    [ "$sudo" == - ] && sudo=
+    [ "$source_mode" == absolute ] || source_mode=
+    [ -e "$source" ] || { error Source not exist: $source.; x; }
+    [ -d "$source" ] || { error Source exists but not directory: $source.; x; }
+    [ -n "$target" ] || { error Target not defined.; x; }
+    [[ $(type -t backupFile) == function ]] || { error Function backupFile not found.; x; }
+    [[ $(type -t backupDir) == function ]] || { error Function backupDir not found.; x; }
+    chapter Membuat symbolic link directory.
+    __ source: '`'$source'`'
+    __ target: '`'$target'`'
+    if [ -d "$target" ];then
+        if [ -h "$target" ];then
+            __ Path target saat ini sudah merupakan directory symbolic link: '`'$target'`'
+            local _readlink=$(readlink "$target")
+            __; magenta readlink "$target"; _.
+            e $_readlink
+            if [[ "$_readlink" =~ ^[^/\.] ]];then
+                local target_parent=$(dirname "$target")
+                local _dereference="${target_parent}/${_readlink}"
+            elif [[ "$_readlink" =~ ^[\.] ]];then
+                local target_parent=$(dirname "$target")
+                local _dereference="${target_parent}/${_readlink}"
+                _dereference=$(realpath -s "$_dereference")
+            else
+                _dereference="$_readlink"
+            fi
+            __; _, Mengecek apakah link merujuk ke '`'$source'`':' '
+            if [[ "$source" == "$_dereference" ]];then
+                _, merujuk.; _.
+            else
+                _, tidak merujuk.; _.
+                __ Melakukan backup.
+                backupFile move "$target"
+                create=1
+            fi
+        else
+            __ Melakukan backup regular direktori: '`'"$target"'`'.
+            backupDir "$target"
+            create=1
+        fi
+    elif [ -f "$target" ];then
+        __ Melakukan backup file: '`'"$target"'`'.
+        backupFile move "$target"
+        create=1
+    else
+        create=1
+    fi
+    if [ -n "$create" ];then
+        __ Membuat symbolic link: '`'$target'`'.
+        local target_parent=$(dirname "$target")
+        code mkdir -p "$target_parent"
+        mkdir -p "$target_parent"
+        if [ -z "$source_mode" ];then
+            source=$(realpath -s --relative-to="$target_parent" "$source")
+        fi
+        if [ -n "$sudo" ];then
+            code sudo -u '"'$sudo'"' ln -s '"'$source'"' '"'$target'"'
+            sudo -u "$sudo" ln -s "$source" "$target"
+        else
+            code ln -s '"'$source'"' '"'$target'"'
+            ln -s "$source" "$target"
+        fi
+        if [ $? -eq 0 ];then
+            __; green Symbolic link berhasil dibuat.; _.
+        else
+            __; red Symbolic link gagal dibuat.; x
+        fi
+    fi
+    ____
+}
 
 # Title.
 title rcm-drupal-autoinstaller-nginx
@@ -561,6 +606,9 @@ if [ -d "$target" ];then
         __ Directory merupakan sebuah symbolic link.
         _dereference=$(stat ${stat_cached} "$target" -c %N)
         source_current=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
+        e $source_current
+        source_current_relpath=$(realpath "$source_current")
+        e $source_current_relpath
         __; _, Mengecek apakah symbolic link merujuk ke '`'$source'`':
         if [[ "$source_current" == "$source" ]];then
             _, ' 'Merujuk.; _.
@@ -646,7 +694,7 @@ fi
 if [ -n "$create" ];then
     source="${prefix}/${project_container}/${project_dir}/drupal"
     target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/drupal"
-    link_symbolic "$source" "$target"
+    link_symbolic_dir "$source" "$target" - absolute
 fi
 
 is_access=
