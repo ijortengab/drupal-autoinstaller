@@ -123,7 +123,8 @@ Dependency:
    rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
-   rcm-certbot-deploy-nginx
+   rcm-certbot-autoinstaller
+   rcm-drupal-wrapper-certbot-deploy-nginx:`printVersion`
 
 Download:
    [rcm-php-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/php/rcm-php-setup-drupal.sh)
@@ -133,6 +134,7 @@ Download:
    [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
    [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
    [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
+   [rcm-drupal-wrapper-certbot-deploy-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-wrapper-certbot-deploy-nginx.sh)
 EOF
 }
 
@@ -323,7 +325,9 @@ if [ -n "$domain" ];then
         --prefix="$prefix" \
         --project-container="$project_container" \
         && INDENT+="    " \
-    rcm-certbot-deploy-nginx $isfast --root-sure \
+    rcm-certbot-autoinstaller $isfast --root-sure \
+        && INDENT+="    " \
+    rcm-drupal-wrapper-certbot-deploy-nginx $isfast --root-sure \
         --domain="${domain}" \
         ; [ ! $? -eq 0 ] && x
 fi
