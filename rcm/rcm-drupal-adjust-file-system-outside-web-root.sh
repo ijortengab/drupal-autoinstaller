@@ -199,23 +199,25 @@ backupDir() {
     fi
     mv "$oldpath" "$newpath"
 }
-link_symbolic() {
+link_symbolic_dir() {
     local source="$1"
     local target="$2"
     local sudo="$3"
+    local source_mode="$4"
     local create
+    [ "$sudo" == - ] && sudo=
+    [ "$source_mode" == absolute ] || source_mode=
     [ -e "$source" ] || { error Source not exist: $source.; x; }
-    [ -f "$source" ] || { error Source exists but not file: $source.; x; }
+    [ -d "$source" ] || { error Source exists but not directory: $source.; x; }
     [ -n "$target" ] || { error Target not defined.; x; }
     [[ $(type -t backupFile) == function ]] || { error Function backupFile not found.; x; }
     [[ $(type -t backupDir) == function ]] || { error Function backupDir not found.; x; }
-
-    chapter Membuat symbolic link.
+    chapter Membuat symbolic link directory.
     __ source: '`'$source'`'
     __ target: '`'$target'`'
-    if [ -f "$target" ];then
+    if [ -d "$target" ];then
         if [ -h "$target" ];then
-            __ Path target saat ini sudah merupakan file symbolic link: '`'$target'`'
+            __ Path target saat ini sudah merupakan directory symbolic link: '`'$target'`'
             local _readlink=$(readlink "$target")
             __; magenta readlink "$target"; _.
             e $_readlink
@@ -239,13 +241,13 @@ link_symbolic() {
                 create=1
             fi
         else
-            __ Melakukan backup regular file: '`'"$target"'`'.
-            backupFile move "$target"
+            __ Melakukan backup regular direktori: '`'"$target"'`'.
+            backupDir "$target"
             create=1
         fi
-    elif [ -d "$target" ];then
-        __ Melakukan backup direktori: '`'"$target"'`'.
-        backupDir "$target"
+    elif [ -f "$target" ];then
+        __ Melakukan backup file: '`'"$target"'`'.
+        backupFile move "$target"
         create=1
     else
         create=1
@@ -255,13 +257,15 @@ link_symbolic() {
         local target_parent=$(dirname "$target")
         code mkdir -p "$target_parent"
         mkdir -p "$target_parent"
-        local source_relative=$(realpath -s --relative-to="$target_parent" "$source")
+        if [ -z "$source_mode" ];then
+            source=$(realpath -s --relative-to="$target_parent" "$source")
+        fi
         if [ -n "$sudo" ];then
-            code sudo -u '"'$sudo'"' ln -s '"'$source_relative'"' '"'$target'"'
-            sudo -u "$sudo" ln -s "$source_relative" "$target"
+            code sudo -u '"'$sudo'"' ln -s '"'$source'"' '"'$target'"'
+            sudo -u "$sudo" ln -s "$source" "$target"
         else
-            code ln -s '"'$source_relative'"' '"'$target'"'
-            ln -s "$source_relative" "$target"
+            code ln -s '"'$source'"' '"'$target'"'
+            ln -s "$source" "$target"
         fi
         if [ $? -eq 0 ];then
             __; green Symbolic link berhasil dibuat.; _.
@@ -728,7 +732,7 @@ ____
 
 dirname=$(dirname "${DRUPAL_ROOT}/${expected_value}")
 chmod u+w "$dirname"
-link_symbolic "$expected_value_realpath" "${DRUPAL_ROOT}/${expected_value}" "$owner"
+link_symbolic_dir "$expected_value_realpath" "${DRUPAL_ROOT}/${expected_value}" "$owner"
 chapter Memeriksa variable '`'"\$settings['file_assets_path']"'`' pada file '`'settings.php'`'.
 edit_mode=
 expected_value="${SITE_DIR}/assets"
@@ -786,8 +790,18 @@ if [ -z "$origin_value" ];then
 fi
 origin_value_realpath="$origin_value"
 if [ -h "$origin_value_realpath" ];then
-    _dereference=$(stat ${stat_cached} "$origin_value_realpath" -c %N)
-    origin_value_realpath=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
+    _readlink=$(readlink "$origin_value_realpath")
+    if [[ "$_readlink" =~ ^[^/\.] ]];then
+        target_parent=$(dirname "$origin_value_realpath")
+        _dereference="${target_parent}/${_readlink}"
+    elif [[ "$_readlink" =~ ^[\.] ]];then
+        target_parent=$(dirname "$origin_value_realpath")
+        _dereference="${target_parent}/${_readlink}"
+        _dereference=$(realpath -s "$_dereference")
+    else
+        _dereference="$_readlink"
+    fi
+    origin_value_realpath="$_dereference"
 fi
 if [ -n "$makesure_directory_exist" ];then
     __ Mengecek direktori: "$expected_value_realpath"
@@ -820,7 +834,7 @@ ____
 
 dirname=$(dirname "${DRUPAL_ROOT}/${expected_value}")
 chmod u+w "$dirname"
-link_symbolic "$expected_value_realpath" "${DRUPAL_ROOT}/${expected_value}" "$owner"
+link_symbolic_dir "$expected_value_realpath" "${DRUPAL_ROOT}/${expected_value}" "$owner"
 
 if [ -n "$is_settings_writed" ];then
     chapter Cache Rebuild
