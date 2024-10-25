@@ -143,7 +143,7 @@ Dependency:
    rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
-   rcm-certbot-deploy-nginx
+   rcm-drupal-wrapper-certbot-deploy-nginx:`printVersion`
 
 Download:
    [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
@@ -221,30 +221,14 @@ if [ -f /proc/sys/kernel/osrelease ];then
     fi
 fi
 code 'is_wsl="'$is_wsl'"'
-nginx_user=
-conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
-if [ -f "$conf_nginx" ];then
-    nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
-fi
-code 'nginx_user="'$nginx_user'"'
-if [ -z "$nginx_user" ];then
-    error "Variable \$nginx_user failed to populate."; x
-fi
 if [ -z "$php_fpm_user" ];then
-    php_fpm_user="$nginx_user"
+    # It will auto populate by rcm-drupal-autoinstaller-nginx.
+    php_fpm_user="-"
+    prefix="-"
 fi
 code 'php_fpm_user="'$php_fpm_user'"'
-if [ -z "$prefix" ];then
+if [[ -n "$php_fpm_user" && -z "$prefix" ]];then
     prefix=$(getent passwd "$php_fpm_user" | cut -d: -f6 )
-fi
-# Jika $php_fpm_user adalah nginx, maka $HOME nya adalah /nonexistent, maka
-# perlu kita verifikasi lagi.
-if [ ! -d "$prefix" ];then
-    prefix=
-fi
-if [ -z "$prefix" ];then
-    prefix=/usr/local/share
-    project_container=drupal
 fi
 if [ -z "$project_container" ];then
     project_container=drupal-projects
@@ -300,6 +284,9 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
 
 if [ -n "$domain" ];then
     INDENT+="    " \
+    rcm-dig-is-name-exists $isfast --root-sure \
+        --domain="$domain" \
+        && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
         --php-version="$php_version" \
         --project-name="$project_name" \
@@ -319,7 +306,7 @@ if [ -n "$domain" ];then
         --prefix="$prefix" \
         --project-container="$project_container" \
         && INDENT+="    " \
-    rcm-certbot-deploy-nginx $isfast --root-sure \
+    rcm-drupal-wrapper-certbot-deploy-nginx $isfast --root-sure \
         --domain="${domain}" \
         ; [ ! $? -eq 0 ] && x
 fi
