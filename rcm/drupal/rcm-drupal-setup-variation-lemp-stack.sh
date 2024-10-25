@@ -82,7 +82,7 @@ Options:
    --domain-strict ^
         Prevent installing drupal inside directory sites/default.
    --php-fpm-user
-        Set the Unix user that used by PHP FPM. Default value is the user that used by web server. Available values:${nginx_user}`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. If the user does not exists, it will be autocreate as reguler user.
+        Set the Unix user that used by PHP FPM. Default value is the user that used by web server. Available values:`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. If the user does not exists, it will be autocreate as reguler user.
    --prefix
         Set prefix directory for project. Default to home directory of --php-fpm-user or /usr/local/share.
    --project-container
@@ -306,6 +306,9 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
 
 if [ -n "$domain" ];then
     INDENT+="    " \
+    rcm-dig-is-name-exists $isfast --root-sure \
+        --domain="$domain" \
+        && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
         --php-version="$php_version" \
         --project-name="$project_name" \
