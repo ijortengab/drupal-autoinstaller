@@ -26,10 +26,6 @@ while [[ $# -gt 0 ]]; do
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --root-sure) root_sure=1; shift ;;
-        --with-update-system) update_system=1; shift ;;
-        --without-update-system) update_system=0; shift ;;
-        --with-upgrade-system) upgrade_system=1; shift ;;
-        --without-upgrade-system) upgrade_system=0; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -116,10 +112,6 @@ Options:
         Set the container directory for all projects. Available value: drupal-projects, drupal, public_html, or other. Default to drupal-projects.
    --auto-add-group ^
         If Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
-   --without-update-system ^
-        Skip execute update system. Default to --with-update-system.
-   --without-upgrade-system ^
-        Skip execute upgrade system. Default to --with-upgrade-system.
 
 Global Options.
    --fast
@@ -187,12 +179,8 @@ ____
 # Requirement, validate, and populate value.
 chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
-code update_system="$update_system"
-code upgrade_system="$upgrade_system"
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 [ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''
-[[ "$update_system" == "0" ]] && is_without_update_system=' --without-update-system' || is_without_update_system=''
-[[ "$upgrade_system" == "0" ]] && is_without_upgrade_system=' --without-upgrade-system' || is_without_upgrade_system=''
 
 if [ -z "$php_version" ];then
     error "Argument --php-version required."; x
@@ -373,10 +361,6 @@ exit 0
 # FLAG_VALUE=(
 # )
 # CSV=(
-    # 'long:--with-update-system,parameter:update_system'
-    # 'long:--without-update-system,parameter:update_system,flag_option:reverse'
-    # 'long:--with-upgrade-system,parameter:upgrade_system'
-    # 'long:--without-upgrade-system,parameter:upgrade_system,flag_option:reverse'
 # )
 # EOF
 # clear
