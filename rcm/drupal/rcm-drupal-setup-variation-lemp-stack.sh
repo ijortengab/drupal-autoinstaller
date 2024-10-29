@@ -71,10 +71,10 @@ Usage: rcm-drupal-setup-variation-lemp-stack [options]
 Options:
    --variation *
         Set the variation.
-   --project-name *
-        Set the project name. This should be in machine name format.
    --project-parent-name
-        Set the project parent name. The parent is not have to installed before.
+        Set the parent to create Drupal MultiSite, or skip to make an independent codebase. Value available from command: ls-drupal(), or other. The parent is not have to installed before.
+   --project-name *
+        Set the project name as identifier. This should be in machine name format.
    --domain
         Set the domain.
    --timezone
@@ -125,6 +125,7 @@ Dependency:
    rcm-php-fpm-setup-project-config
    rcm-certbot-autoinstaller
    rcm-drupal-wrapper-certbot-deploy-nginx:`printVersion`
+   rcm-dig-watch-domain-exists
 
 Download:
    [rcm-php-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/php/rcm-php-setup-drupal.sh)
@@ -259,7 +260,17 @@ rcm-$os-$os_version-setup-basic $isfast --root-sure \
     $is_without_update_system \
     $is_without_upgrade_system \
     --timezone="$timezone" \
-    && INDENT+="    " \
+    ; [ ! $? -eq 0 ] && x
+
+if [ -n "$domain" ];then
+    INDENT+="    " \
+    rcm-dig-watch-domain-exists $isfast --root-sure \
+        --domain="$domain" \
+        --waiting-time="60" \
+        ; [ ! $? -eq 0 ] && x
+fi
+
+INDENT+="    " \
 rcm-nginx-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
 rcm-mariadb-autoinstaller $isfast --root-sure \
@@ -273,6 +284,7 @@ rcm-php-setup-adjust-cli-version $isfast --root-sure \
 rcm-php-setup-drupal $isfast --root-sure \
     --php-version="$php_version" \
     ; [ ! $? -eq 0 ] && x
+
 if [ -n "$is_wsl" ];then
     INDENT+="    " \
     rcm-wsl-setup-lemp-stack $isfast --root-sure \
@@ -287,13 +299,12 @@ rcm-php-fpm-setup-project-config $isfast --root-sure \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     --config-suffix-name="drupal" \
-    ; [ ! $? -eq 0 ] && x
-
-INDENT+="    " \
+    && INDENT+="    " \
 rcm-composer-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast --root-sure \
     $is_auto_add_group \
+    --domain="$domain" \
     --drupal-version="$drupal_version" \
     --drush-version="$drush_version" \
     --php-version="$php_version" \
@@ -306,9 +317,6 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
 
 if [ -n "$domain" ];then
     INDENT+="    " \
-    rcm-dig-is-name-exists $isfast --root-sure \
-        --domain="$domain" \
-        && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
         --php-version="$php_version" \
         --project-name="$project_name" \
