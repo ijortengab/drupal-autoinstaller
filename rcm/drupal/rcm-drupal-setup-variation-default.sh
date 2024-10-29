@@ -96,10 +96,10 @@ Options:
         Set the version of Drupal. Available values: 10, 11, or other.
    --php-version *
         Set the version of PHP.${single_line}${multi_line}
-   --project-name *
-        Set the project name. This should be in machine name format.
    --project-parent-name
-        Set the project parent name. The parent is not have to installed before.
+        Set the parent to create Drupal MultiSite, or skip to make an independent codebase. Value available from command: ls-drupal(), or other. The parent is not have to installed before.
+   --project-name *
+        Set the project name as identifier. This should be in machine name format.
    --domain
         Set the domain.
    --domain-strict ^
@@ -136,6 +136,7 @@ Dependency:
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
    rcm-drupal-wrapper-certbot-deploy-nginx:`printVersion`
+   rcm-dig-watch-domain-exists
 
 Download:
    [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
@@ -236,6 +237,14 @@ if [ -z "$root_sure" ];then
     ____
 fi
 
+if [ -n "$domain" ];then
+    INDENT+="    " \
+    rcm-dig-watch-domain-exists $isfast --root-sure \
+        --domain="$domain" \
+        --waiting-time="60" \
+        ; [ ! $? -eq 0 ] && x
+fi
+
 INDENT+="    " \
 rcm-php-setup-adjust-cli-version $isfast --root-sure \
     --php-version="$php_version" \
@@ -261,6 +270,7 @@ rcm-composer-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast --root-sure \
     $is_auto_add_group \
+    --domain="$domain" \
     --drupal-version="$drupal_version" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
