@@ -282,9 +282,6 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
 
 if [ -n "$domain" ];then
     INDENT+="    " \
-    rcm-dig-is-name-exists $isfast --root-sure \
-        --domain="$domain" \
-        && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
         --php-version="$php_version" \
         --project-name="$project_name" \
