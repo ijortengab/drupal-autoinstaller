@@ -88,6 +88,10 @@ EOF
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
 
+# Title.
+title rcm-drupal-setup-drush-alias
+____
+
 # Functions.
 resolve_relative_path() {
     if [ -d "$1" ];then
@@ -290,10 +294,6 @@ vercomp() {
     done
     return 0
 }
-
-# Title.
-title rcm-drupal-setup-drush-alias
-____
 
 # Require, validate, and populate value.
 chapter Dump variable.

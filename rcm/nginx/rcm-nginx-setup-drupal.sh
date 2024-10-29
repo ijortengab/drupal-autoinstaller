@@ -86,6 +86,10 @@ EOF
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
 
+# Title.
+title rcm-nginx-setup-drupal
+____
+
 # Functions.
 backupFile() {
     local mode="$1"
@@ -110,10 +114,6 @@ backupFile() {
             chown ${user}:${group} "$newpath"
     esac
 }
-
-# Title.
-title rcm-nginx-setup-drupal
-____
 
 # Require, validate, and populate value.
 chapter Dump variable.

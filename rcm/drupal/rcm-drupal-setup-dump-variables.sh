@@ -84,6 +84,10 @@ EOF
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
 
+# Title.
+title rcm-drupal-setup-dump-variables
+____
+
 # Functions.
 resolve_relative_path() {
     if [ -d "$1" ];then
@@ -115,10 +119,6 @@ websiteCredentialDrupal() {
         account_pass=$ACCOUNT_PASS
     fi
 }
-
-# Title.
-title rcm-drupal-setup-dump-variables
-____
 
 # Require, validate, and populate value.
 chapter Dump variable.

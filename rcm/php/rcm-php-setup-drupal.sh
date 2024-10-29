@@ -68,6 +68,10 @@ EOF
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
 
+# Title.
+title rcm-php-setup-drupal
+____
+
 # Functions.
 downloadApplication() {
     local aptnotfound=
@@ -131,10 +135,6 @@ addRepositoryPpaOndrejPhp() {
         ____
     fi
 }
-
-# Title.
-title rcm-php-setup-drupal
-____
 
 # Require, validate, and populate value.
 chapter Dump variable.
