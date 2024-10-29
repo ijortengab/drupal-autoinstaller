@@ -7,6 +7,8 @@ while [[ $# -gt 0 ]]; do
         --help) help=1; shift ;;
         --version) version=1; shift ;;
         --auto-add-group) auto_add_group=1; shift ;;
+        --domain=*) domain="${1#*=}"; shift ;;
+        --domain) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then domain="$2"; shift; fi; shift ;;
         --domain-strict) domain_strict=1; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then drupal_version="$2"; shift; fi; shift ;;
@@ -574,6 +576,7 @@ MARIADB_PREFIX_MASTER=${MARIADB_PREFIX_MASTER:=/usr/local/share/mariadb}
 code 'MARIADB_PREFIX_MASTER="'$MARIADB_PREFIX_MASTER'"'
 MARIADB_USERS_CONTAINER_MASTER=${MARIADB_USERS_CONTAINER_MASTER:=users}
 code 'MARIADB_USERS_CONTAINER_MASTER="'$MARIADB_USERS_CONTAINER_MASTER'"'
+code 'domain="'$domain'"'
 ____
 
 if [ -z "$root_sure" ];then
@@ -932,22 +935,24 @@ else
 fi
 ____
 
-# allsite=("${domain[@]}")
-# allsite+=("${drupal_fqdn_localhost}")
-allsite=("${drupal_fqdn_localhost}")
+list_uri=("${drupal_fqdn_localhost}")
+if [ -n "$domain" ];then
+    list_uri+=("${domain}")
+    list_uri+=("${domain}.localhost")
+fi
 multisite_installed=
-for eachsite in "${allsite[@]}" ;do
-    chapter Mengecek apakah Drupal sudah terinstall sebagai multisite '`'$eachsite'`'.
-    if [[ "sites/${sites_subdir}" == $(drush status --uri=$eachsite --field=site) ]];then
-        __ Site direktori dari domain '`'$eachsite'`' sesuai, yakni: '`'sites/$sites_subdir'`'.
-        if drush status --uri=$eachsite --field=db-status | grep -q '^Connected$';then
-            __ Drupal site '`'$eachsite'`' installed.
+for uri in "${list_uri[@]}" ;do
+    chapter Mengecek apakah Drupal sudah terinstall sebagai multisite '`'$uri'`'.
+    if [[ "sites/${sites_subdir}" == $(drush status --uri=$uri --field=site) ]];then
+        __ Site direktori dari domain '`'$uri'`' sesuai, yakni: '`'sites/$sites_subdir'`'.
+        if drush status --uri=$uri --field=db-status | grep -q '^Connected$';then
+            __ Drupal site '`'$uri'`' installed.
             multisite_installed=1
         else
-            __ Drupal site '`'$eachsite'`' not installed yet.
+            __ Drupal site '`'$uri'`' not installed yet.
         fi
     else
-        __ Site direktori dari domain '`'$eachsite'`' tidak sesuai.
+        __ Site direktori dari domain '`'$uri'`' tidak sesuai.
     fi
     ____
 done
@@ -1028,50 +1033,126 @@ if [[ $install_type == 'multisite' && -z "$multisite_installed" ]];then
             --account-name="$account_name" --account-pass="$account_pass" \
             --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}" \
             --sites-subdir=${sites_subdir}
-    if [ -f "${prefix}/${project_container}/${project_dir}/drupal/web/sites/sites.php" ];then
-        __; green Files '`'sites.php'`' ditemukan.; _.
-    else
-        __; red Files '`'sites.php'`' tidak ditemukan.; x
-    fi
+    ____
+
     php=$(cat <<'EOF'
-$args = $_SERVER['argv'];
-array_shift($args);
-$file = $args[0];
-array_shift($args);
-$sites_subdir = $args[0];
-array_shift($args);
-include($file);
-if (!isset($sites)) {
-    $sites = [];
+$mode = $_SERVER['argv'][1];
+switch ($mode) {
+    case 'is_different':
+    case 'save':
+        # Populate variable $is_different.
+        $file = $_SERVER['argv'][2];
+        $reference = unserialize($_SERVER['argv'][3]);
+        include($file);
+        $sites = isset($sites) ? $sites : [];
+        // Tidak menggunakan array_map serialize seperti rcm-roundcube-autoinstaller-nginx karena dipastikan seluruh value non array.
+        $is_different = !empty(array_diff_assoc($reference, $sites));
+        break;
 }
-while ($site = array_shift($args)) {
-    $sites[$site] = $sites_subdir;
+switch ($mode) {
+    case 'build_reference':
+        $sites_subdir = $_SERVER['argv'][2];
+        $stdin = '';
+        while (FALSE !== ($line = fgets(STDIN))) {
+           $stdin .= $line;
+        }
+        $result = explode("\n", $stdin);
+        $result = array_filter($result);
+        $reference = array_map(function () use ($sites_subdir) {
+            return $sites_subdir;
+        }, array_flip($result));
+        echo serialize($reference);
+        break;
+    case 'is_different':
+        $is_different ? exit(0) : exit(1);
+        break;
+    case 'save':
+        if (!$is_different) {
+            exit(0);
+        }
+        $contents = file_get_contents($file);
+        $need_edit = array_diff_assoc($reference, $sites);
+        $new_lines = [];
+        foreach ($need_edit as $key => $value) {
+            $new_line = "__PARAMETER__[__KEY__] = __VALUE__; # managed by RCM";
+            // Jika indexed array dan hanya satu , maka buat one line.
+            if (is_array($value) && array_key_exists(0, $value) && count($value) === 1) {
+                $new_line = str_replace(['__PARAMETER__','__KEY__','__VALUE__'],['$sites', var_export($key, true), "['".$value[0]."']"], $new_line);
+            }
+            else {
+                $new_line = str_replace(['__PARAMETER__','__KEY__','__VALUE__'],['$sites', var_export($key, true), var_export($value, true)], $new_line);
+            }
+            $is_one_line = preg_match('/\n/', $new_line) ? false : true;
+            $find_existing = "__PARAMETER__[__KEY__] = __VALUE__; # managed by RCM";
+            $find_existing = str_replace(['__PARAMETER__','__KEY__'],['$sites', var_export($key, true)], $find_existing);
+            $find_existing = preg_quote($find_existing);
+            $find_existing = str_replace('__VALUE__', '.*', $find_existing);
+            $find_existing = '/\s*'.$find_existing.'/';
+            if ($is_one_line && preg_match_all($find_existing, $contents, $matches, PREG_PATTERN_ORDER)) {
+                $contents = str_replace($matches[0], '', $contents);
+            }
+            $new_lines[] = $new_line;
+        }
+        if (substr($contents, -1) != "\n") {
+            $contents .= "\n";
+        }
+        $contents .= implode("\n", $new_lines);
+        $contents .= "\n";
+        file_put_contents($file, $contents);
+        break;
 }
-$content = '$sites = '.var_export($sites, true).';'.PHP_EOL;
-$content = <<< EOF
-<?php
-$content
-EOF;
-file_put_contents($file, $content);
 EOF
-)
-    sudo -u $php_fpm_user \
-        php -r "$php" \
-            "${prefix}/${project_container}/${project_dir}/drupal/web/sites/sites.php" \
-            "$sites_subdir" \
-            "${allsite[@]}"
-    error=
-    for eachsite in "${allsite[@]}" ;do
-        if [[ "sites/${sites_subdir}" == $(drush status --uri=$eachsite --field=site) ]];then
-            __; green Site direktori dari domain '`'$eachsite'`' sesuai, yakni: '`'sites/$sites_subdir'`'.; _.
+    )
+    chapter Mengecek informasi file konfigurasi MultiSite.
+    list_uri="${drupal_fqdn_localhost}"$'\n'
+    if [ -n "$domain" ];then
+        list_uri+="${domain}"$'\n'
+        list_uri+="${domain}.localhost"$'\n'
+    fi
+    path="${prefix}/${project_container}/${project_dir}/drupal/web/sites/sites.php"
+    fileMustExists "$path"
+    code path='"'$path'"'
+    filename=sites.php
+    reference="$(php -r "$php" build_reference "$sites_subdir" <<< "$list_uri")"
+    is_different=
+    if php -r "$php" is_different "$path" "$reference";then
+        is_different=1
+        __ Diperlukan modifikasi file '`'$filename'`'.
+    else
+        __ File '`'$filename'`' tidak ada perubahan.
+    fi
+    ____
+
+    if [ -n "$is_different" ];then
+        chapter Memodifikasi file '`'$filename'`'.
+        __ Backup file "$path"
+        backupFile copy "$path"
+        php -r "$php" save "$path" "$reference"
+        if php -r "$php" is_different "$path" "$reference";then
+            __; red Modifikasi file '`'$filename'`' gagal.; x
         else
-            __; red Site direktori dari domain '`'$eachsite'`' tidak sesuai.
+            __; green Modifikasi file '`'$filename'`' berhasil.; _.
+        fi
+        ____
+    fi
+
+    list_uri=("${drupal_fqdn_localhost}")
+    if [ -n "$domain" ];then
+        list_uri+=("${domain}")
+        list_uri+=("${domain}.localhost")
+    fi
+    error=
+    for uri in "${list_uri[@]}" ;do
+        if [[ "sites/${sites_subdir}" == $(drush status --uri=$uri --field=site) ]];then
+            __; green Site direktori dari domain '`'$uri'`' sesuai, yakni: '`'sites/$sites_subdir'`'.; _.
+        else
+            __; red Site direktori dari domain '`'$uri'`' tidak sesuai.
             error=1
         fi
-        if drush status --uri=$eachsite --field=db-status | grep -q '^Connected$';then
-            __; green Drupal site '`'$eachsite'`' installed.; _.
+        if drush status --uri=$uri --field=db-status | grep -q '^Connected$';then
+            __; green Drupal site '`'$uri'`' installed.; _.
         else
-            __; red Drupal site '`'$eachsite'`' not installed yet.
+            __; red Drupal site '`'$uri'`' not installed yet.
             error=1
         fi
     done
@@ -1107,7 +1188,7 @@ exit 0
 # --no-hash-bang \
 # --no-original-arguments \
 # --no-error-invalid-options \
-# --no-error-require-arguments << EOF
+# --no-error-require-arguments << EOF | clip
 # FLAG=(
 # --fast
 # --version
@@ -1124,7 +1205,9 @@ exit 0
 # --php-fpm-user
 # --prefix
 # --project-container
+# --domain
 # )
 # FLAG_VALUE=(
 # )
 # EOF
+# clear
