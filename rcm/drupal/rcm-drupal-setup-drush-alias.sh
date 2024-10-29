@@ -92,6 +92,16 @@ EOF
 title rcm-drupal-setup-drush-alias
 ____
 
+if [ -z "$root_sure" ];then
+    chapter Mengecek akses root.
+    if [[ "$EUID" -ne 0 ]]; then
+        error This script needs to be run with superuser privileges.; x
+    else
+        __ Privileges.
+    fi
+    ____
+fi
+
 # Functions.
 resolve_relative_path() {
     if [ -d "$1" ];then
@@ -330,16 +340,6 @@ SITES_MASTER=${SITES_MASTER:=sites}
 code 'SITES_MASTER="'$SITES_MASTER'"'
 mktemp=
 ____
-
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
 
 target_master="${PREFIX_MASTER}/${BINARY_MASTER}"
 chapter Mengecek direktori master binary '`'$target_master'`'.

@@ -114,6 +114,16 @@ EOF
 title rcm-drupal-setup-wrapper-nginx-setup-drupal
 ____
 
+if [ -z "$root_sure" ];then
+    chapter Mengecek akses root.
+    if [[ "$EUID" -ne 0 ]]; then
+        error This script needs to be run with superuser privileges.; x
+    else
+        __ Privileges.
+    fi
+    ____
+fi
+
 # Dependency.
 while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { echo -e "\e[91m""Unable to proceed, "'`'"${line}"'`'" command not found." "\e[39m"; exit 1; }
@@ -198,16 +208,6 @@ code 'prefix="'$prefix'"'
 code 'project_container="'$project_container'"'
 delay=.5; [ -n "$fast" ] && unset delay
 ____
-
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
 
 root="${prefix}/${project_container}/${project_dir}/drupal/web"
 chapter Mengecek direktori project '`'$root'`'.

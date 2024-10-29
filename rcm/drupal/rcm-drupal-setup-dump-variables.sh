@@ -88,6 +88,16 @@ EOF
 title rcm-drupal-setup-dump-variables
 ____
 
+if [ -z "$root_sure" ];then
+    chapter Mengecek akses root.
+    if [[ "$EUID" -ne 0 ]]; then
+        error This script needs to be run with superuser privileges.; x
+    else
+        __ Privileges.
+    fi
+    ____
+fi
+
 # Functions.
 resolve_relative_path() {
     if [ -d "$1" ];then
@@ -144,16 +154,6 @@ code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
 PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
 code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
 ____
-
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
 
 if [ -n "$domain" ];then
     fqdn_string="$domain"

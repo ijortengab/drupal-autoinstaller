@@ -90,6 +90,16 @@ EOF
 title rcm-nginx-setup-drupal
 ____
 
+if [ -z "$root_sure" ];then
+    chapter Mengecek akses root.
+    if [[ "$EUID" -ne 0 ]]; then
+        error This script needs to be run with superuser privileges.; x
+    else
+        __ Privileges.
+    fi
+    ____
+fi
+
 # Functions.
 backupFile() {
     local mode="$1"
@@ -132,16 +142,6 @@ code 'server_name=('"${server_name[@]}"')'
 code 'fastcgi_pass="'$fastcgi_pass'"'
 delay=.5; [ -n "$fast" ] && unset delay
 ____
-
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
 
 file_config="/etc/nginx/sites-available/$filename"
 create_new=
