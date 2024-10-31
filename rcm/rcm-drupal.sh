@@ -7,10 +7,10 @@ while [[ $# -gt 0 ]]; do
         --help) help=1; shift ;;
         --version) version=1; shift ;;
         --fast) fast=1; shift ;;
+        --mode=*) mode="${1#*=}"; shift ;;
+        --mode) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then mode="$2"; shift; fi; shift ;;
         --non-interactive) non_interactive=1; shift ;;
         --root-sure) root_sure=1; shift ;;
-        --variation=*) variation="${1#*=}"; shift ;;
-        --variation) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then variation="$2"; shift; fi; shift ;;
         --) shift
             while [[ $# -gt 0 ]]; do
                 case "$1" in
@@ -48,9 +48,12 @@ ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 command="$1"; shift
 if [ -n "$command" ];then
     case "$command" in
-        eligible) ;;
-        # Bring back command as argument position.
-        *) set -- "$command" "$@"
+        mode-available) ;;
+        *)
+            # Bring back command as argument position.
+            set -- "$command" "$@"
+            # Reset command.
+            command=
     esac
 fi
 
@@ -67,8 +70,8 @@ printHelp() {
 Usage: rcm-drupal [command] [options]
 
 Options:
-   --variation *
-        Select the variation setup. Values available from command: rcm-drupal(eligible).
+   --mode *
+        Select the setup mode. Values available from command: rcm-drupal(mode-available).
 
 Global Options.
    --fast
@@ -88,10 +91,12 @@ Dependency:
    rcm:0.16.2
    rcm-drupal-setup-variation-default:`printVersion`
    rcm-drupal-setup-variation-lemp-stack:`printVersion`
+   rcm-drupal-setup-variation-multisite:`printVersion`
 
 Download:
    [rcm-drupal-setup-variation-default](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-default.sh)
    [rcm-drupal-setup-variation-lemp-stack](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-lemp-stack.sh)
+   [rcm-drupal-setup-variation-multisite](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-multisite.sh)
 EOF
 }
 
@@ -99,42 +104,51 @@ EOF
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
 
+ArraySearch() {
+    local index match="$1"
+    local source=("${!2}")
+    for index in "${!source[@]}"; do
+       if [[ "${source[$index]}" == "${match}" ]]; then
+           _return=$index; return 0
+       fi
+    done
+    return 1
+}
+
 # Functions.
-eligible() {
-    # chapter Available:
-    eligible=()
-    if [ -f /etc/os-release ];then
-        . /etc/os-release
-    fi
-    _; _.
-    __; _, 'Variation  '; green 0; _, . Just Drupal without LEMP Stack setup. ; _.; eligible+=("0;all;all")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, '   'PHP 8.2, Drupal 10, Drush 12.; _.; eligible+=("1;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("2;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("3;ubuntu;22.04")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("4;ubuntu;22.04")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 5; _, . Debian 12, '   'PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("5;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 6; _, . Debian 12, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("6;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 7; _, . Debian 12, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("7;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 8; _, . Debian 11, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("8;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 9; _, . Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("9;ubuntu;22.04")
-    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 10; _, . Ubuntu 22.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("10;ubuntu;22.04")
-    __; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 11; _, . Debian 12, '   'PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("11;debian;12")
-    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green || color=red; $color 12; _, . Ubuntu 24.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("12;ubuntu;24.04")
-    for each in "${eligible[@]}";do
-        variation=$(cut -d';' -f1 <<< "$each")
-        _id=$(cut -d';' -f2 <<< "$each")
-        _version_id=$(cut -d';' -f3 <<< "$each")
-        if [[ "$_id" == "all" && "$_version_id" == "all" ]];then
-            echo $variation
-        elif [[ "$_id" == "$ID" && "$_version_id" == "$VERSION_ID" ]];then
-            echo $variation
+mode-available() {
+    command_required=(nginx mysql php dig pwgen)
+    command_notfound=
+    mode_available=(1)
+    for each in "${command_required[@]}"; do
+        if ! command -v $each >/dev/null;then
+            command_notfound+=" $each"
         fi
+    done
+    if [ -z "$command_notfound" ];then
+        mode_available+=(2)
+    fi    
+    if command -v ls-drupal >/dev/null;then
+        if [[ $(ls-drupal | wc -l) -gt 0 ]];then
+            mode_available+=(3)
+        fi
+    fi    
+    _; _.
+    if ArraySearch 1 mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color 1; _, . Create a new project + LEMP Stack Setup. ; _.;
+    __; _, '        '; _, LEMP Stack '('Linux, Nginx, MySQL, PHP')'.; _.;
+    if ArraySearch 2 mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color 2; _, . Create a new project. ; _.; eligible+=("0;all;all")
+    if ArraySearch 3 mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color 3; _, . Add sub project from exisiting project. Drupal Multisite.; _.; 
+    for each in 1 2 3; do
+        if ArraySearch $each mode_available[@] ]];then  echo $each; fi
     done
 }
 
 # Execute command.
-if [[ $command == eligible ]];then
-    eligible
+if [[ -n "$command" && $(type -t "$command") == function ]];then
+    "$command"
     exit 0
 fi
 
@@ -162,44 +176,44 @@ chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 [ -n "$non_interactive" ] && isnoninteractive=' --non-interactive' || isnoninteractive=''
-if [ -z "$variation" ];then
-    error "Argument --variation required."; x
+if [ -n "$mode" ];then
+    case "$mode" in
+        1|2|3) ;;
+        *) error "Argument --mode not valid."; x ;;
+    esac
 fi
-code 'variation="'$variation'"'
+if [ -z "$mode" ];then
+    error "Argument --mode required."; x
+fi
+code 'mode="'$mode'"'
 ____
 
-case "$variation" in
-    0) rcm_operand=drupal-setup-variation-default ;;
-    *) rcm_operand=drupal-setup-variation-lemp-stack ;;
+case "$mode" in
+    1) rcm_operand=drupal-setup-variation-lemp-stack ;;
+    2) rcm_operand=drupal-setup-variation-default ;;
+    3) rcm_operand=drupal-setup-variation-multisite ;;
 esac
 
 chapter Execute:
 
 case "$rcm_operand" in
-    drupal-setup-variation-default)
+    *)
         code rcm${isfast}${isnoninteractive} $rcm_operand -- "$@"
         ____
 
-        INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${isfast}${isnoninteractive} $rcm_operand --root-sure --binary-directory-exists-sure -- "$@"
+        INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${isfast}${isnoninteractive} $rcm_operand --root-sure --binary-directory-exists-sure --non-immediately -- "$@"
         ;;
-    drupal-setup-variation-lemp-stack)
-        code rcm${isfast}${isnoninteractive} $rcm_operand -- --variation="$variation" "$@"
-        ____
-
-        INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${isfast}${isnoninteractive} $rcm_operand --root-sure --binary-directory-exists-sure -- --variation="$variation" "$@"
 esac
 ____
 
 exit 0
 
 # parse-options.sh \
-# --without-end-options-double-dash \
 # --compact \
 # --clean \
 # --no-hash-bang \
 # --no-original-arguments \
 # --no-error-invalid-options \
-# --with-end-options-double-dash \
 # --no-error-require-arguments << EOF | clip
 # FLAG=(
 # --fast
@@ -209,7 +223,7 @@ exit 0
 # --non-interactive
 # )
 # VALUE=(
-# --variation
+# --mode
 # )
 # MULTIVALUE=(
 # )

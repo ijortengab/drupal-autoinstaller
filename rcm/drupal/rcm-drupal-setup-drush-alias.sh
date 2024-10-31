@@ -318,11 +318,11 @@ fi
 code 'domain="'$domain'"'
 code 'project_name="'$project_name'"'
 code 'project_parent_name="'$project_parent_name'"'
-project_dir="$project_name"
+project_dir_basename="$project_name"
 drupal_fqdn_localhost="$project_name".drupal.localhost
 [ -n "$project_parent_name" ] && {
     drupal_fqdn_localhost="$project_name"."$project_parent_name".drupal.localhost
-    project_dir="$project_parent_name"
+    project_dir_basename="$project_parent_name"
 }
 vercomp `stat --version | head -1 | grep -o -E '\S+$'` 8.31
 if [[ $? -lt 2 ]];then
@@ -365,8 +365,8 @@ fi
 for uri in "${list_uri[@]}";do
     filename="${uri}"
     chapter Script Shortcut ${filename}
-    fullpath="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/${SITES_MASTER}/${filename}"
-    dirname="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/${SITES_MASTER}"
+    fullpath="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/${SITES_MASTER}/${filename}"
+    dirname="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/${SITES_MASTER}"
     isFileExists "$fullpath"
     if [ -n "$found" ];then
         __ Mengecek versi '`'${filename}'`' command.
@@ -414,31 +414,32 @@ printVersion() {
 [[ -f "$0" && ! "$0" == $(command -v bash) ]] && { echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m"; exit 1; }
 PREFIX_MASTER=__PREFIX_MASTER__
 PROJECTS_CONTAINER_MASTER=__PROJECTS_CONTAINER_MASTER__
-PROJECT_DIR=__PROJECT_DIR__
-_target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${PROJECT_DIR}/drupal"
+PROJECT_ROOT=__PROJECT_ROOT__
+_target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${PROJECT_ROOT}/drupal"
 _dereference=$(stat "$_target" -c %N)
-PROJECT_DIR=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
+PROJECT_ROOT=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
 echo
 echo -n Waiting...
 export SITE=__URI__
-export PROJECT_DIR="$PROJECT_DIR"
-export SITE_DIR=$("$PROJECT_DIR/vendor/bin/drush" --uri="$SITE" status --field=site)
-export DRUPAL_ROOT=$("$PROJECT_DIR/vendor/bin/drush" --uri="$SITE" status --field=root)
+export PROJECT_ROOT="$PROJECT_ROOT"
+export SITE_DIR=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=site)
+export WEB_ROOT=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=root)
 printf "\r\033[K"
-echo export PROJECT_DIR='"'$PROJECT_DIR'"'
-echo export DRUPAL_ROOT='"'$DRUPAL_ROOT'"'
+echo export PROJECT_ROOT='"'$PROJECT_ROOT'"'
+echo export WEB_ROOT='"'$WEB_ROOT'"'
 echo export '       'SITE='"'"$SITE"'"'
 echo export '   'SITE_DIR='"'$SITE_DIR'"'
-echo -e alias '      '"\e[95m"' 'drush"\e[39m"='"''$PROJECT_DIR'/vendor/bin/drush --uri='$SITE''"'
+echo -e alias '      '"\e[95m"' 'drush"\e[39m"='"''$PROJECT_ROOT'/vendor/bin/drush --uri='$SITE''"'
 echo
-echo cd '"$PROJECT_DIR"'' && [ -f .aliases ] && . .aliases'
-alias drush="$PROJECT_DIR/vendor/bin/drush --uri=$SITE"
+echo cd '"$PROJECT_ROOT"'' && [ -f .rc ] && . .rc'
+alias drush="$PROJECT_ROOT/vendor/bin/drush --uri=$SITE"
 echo
-cd "$PROJECT_DIR" && [ -f .aliases ] && . .aliases
+# rc means run commands. @see: https://superuser.com/a/173167
+cd "$PROJECT_ROOT" && [ -f .rc ] && . .rc
 EOF
         sed -i "s|__PREFIX_MASTER__|${PREFIX_MASTER}|g" "$fullpath"
         sed -i "s|__PROJECTS_CONTAINER_MASTER__|${PROJECTS_CONTAINER_MASTER}|g" "$fullpath"
-        sed -i "s|__PROJECT_DIR__|${project_dir}|g" "$fullpath"
+        sed -i "s|__PROJECT_ROOT__|${project_dir_basename}|g" "$fullpath"
         sed -i "s|__URI__|${uri}|g" "$fullpath"
         sed -i "s|__NEW_VERSION__|${NEW_VERSION}|g" "$fullpath"
         fileMustExists "$fullpath"

@@ -70,17 +70,15 @@ Usage: rcm-drupal-setup-variation-lemp-stack [options]
 
 Options:
    --variation *
-        Set the variation.
-   --project-parent-name
-        Set the parent to create Drupal MultiSite, or skip to make an independent codebase. Value available from command: ls-drupal(), or other. The parent is not have to installed before.
+        Select the variation setup. Values available from command: rcm-drupal-setup-variation-lemp-stack(eligible).
    --project-name *
         Set the project name as identifier. This should be in machine name format.
    --domain
-        Set the domain.
+        Set the public domain. Leave empty if install in development environment.
    --timezone
         Set the timezone of this machine. Available values: Asia/Jakarta, or other.
    --domain-strict ^
-        Prevent installing drupal inside directory sites/default.
+        Prevent installing drupal inside directory sites/default. Just hit the Enter key if you confuse.
    --php-fpm-user
         Set the Unix user that used by PHP FPM. Default value is the user that used by web server. Available values:`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. If the user does not exists, it will be autocreate as reguler user.
    --prefix
@@ -103,6 +101,10 @@ Global Options.
         Show this help.
    --root-sure
         Bypass root checking.
+
+Other Options:
+   --project-parent-name
+        Set the project parent name. The parent is not have to installed before. For expert only.
 
 Dependency:
    rcm-ubuntu-22.04-setup-basic
@@ -143,6 +145,55 @@ EOF
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
 
+# Command.
+command="$1"; shift
+if [ -n "$command" ];then
+    case "$command" in
+        eligible) ;;
+        *)
+            # Bring back command as argument position.
+            set -- "$command" "$@"
+            # Reset command.
+            command=
+    esac
+fi
+
+# Functions.
+eligible() {
+    # chapter Available:
+    eligible=()
+    if [ -f /etc/os-release ];then
+        . /etc/os-release
+    fi
+    _; _.
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, '   'PHP 8.2, Drupal 10, Drush 12.; _.; eligible+=("1;debian;11")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("2;debian;11")
+    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("3;ubuntu;22.04")
+    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("4;ubuntu;22.04")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 5; _, . Debian 12, '   'PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("5;debian;12")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 6; _, . Debian 12, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("6;debian;12")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 7; _, . Debian 12, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("7;debian;12")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 8; _, . Debian 11, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("8;debian;11")
+    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 9; _, . Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("9;ubuntu;22.04")
+    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 10; _, . Ubuntu 22.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("10;ubuntu;22.04")
+    __; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 11; _, . Debian 12, '   'PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("11;debian;12")
+    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green || color=red; $color 12; _, . Ubuntu 24.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("12;ubuntu;24.04")
+    for each in "${eligible[@]}";do
+        variation=$(cut -d';' -f1 <<< "$each")
+        _id=$(cut -d';' -f2 <<< "$each")
+        _version_id=$(cut -d';' -f3 <<< "$each")
+        if [[ "$_id" == "$ID" && "$_version_id" == "$VERSION_ID" ]];then
+            echo $variation
+        fi
+    done
+}
+
+# Execute command.
+if [[ -n "$command" && $(type -t "$command") == function ]];then
+    "$command"
+    exit 0
+fi
+
 # Title.
 title rcm-drupal-setup-variation-lemp-stack
 ____
@@ -181,9 +232,10 @@ validateMachineName() {
 # Requirement, validate, and populate value.
 chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
+[ -n "$fast" ] && isfast=' --fast' || isfast=''
+code auto_add_group="$auto_add_group"
 code update_system="$update_system"
 code upgrade_system="$upgrade_system"
-[ -n "$fast" ] && isfast=' --fast' || isfast=''
 [ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''
 [[ "$update_system" == "0" ]] && is_without_update_system=' --without-update-system' || is_without_update_system=''
 [[ "$upgrade_system" == "0" ]] && is_without_upgrade_system=' --without-upgrade-system' || is_without_upgrade_system=''
@@ -213,7 +265,6 @@ case "$variation" in
     12) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
     *) error "Argument --variation is not valid."; x;;
 esac
-
 code os="$os"
 code os_version="$os_version"
 code php_version="$php_version"
@@ -224,6 +275,9 @@ if [ -z "$project_name" ];then
 fi
 code 'project_name="'$project_name'"'
 if ! validateMachineName "$project_name" project_name;then x; fi
+# Parent must empty.
+# Mode 1. Create a new project + LEMP Stack Setup.
+project_parent_name=
 code 'project_parent_name="'$project_parent_name'"'
 if [ -n "$project_parent_name" ];then
     if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
@@ -238,21 +292,6 @@ if [ -f /proc/sys/kernel/osrelease ];then
     fi
 fi
 code 'is_wsl="'$is_wsl'"'
-if [ -z "$php_fpm_user" ];then
-    # It will auto populate by rcm-drupal-autoinstaller-nginx.
-    php_fpm_user="-"
-    prefix="-"
-fi
-code 'php_fpm_user="'$php_fpm_user'"'
-if [[ -n "$php_fpm_user" && -z "$prefix" ]];then
-    prefix=$(getent passwd "$php_fpm_user" | cut -d: -f6 )
-fi
-if [ -z "$project_container" ];then
-    project_container=drupal-projects
-fi
-code 'prefix="'$prefix'"'
-code 'project_container="'$project_container'"'
-code 'auto_add_group="'$auto_add_group'"'
 ____
 
 INDENT+="    " \
@@ -285,6 +324,23 @@ rcm-php-setup-drupal $isfast --root-sure \
     --php-version="$php_version" \
     ; [ ! $? -eq 0 ] && x
 
+# Di baris ini seharusnya sudah terinstall nginx.
+chapter Populate variables.
+nginx_user=
+conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
+if [ -f "$conf_nginx" ];then
+    nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
+fi
+code 'nginx_user="'$nginx_user'"'
+if [ -z "$nginx_user" ];then
+    error "Variable \$nginx_user failed to populate."; x
+fi
+if [ -z "$php_fpm_user" ];then
+    php_fpm_user="$nginx_user"
+fi
+code 'php_fpm_user="'$php_fpm_user'"'
+____
+
 if [ -n "$is_wsl" ];then
     INDENT+="    " \
     rcm-wsl-setup-lemp-stack $isfast --root-sure \
@@ -299,7 +355,38 @@ rcm-php-fpm-setup-project-config $isfast --root-sure \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     --config-suffix-name="drupal" \
-    && INDENT+="    " \
+    ; [ ! $? -eq 0 ] && x
+
+# Di baris ini seharusnya sudah exists user linux $php_fpm_user.
+chapter Populate variables.
+if [ -z "$prefix" ];then
+    prefix=$(getent passwd "$php_fpm_user" | cut -d: -f6 )
+fi
+# Jika $php_fpm_user adalah nginx, maka $HOME nya adalah /nonexistent, maka
+# perlu kita verifikasi lagi.
+if [ ! -d "$prefix" ];then
+    prefix=
+fi
+if [ -z "$prefix" ];then
+    prefix=/usr/local/share
+    project_container=drupal
+fi
+if [ -z "$project_container" ];then
+    project_container=drupal-projects
+fi
+code 'prefix="'$prefix'"'
+code 'project_container="'$project_container'"'
+# Hanya populate, tidak harus exists direktori ini.
+project_dir="${prefix}/${project_container}"
+if [ -n "$project_parent_name" ];then
+    project_dir+="/${project_parent_name}"
+else
+    project_dir+="/${project_name}"
+fi
+code 'project_dir="'$project_dir'"'
+____
+
+INDENT+="    " \
 rcm-composer-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast --root-sure \
@@ -309,8 +396,7 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
     --drush-version="$drush_version" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
-    --prefix="$prefix" \
-    --project-container="$project_container" \
+    --project-dir="$project_dir" \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     ; [ ! $? -eq 0 ] && x
@@ -323,8 +409,7 @@ if [ -n "$domain" ];then
         --project-parent-name="$project_parent_name" \
         --domain="$domain" \
         --php-fpm-user="$php_fpm_user" \
-        --prefix="$prefix" \
-        --project-container="$project_container" \
+        --project-dir="$project_dir" \
         && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
         --php-version="$php_version" \
@@ -333,8 +418,7 @@ if [ -n "$domain" ];then
         --subdomain="$domain" \
         --domain="localhost" \
         --php-fpm-user="$php_fpm_user" \
-        --prefix="$prefix" \
-        --project-container="$project_container" \
+        --project-dir="$project_dir" \
         && INDENT+="    " \
     rcm-certbot-autoinstaller $isfast --root-sure \
         && INDENT+="    " \
@@ -360,16 +444,6 @@ rcm-drupal-setup-dump-variables $isfast --root-sure \
     ; [ ! $? -eq 0 ] && x
 
 chapter Finish
-e If you want to see the credentials again, please execute this command:
-[ -n "$project_parent_name" ] && has_project_parent_name=' --project-parent-name='"'${project_parent_name}'" || has_project_parent_name=''
-[ -n "$domain" ] && has_domain=' --domain='"'${domain}'" || has_domain=''
-code rcm drupal-setup-dump-variables${isfast} --non-interactive -- --project-name="'${project_name}'"${has_project_parent_name}${has_domain}
-e It is recommended for you to level up file system directory outside web root, please execute this command:
-code rcm install drupal-adjust-file-system-outside-web-root --source drupal
-code rcm drupal-adjust-file-system-outside-web-root${isfast} -- --project-name="'${project_parent_name:-$project_name}'"
-e There are helpful commands to browse all projects:
-code cd-drupal --help
-code ls-drupal --help
 ____
 
 exit 0

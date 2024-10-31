@@ -45,18 +45,18 @@ printVersion() {
     echo '0.11.9'
 }
 printHelp() {
-    title RCM Drupal Setup
-    _ 'Variation '; yellow Dump Variables; _.
+    title RCM Drupal Setup Dump Variables
+    _ 'Variation '; yellow Default; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
     cat << 'EOF'
 Usage: rcm-drupal-setup-dump-variables [options]
 
 Options:
-   --project-name
+   --project-name *
         Set the project name. This should be in machine name format.
    --project-parent-name
-        Set the project parent name.
+        Set the project parent name. Value available from command: ls-drupal().
    --domain
         Set the domain.
 
@@ -198,6 +198,19 @@ for uri in "${list_uri[@]}";do
         ____
     fi
 done
+
+chapter Manual Action
+e If you want to see the credentials again, please execute this command:
+[ -n "$project_parent_name" ] && has_project_parent_name=' --project-parent-name='"'${project_parent_name}'" || has_project_parent_name=''
+[ -n "$domain" ] && has_domain=' --domain='"'${domain}'" || has_domain=''
+__; magenta rcm drupal-setup-dump-variables${isfast} -- --project-name="'${project_name}'"${has_project_parent_name}${has_domain}; _.
+e It is recommended for you to level up file system directory outside web root, please execute this command:
+__; magenta rcm install drupal-adjust-file-system-outside-web-root --source drupal; _.
+__; magenta rcm drupal-adjust-file-system-outside-web-root${isfast} -- --project-name="'${project_parent_name:-$project_name}'"; _.
+e There are helpful commands to browse all projects:
+__; magenta cd-drupal --help; _.
+__; magenta ls-drupal --help; _.
+____
 
 exit 0
 

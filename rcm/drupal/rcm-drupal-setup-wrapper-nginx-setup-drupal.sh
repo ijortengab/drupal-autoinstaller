@@ -13,10 +13,8 @@ while [[ $# -gt 0 ]]; do
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
         --php-version) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then php_version="$2"; shift; fi; shift ;;
-        --prefix=*) prefix="${1#*=}"; shift ;;
-        --prefix) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then prefix="$2"; shift; fi; shift ;;
-        --project-container=*) project_container="${1#*=}"; shift ;;
-        --project-container) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_container="$2"; shift; fi; shift ;;
+        --project-dir=*) project_dir="${1#*=}"; shift ;;
+        --project-dir) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_dir="$2"; shift; fi; shift ;;
         --project-name=*) project_name="${1#*=}"; shift ;;
         --project-name) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
@@ -99,10 +97,10 @@ Global Options.
 Dependency:
    rcm-nginx-setup-drupal:`printVersion`
    rcm-php-fpm-setup-project-config
-   
+
 Download:
    [rcm-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/nginx/rcm-nginx-setup-drupal.sh)
-   
+
 EOF
 }
 
@@ -172,44 +170,18 @@ else
     fqdn_project="${domain}"
 fi
 code 'fqdn_project="'$fqdn_project'"'
-project_dir="$project_name"
-[ -n "$project_parent_name" ] && {
-    project_dir="$project_parent_name"
-}
-nginx_user=
-conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
-if [ -f "$conf_nginx" ];then
-    nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
-fi
-code 'nginx_user="'$nginx_user'"'
-if [ -z "$nginx_user" ];then
-    error "Variable \$nginx_user failed to populate."; x
-fi
 if [ -z "$php_fpm_user" ];then
-    php_fpm_user="$nginx_user"
+    error "Argument --php-fpm-user required."; x
 fi
 code 'php_fpm_user="'$php_fpm_user'"'
-if [ -z "$prefix" ];then
-    prefix=$(getent passwd "$php_fpm_user" | cut -d: -f6 )
+if [ -z "$project_dir" ];then
+    error "Argument --project-dir required."; x
 fi
-# Jika $php_fpm_user adalah nginx, maka $HOME nya adalah /nonexistent, maka
-# perlu kita verifikasi lagi.
-if [ ! -d "$prefix" ];then
-    prefix=
-fi
-if [ -z "$prefix" ];then
-    prefix=/usr/local/share
-    project_container=drupal
-fi
-if [ -z "$project_container" ];then
-    project_container=drupal-projects
-fi
-code 'prefix="'$prefix'"'
-code 'project_container="'$project_container'"'
+code 'project_dir="'$project_dir'"'
 delay=.5; [ -n "$fast" ] && unset delay
 ____
 
-root="${prefix}/${project_container}/${project_dir}/drupal/web"
+root="${project_dir}/drupal/web"
 chapter Mengecek direktori project '`'$root'`'.
 notfound=
 if [ -d "$root" ] ;then
@@ -249,7 +221,7 @@ exit 0
 # --no-hash-bang \
 # --no-original-arguments \
 # --no-error-invalid-options \
-# --no-error-require-arguments << EOF
+# --no-error-require-arguments << EOF | clip
 # FLAG=(
 # --fast
 # --version
@@ -263,11 +235,11 @@ exit 0
 # --project-name
 # --project-parent-name
 # --php-fpm-user
-# --prefix
-# --project-container
+# --project-dir
 # )
 # MULTIVALUE=(
 # )
 # FLAG_VALUE=(
 # )
 # EOF
+# clear

@@ -6,26 +6,15 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --auto-add-group) auto_add_group=1; shift ;;
         --domain=*) domain="${1#*=}"; shift ;;
         --domain) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then domain="$2"; shift; fi; shift ;;
         --domain-strict) domain_strict=1; shift ;;
-        --drupal-version=*) drupal_version="${1#*=}"; shift ;;
-        --drupal-version) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then drupal_version="$2"; shift; fi; shift ;;
+        --existing-project-name=*) project_parent_name="${1#*=}"; shift ;;
+        --existing-project-name) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
-        --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
-        --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then php_fpm_user="$2"; shift; fi; shift ;;
-        --php-version=*) php_version="${1#*=}"; shift ;;
-        --php-version) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then php_version="$2"; shift; fi; shift ;;
-        --prefix=*) prefix="${1#*=}"; shift ;;
-        --prefix) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then prefix="$2"; shift; fi; shift ;;
-        --project-container=*) project_container="${1#*=}"; shift ;;
-        --project-container) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_container="$2"; shift; fi; shift ;;
-        --project-name=*) project_name="${1#*=}"; shift ;;
-        --project-name) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_name="$2"; shift; fi; shift ;;
-        --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
-        --project-parent-name) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --root-sure) root_sure=1; shift ;;
+        --sub-project-name=*) project_name="${1#*=}"; shift ;;
+        --sub-project-name) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_name="$2"; shift; fi; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -58,58 +47,19 @@ printVersion() {
 }
 printHelp() {
     title RCM Drupal Setup
-    _ 'Variation '; yellow Default; _, . Just Drupal without LEMP Stack setup. ; _.
+    _ 'Variation '; yellow MultiSite; _, . Multi Site in one codebase. ; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
-    nginx_user=
-    conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
-    if [ -f "$conf_nginx" ];then
-        nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
-    fi
-    [ -n "$nginx_user" ] && { nginx_user=" ${nginx_user},"; }
-    unset count
-    declare -i count
-    count=0
-    single_line=
-    multi_line=
-    while read line;do
-        if [ -d /etc/php/$line/fpm ];then
-            if [ $count -gt 0 ];then
-                single_line+=", "
-            fi
-            count+=1
-            single_line+="[${count}]"
-            multi_line+=$'\n''        '"[${count}]: "${line}
-        fi
-    done <<< `ls /etc/php/`
-    if [ -n "$single_line" ];then
-        single_line=" Available values: ${single_line}, or other."
-    fi
-    if [ -n "$multi_line" ];then
-        multi_line="$multi_line"
-    fi
     cat << EOF
-Usage: rcm-drupal-setup-variation-default [options]
+Usage: rcm-drupal-setup-variation-multisite [options]
 
 Options:
-   --drupal-version *
-        Set the version of Drupal. Available values: 10, 11, or other.
-   --php-version *
-        Set the version of PHP.${single_line}${multi_line}
-   --project-name *
-        Set the project name as identifier. This should be in machine name format.
+   --existing-project-name *
+        Select the existing project to use the same codebase. Value available from command: ls-drupal().
+   --sub-project-name *
+        Set the sub project name as identifier. This should be in machine name format.
    --domain
         Set the domain.
-   --domain-strict ^
-        Prevent installing drupal inside directory sites/default. Just hit the Enter key if you confuse.
-   --php-fpm-user
-        Set the Unix user that used by PHP FPM. Default value is the user that used by web server. Available values:${nginx_user}`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. If the user does not exists, it will be autocreate as reguler user.
-   --prefix
-        Set prefix directory for project. Default to home directory of --php-fpm-user or /usr/local/share.
-   --project-container
-        Set the container directory for all projects. Available value: drupal-projects, drupal, public_html, or other. Default to drupal-projects.
-   --auto-add-group ^
-        If Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
 
 Global Options.
    --fast
@@ -121,15 +71,15 @@ Global Options.
    --root-sure
         Bypass root checking.
 
-Other Options:
-   --project-parent-name
-        Set the project parent name. The parent is not have to installed before. For expert only.
+Environment Variables.
+   PREFIX_MASTER
+        Default to /usr/local/share/drupal
+   PROJECTS_CONTAINER_MASTER
+        Default to projects
 
 Dependency:
-   nginx
    rcm-php-setup-adjust-cli-version
    rcm-wsl-setup-lemp-stack
-   rcm-composer-autoinstaller
    rcm-drupal-autoinstaller-nginx:`printVersion`
    rcm-drupal-setup-wrapper-nginx-setup-drupal:`printVersion`
    rcm-drupal-setup-drush-alias:`printVersion`
@@ -156,7 +106,7 @@ EOF
 [ -n "$version" ] && { printVersion; exit 1; }
 
 # Title.
-title rcm-drupal-setup-variation-default
+title rcm-drupal-setup-variation-multisite
 ____
 
 if [ -z "$root_sure" ];then
@@ -174,7 +124,7 @@ while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { echo -e "\e[91m""Unable to proceed, "'`'"${line}"'`'" command not found." "\e[39m"; exit 1; }
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
-#  Functions.
+# Functions.
 validateMachineName() {
     local value="$1" _value
     local parameter="$2"
@@ -189,32 +139,129 @@ validateMachineName() {
         return 1
     fi
 }
+fileMustExists() {
+    # global used:
+    # global modified:
+    # function used: __, success, error, x
+    if [ -f "$1" ];then
+        __; green File '`'$(basename "$1")'`' ditemukan.; _.
+    else
+        __; red File '`'$(basename "$1")'`' tidak ditemukan.; x
+    fi
+}
+databaseCredentialDrupal() {
+    if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/database" ];then
+        local DB_USER DB_USER_PASSWORD
+        # Populate.
+        . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/database"
+        db_user=$DB_USER
+        db_user_password=$DB_USER_PASSWORD
+    fi
+}
+websiteCredentialDrupal() {
+    if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}" ];then
+        local ACCOUNT_NAME ACCOUNT_PASS
+        . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+        account_name=$ACCOUNT_NAME
+        account_pass=$ACCOUNT_PASS
+    else
+        account_name=system
+        account_pass=$(pwgen -s 32 -1)
+        mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal"
+        cat << EOF > "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+ACCOUNT_NAME=$account_name
+ACCOUNT_PASS=$account_pass
+EOF
+        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
+        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal"
+        chmod 0400 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+    fi
+}
+backupFile() {
+    local mode="$1"
+    local oldpath="$2" i newpath
+    i=1
+    newpath="${oldpath}.${i}"
+    if [ -f "$newpath" ]; then
+        let i++
+        newpath="${oldpath}.${i}"
+        while [ -f "$newpath" ] ; do
+            let i++
+            newpath="${oldpath}.${i}"
+        done
+    fi
+    case $mode in
+        move)
+            mv "$oldpath" "$newpath" ;;
+        copy)
+            local user=$(stat -c "%U" "$oldpath")
+            local group=$(stat -c "%G" "$oldpath")
+            cp "$oldpath" "$newpath"
+            chown ${user}:${group} "$newpath"
+    esac
+}
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
-code auto_add_group="$auto_add_group"
+# Random value, berapapun gak ngaruh, asal diatas angka 7.
+drupal_version=8
+code 'drupal_version="'$drupal_version'"'
+# Random value, berapapun gak ngaruh.
+auto_add_group=1
 [ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''
-if [ -z "$php_version" ];then
-    error "Argument --php-version required."; x
+PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
+code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
+PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
+code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
+if [ -z "$project_parent_name" ];then
+    error "Argument --existing-project-name required."; x
 fi
-if [ -z "$drupal_version" ];then
-    error "Argument --drupal-version required."; x
-fi
-code php_version="$php_version"
-code drupal_version="$drupal_version"
+code 'project_parent_name="'$project_parent_name'"'
 if [ -z "$project_name" ];then
-    error "Argument --project-name required."; x
+    error "Argument --sub-project-name required."; x
 fi
 code 'project_name="'$project_name'"'
-if ! validateMachineName "$project_name" project_name;then x; fi
-code 'project_parent_name="'$project_parent_name'"'
-if [ -n "$project_parent_name" ];then
-    if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
-fi
-code 'domain_strict="'$domain_strict'"'
 code 'domain="'$domain'"'
+project_dir_basename="$project_parent_name"
+code 'project_dir_basename="'$project_dir_basename'"'
+target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/drupal"
+code 'target="'$target'"'
+if [ -d "$target" ];then
+    if [ -h "$target" ];then
+            _readlink=$(readlink "$target")
+            if [[ "$_readlink" =~ ^[^/\.] ]];then
+                local target_parent=$(dirname "$target")
+                local _dereference="${target_parent}/${_readlink}"
+            elif [[ "$_readlink" =~ ^[\.] ]];then
+                local target_parent=$(dirname "$target")
+                local _dereference="${target_parent}/${_readlink}"
+                _dereference=$(realpath -s "$_dereference")
+            else
+                _dereference="$_readlink"
+            fi
+            source="$_dereference"
+    else
+        # e todo, mungkin ada kasus seperti ini dan itu gpp.
+        error Target merupakan regular direktori.;x
+    fi
+elif [ -f "$target" ];then
+    if [ -h "$target" ];then
+        error Target merupakan symbolic link mengarah ke regular file.;x
+    else
+        error Target merupakan regular file.;x
+    fi
+else
+    error Target tidak diketahui.;x
+fi
+code 'source="'$source'"'
+project_dir=$(dirname "$source")
+code 'project_dir="'$project_dir'"'
+path="${source}/composer.json"
+[ -f "$path" ] || fileMustExists "$path"
+php_fpm_user=$(stat -c "%U" "$path")
+code 'php_fpm_user="'$php_fpm_user'"'
 is_wsl=
 if [ -f /proc/sys/kernel/osrelease ];then
     read osrelease </proc/sys/kernel/osrelease
@@ -233,21 +280,38 @@ if [ -n "$domain" ];then
         ; [ ! $? -eq 0 ] && x
 fi
 
-# Di baris ini seharusnya sudah terinstall nginx.
-chapter Populate variables.
-nginx_user=
-conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
-if [ -f "$conf_nginx" ];then
-    nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
+chapter Prepare arguments.
+web_root="${source}/web"
+code web_root="$web_root"
+drupal_fqdn_localhost="$project_parent_name".drupal.localhost
+code drupal_fqdn_localhost="$drupal_fqdn_localhost"
+____
+
+chapter Mencari informasi PHP-FPM Version yang digunakan oleh Drupal.
+__ Membuat file "${web_root}/.well-known/__getversion.php"
+mkdir -p "${web_root}/.well-known"
+cat << 'EOF' > "${web_root}/.well-known/__getversion.php"
+<?php
+echo PHP_VERSION;
+EOF
+__ Eksekusi file script.
+__; magenta curl http://127.0.0.1/.well-known/__getversion.php -H '"'"Host: ${drupal_fqdn_localhost}"'"'; _.
+php_version=$(curl -Ss http://127.0.0.1/.well-known/__getversion.php -H "Host: ${drupal_fqdn_localhost}")
+__; magenta php_version="$php_version"; _.
+if [ -z "$php_version" ];then
+    error PHP-FPM version tidak ditemukan; x
 fi
-code 'nginx_user="'$nginx_user'"'
-if [ -z "$nginx_user" ];then
-    error "Variable \$nginx_user failed to populate."; x
-fi
-if [ -z "$php_fpm_user" ];then
-    php_fpm_user="$nginx_user"
-fi
-code 'php_fpm_user="'$php_fpm_user'"'
+__ Menghapus file "${web_root}/.well-known/__getversion.php"
+rm "${web_root}/.well-known/__getversion.php"
+rmdir "${web_root}/.well-known" --ignore-fail-on-non-empty
+____
+
+chapter Perbaikan variable '`'php_version'`'.
+__; magenta php_version="$php_version"; _.
+major=$(sed -E 's,^([0-9]+)\.([0-9]+)\.([0-9]+)$,\1,' <<< "$php_version")
+minor=$(sed -E 's,^([0-9]+)\.([0-9]+)\.([0-9]+)$,\2,' <<< "$php_version")
+php_version="${major}.${minor}"
+__; magenta php_version="$php_version"; _.
 ____
 
 INDENT+="    " \
@@ -271,38 +335,7 @@ rcm-php-fpm-setup-project-config $isfast --root-sure \
     --config-suffix-name="drupal" \
     ; [ ! $? -eq 0 ] && x
 
-# Di baris ini seharusnya sudah exists user linux $php_fpm_user.
-chapter Populate variables.
-if [ -z "$prefix" ];then
-    prefix=$(getent passwd "$php_fpm_user" | cut -d: -f6 )
-fi
-# Jika $php_fpm_user adalah nginx, maka $HOME nya adalah /nonexistent, maka
-# perlu kita verifikasi lagi.
-if [ ! -d "$prefix" ];then
-    prefix=
-fi
-if [ -z "$prefix" ];then
-    prefix=/usr/local/share
-    project_container=drupal
-fi
-if [ -z "$project_container" ];then
-    project_container=drupal-projects
-fi
-code 'prefix="'$prefix'"'
-code 'project_container="'$project_container'"'
-# Hanya populate, tidak harus exists direktori ini.
-project_dir="${prefix}/${project_container}"
-if [ -n "$project_parent_name" ];then
-    project_dir+="/${project_parent_name}"
-else
-    project_dir+="/${project_name}"
-fi
-code 'project_dir="'$project_dir'"'
-____
-
 INDENT+="    " \
-rcm-composer-autoinstaller $isfast --root-sure \
-    && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast --root-sure \
     $is_auto_add_group \
     --domain="$domain" \
@@ -373,23 +406,17 @@ exit 0
 # --help
 # --root-sure
 # --domain-strict
-# --auto-add-group
 # )
 # VALUE=(
-# --project-name
-# --project-parent-name
-# --drupal-version
-# --php-version
 # --domain
-# --php-fpm-user
-# --prefix
-# --project-container
 # )
 # MULTIVALUE=(
 # )
 # FLAG_VALUE=(
 # )
 # CSV=(
+    # 'long:--existing-project-name,parameter:project_parent_name,type:value'
+    # 'long:--sub-project-name,parameter:project_name,type:value'
 # )
 # EOF
 # clear

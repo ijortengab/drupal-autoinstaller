@@ -17,10 +17,8 @@ while [[ $# -gt 0 ]]; do
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
         --php-version) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then php_version="$2"; shift; fi; shift ;;
-        --prefix=*) prefix="${1#*=}"; shift ;;
-        --prefix) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then prefix="$2"; shift; fi; shift ;;
-        --project-container=*) project_container="${1#*=}"; shift ;;
-        --project-container) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_container="$2"; shift; fi; shift ;;
+        --project-dir=*) project_dir="${1#*=}"; shift ;;
+        --project-dir) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_dir="$2"; shift; fi; shift ;;
         --project-name=*) project_name="${1#*=}"; shift ;;
         --project-name) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
@@ -75,6 +73,8 @@ Options:
         Set the project name. This should be in machine name format.
    --project-parent-name
         Set the project parent name. The parent is not have to installed before.
+  --project-dir *
+        Set the project directory. Absolute path.
    --php-version *
         Set the version of PHP. Available values: [a], [b], or other.
         [a]: 8.2
@@ -83,10 +83,6 @@ Options:
         Set the version of Drupal.
    --php-fpm-user
         Set the Unix user that used by PHP FPM. Default value is the user that used by web server. Available values:${nginx_user}`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. If the user does not exists, it will be autocreate as reguler user.
-   --prefix
-        Set prefix directory for project. Default to home directory of --php-fpm-user or /usr/local/share.
-   --project-container
-        Set the container directory for all projects. Available value: drupal-projects, drupal, or other. Default to drupal-projects.
    --auto-add-group ^
         If Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
 
@@ -166,36 +162,10 @@ validateMachineName() {
         return 1
     fi
 }
-vercomp() {
-    # https://www.google.com/search?q=bash+compare+version
-    # https://stackoverflow.com/a/4025065
-    if [[ $1 == $2 ]]; then
-        return 0
-    fi
-    local IFS=.
-    local i ver1=($1) ver2=($2)
-    # fill empty fields in ver1 with zeros
-    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
-        ver1[i]=0
-    done
-    for ((i=0; i<${#ver1[@]}; i++)); do
-        if [[ -z ${ver2[i]} ]];then
-            # fill empty fields in ver2 with zeros
-            ver2[i]=0
-        fi
-        if ((10#${ver1[i]} > 10#${ver2[i]})); then
-            return 1
-        fi
-        if ((10#${ver1[i]} < 10#${ver2[i]})); then
-            return 2
-        fi
-    done
-    return 0
-}
 databaseCredentialDrupal() {
     local DB_USER DB_USER_PASSWORD
-    if [ ! -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/database" ];then
-        chapter Membuat database credentials: '`'$prefix/$project_container/$project_dir/credential/database'`'.
+    if [ ! -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/database" ];then
+        chapter Membuat database credentials: '`'$project_dir/credential/database'`'.
         db_user="$project_name"
         [ -n "$project_parent_name" ] && {
             db_user=$project_parent_name
@@ -205,37 +175,37 @@ databaseCredentialDrupal() {
         ____
 
         source="${MARIADB_PREFIX_MASTER}/${MARIADB_USERS_CONTAINER_MASTER}/${db_user}"
-        target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/database"
-        mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
-        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
+        target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/database"
+        mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
+        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
         link_symbolic "$source" "$target"
     fi
-    source="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
-    target="${prefix}/${project_container}/${project_dir}/credential"
+    source="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
+    target="${project_dir}/credential"
     link_symbolic_dir "$source" "$target" - absolute
 
     # Populate.
-    . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/database"
+    . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/database"
     db_user=$DB_USER
     db_user_password=$DB_USER_PASSWORD
 }
 websiteCredentialDrupal() {
-    if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/drupal/${drupal_fqdn_localhost}" ];then
+    if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}" ];then
         local ACCOUNT_NAME ACCOUNT_PASS
-        . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/drupal/${drupal_fqdn_localhost}"
+        . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
         account_name=$ACCOUNT_NAME
         account_pass=$ACCOUNT_PASS
     else
         account_name=system
         account_pass=$(pwgen -s 32 -1)
-        mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/drupal"
-        cat << EOF > "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/drupal/${drupal_fqdn_localhost}"
+        mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal"
+        cat << EOF > "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
 ACCOUNT_NAME=$account_name
 ACCOUNT_PASS=$account_pass
 EOF
-        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential"
-        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/drupal"
-        chmod 0400 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/drupal/${drupal_fqdn_localhost}"
+        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
+        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal"
+        chmod 0400 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
     fi
 }
 fileMustExists() {
@@ -504,7 +474,7 @@ if [ -z "$drupal_version" ];then
     error "Argument --drupal-version required."; x
 fi
 code 'drupal_version="'$drupal_version'"'
-vercomp 8 "$drupal_version"
+vercomp 7 "$drupal_version"
 if [[ $? -lt 2 ]];then
     red Hanya mendukung Drupal versi '>=' 8.; x
 fi
@@ -512,61 +482,41 @@ if [ -z "$php_version" ];then
     error "Argument --php-version required."; x
 fi
 code 'php_version="'$php_version'"'
-project_dir="$project_name"
+if [ -z "$project_dir" ];then
+    error "Argument --project-dir required."; x
+fi
+code 'project_dir="'$project_dir'"'
+project_dir_basename=$(basename "$project_dir")
+code 'project_dir_basename="'$project_dir_basename'"'
 drupal_nginx_config_file="${project_name}__drupal"
 drupal_fqdn_localhost="$project_name".drupal.localhost
 drupal_db_name="${project_name}__drupal"
 sites_subdir=$project_name
 [ -n "$project_parent_name" ] && {
-    project_dir="$project_parent_name"
     drupal_nginx_config_file="${project_parent_name}__${project_name}__drupal"
     drupal_fqdn_localhost="$project_name"."$project_parent_name".drupal.localhost
     drupal_db_name="${project_parent_name}__${project_name}__drupal"
     sites_subdir="${project_parent_name}__${project_name}"
 }
 sites_subdir=$(tr _ - <<< "$sites_subdir")
-code 'project_dir="'$project_dir'"'
 code 'drupal_nginx_config_file="'$drupal_nginx_config_file'"'
 code 'drupal_fqdn_localhost="'$drupal_fqdn_localhost'"'
 code 'drupal_db_name="'$drupal_db_name'"'
 code 'sites_subdir="'$sites_subdir'"'
+code 'auto_add_group="'$auto_add_group'"'
 nginx_user=
 conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
 if [ -f "$conf_nginx" ];then
     nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
 fi
-code 'nginx_user="'$nginx_user'"'
 if [ -z "$nginx_user" ];then
     error "Variable \$nginx_user failed to populate."; x
 fi
-if [[ "$php_fpm_user" == - ]];then
-    php_fpm_user=
-fi
-if [[ "$prefix" == - ]];then
-    prefix=
-fi
+code 'nginx_user="'$nginx_user'"'
 if [ -z "$php_fpm_user" ];then
-    php_fpm_user="$nginx_user"
+    error "Argument --php-fpm-user required."; x
 fi
 code 'php_fpm_user="'$php_fpm_user'"'
-if [ -z "$prefix" ];then
-    prefix=$(getent passwd "$php_fpm_user" | cut -d: -f6 )
-fi
-# Jika $php_fpm_user adalah nginx, maka $HOME nya adalah /nonexistent, maka
-# perlu kita verifikasi lagi.
-if [ ! -d "$prefix" ];then
-    prefix=
-fi
-if [ -z "$prefix" ];then
-    prefix=/usr/local/share
-    project_container=drupal
-fi
-if [ -z "$project_container" ];then
-    project_container=drupal-projects
-fi
-code 'prefix="'$prefix'"'
-code 'project_container="'$project_container'"'
-code 'auto_add_group="'$auto_add_group'"'
 PHP_FPM_POOL_DIRECTORY=${PHP_FPM_POOL_DIRECTORY:=/etc/php/[php-version]/fpm/pool.d}
 find='[php-version]'
 replace="$php_version"
@@ -598,8 +548,8 @@ else
 fi
 ____
 
-source="${prefix}/${project_container}/${project_dir}/drupal"
-target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/drupal"
+source="${project_dir}/drupal"
+target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/drupal"
 chapter Memeriksa direktori '`'$target'`'
 create=
 if [ -d "$target" ];then
@@ -634,7 +584,7 @@ else
     create=1
 fi
 
-target_master="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}"
+target_master="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}"
 chapter Mengecek direktori master project '`'$target_master'`'.
 isDirExists "$target_master"
 ____
@@ -649,75 +599,58 @@ if [ -n "$notfound" ];then
     ____
 fi
 
-target_project_container="${prefix}/${project_container}"
-chapter Mengecek direktori project container '`'$target_project_container'`'.
-isDirExists "$target_project_container"
-____
-
-if [ -n "$notfound" ];then
-    chapter Membuat direktori project container.
-    code mkdir -p '"'$target_project_container'"'
-    code chown $php_fpm_user:$php_fpm_user '"'$target_project_container'"'
-    mkdir -p "$target_project_container"
-    chown $php_fpm_user:$php_fpm_user "$target_project_container"
-    dirMustExists "$target_project_container"
-    ____
-fi
-
-target="${prefix}/${project_container}/${project_dir}"
-chapter Mengecek direktori project '`'$target'`'.
-isDirExists "$target"
+chapter Mengecek direktori project '`'$project_dir'`'.
+isDirExists "$project_dir"
 ____
 
 if [ -n "$notfound" ];then
     chapter Membuat direktori project.
-    code alias mkdir='"'sudo -u $php_fpm_user mkdir'"'
-    code mkdir -p "$target"
-    code unalias mkdir
-    sudo -u "$php_fpm_user" mkdir -p "$target"
-    dirMustExists "$target"
+    code mkdir -p "$project_dir"
+    code chown -R $php_fpm_user:$php_fpm_user '"'$project_dir'"'
+    mkdir -p "$project_dir"
+    chown -R $php_fpm_user:$php_fpm_user "$project_dir"
+    dirMustExists "$project_dir"
     ____
 fi
 
-target_web_root="${prefix}/${project_container}/${project_dir}/drupal/web"
-chapter Mengecek direktori project web root '`'$target_web_root'`'.
-isDirExists "$target_web_root"
+web_root="${project_dir}/drupal/web"
+chapter Mengecek direktori project web root '`'$web_root'`'.
+isDirExists "$web_root"
 ____
 
 if [ -n "$notfound" ];then
     chapter Membuat direktori project web root.
-    code alias mkdir='"'sudo -u $php_fpm_user mkdir'"'
-    code mkdir -p "$target_web_root"
-    code unalias mkdir
-    sudo -u "$php_fpm_user" mkdir -p "$target_web_root"
-    dirMustExists "$target_web_root"
+    code sudo -u '"'$php_fpm_user'"' mkdir -p '"'$web_root'"'
+    sudo -u "$php_fpm_user" mkdir -p "$web_root"
+    dirMustExists "$web_root"
     ____
 fi
 
 if [ -n "$create" ];then
-    source="${prefix}/${project_container}/${project_dir}/drupal"
-    target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/drupal"
+    source="${project_dir}/drupal"
+    target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/drupal"
     link_symbolic_dir "$source" "$target" - absolute
 fi
 
 is_access=
 chapter Memastikan Nginx User dapat mengakses Direktori Project.
-code sudo -u '"'$nginx_user'"' bash -c '"'cd "$target_web_root"'"'
-if sudo -u "$nginx_user" bash -c "cd ${target_web_root}";then
+code sudo -u '"'$nginx_user'"' bash -c '"'cd "$web_root"'"'
+if sudo -u "$nginx_user" bash -c "cd ${web_root}";then
     __ Direktori dapat diakses.
     is_access=1
 else
     __ Direktori tidak dapat diakses.
 fi
 if [[ -z "$is_access" ]];then
-    __ Mengecek flag --auto-add-group sebagai salah satu solusi.
+    __; _, Mengecek flag' '; magenta --auto-add-group; _, ' 'sebagai salah satu solusi.; _.
     if [[ -n "$auto_add_group" ]];then
+        __; _, Flag' '; magenta --auto-add-group; _, ' 'ditemukan.; _.
         __ Flag --auto-add-group ditemukan.
         __ Memberi akses Group PHP-FPM User kepada Nginx User.
         code usermod -a -G '"'"$php_fpm_user"'"' '"'"$nginx_user"'"'
         usermod -a -G "$php_fpm_user" "$nginx_user"
         __ Memberi akses Permission kepada direktori.
-        path="${prefix}/${project_container}/${project_dir}/drupal/web"
+        path="${project_dir}/drupal/web"
         until [[ "$path" == / || "$path" == /home ]];do
             __; magenta chmod g+rx "$path"; _.
             chmod g+rx "$path"
@@ -726,11 +659,11 @@ if [[ -z "$is_access" ]];then
             sleep .1
         done
     else
-        __ Flag --auto-add-group tidak ditemukan.
+        __; _, Flag' '; magenta --auto-add-group; _, ' 'tidak ditemukan.; _.
     fi
 fi
 if [[ -z "$is_access" ]];then
-    if sudo -u "$nginx_user" bash -c "cd ${prefix}/${project_container}/${project_dir}/drupal/web" 2>/dev/null;then
+    if sudo -u "$nginx_user" bash -c "cd ${project_dir}/drupal/web" 2>/dev/null;then
         success Direktori dapat diakses.
     else
         error Direktori tidak dapat diakses oleh Nginx User '('"$nginx_user"')'.; x
@@ -744,7 +677,7 @@ if [ -z "$socket_filename" ];then
     __; red Socket Filename of PHP-FPM not found.; x
 fi
 code socket_filename="$socket_filename"
-root="$prefix/${project_container}/$project_dir/drupal/web"
+root="${project_dir}/drupal/web"
 code root="$root"
 filename="$drupal_nginx_config_file"
 code filename="$filename"
@@ -792,7 +725,7 @@ cat << 'EOF' > "${root}/.well-known/__getuser.php"
 echo $_SERVER['USER'];
 EOF
 __ Eksekusi file script.
-__; magenta curl http://127.0.0.1/.well-known/__getuser.php -H "Host: ${drupal_fqdn_localhost}"; _.
+__; magenta curl http://127.0.0.1/.well-known/__getuser.php -H '"'Host: $drupal_fqdn_localhost'"'; _.
 _php_fpm_user=$(curl -Ss http://127.0.0.1/.well-known/__getuser.php -H "Host: ${drupal_fqdn_localhost}")
 __; magenta _php_fpm_user="$_php_fpm_user"; _.
 if [[ ! "$_php_fpm_user" == "$php_fpm_user" ]];then
@@ -801,12 +734,12 @@ fi
 __ Menghapus file "${root}/.well-known/__getuser.php"
 rm "${root}/.well-known/__getuser.php"
 rmdir "${root}/.well-known" --ignore-fail-on-non-empty
-rmdir "$prefix/${project_container}/$project_dir/drupal/web" --ignore-fail-on-non-empty
+rmdir "${project_dir}/drupal/web" --ignore-fail-on-non-empty
 ____
 
 chapter Mengecek file '`'composer.json'`' untuk project '`'drupal/recommended-project'`'
 notfound=
-if [ -f "$prefix"/"$project_container"/$project_dir/drupal/composer.json ];then
+if [ -f "${project_dir}/drupal/composer.json" ];then
     __ File '`'composer.json'`' ditemukan.
 else
     __ File '`'composer.json'`' tidak ditemukan.
@@ -823,7 +756,7 @@ ____
 
 if [ -n "$notfound" ];then
     chapter Mendownload composer.json untuk project '`'drupal/recommended-project'`'.
-    cd "$prefix"/"$project_container"/$project_dir
+    cd ${project_dir}
     # Jika version hanya angka 9 atau 10, maka ubah menjadi ^9 atau ^10.
     if [[ "$drupal_version" =~ ^[0-9]+$ ]];then
         _drupal_version="$drupal_version"
@@ -836,17 +769,17 @@ if [ -n "$notfound" ];then
     # Alternative menggunakan code dibawah ini.
     # Credit: https://stackoverflow.com/a/8633575
     code sudo -u $php_fpm_user $env bash -c '"'composer create-project --no-install drupal/recommended-project:${drupal_version} drupal'"'
-    sudo -u $php_fpm_user $env bash -c "composer create-project --no-install drupal/recommended-project:${drupal_version} drupal"
+    sudo -u "$php_fpm_user" $env bash -c "composer create-project --no-install drupal/recommended-project:${drupal_version} drupal"
     drupal_version="$_drupal_version"
     cd - >/dev/null
-    fileMustExists "${prefix}/${project_container}/${project_dir}/drupal/composer.json"
+    fileMustExists "${project_dir}/drupal/composer.json"
     ____
 fi
 
 chapter Mengecek dependencies menggunakan Composer.
 notfound=
-cd "${prefix}/${project_container}/${project_dir}/drupal"
-msg=$(sudo -u $php_fpm_user $env -s composer show 2>&1)
+cd "${project_dir}/drupal"
+msg=$(sudo -u "$php_fpm_user" $env -s composer show 2>&1)
 if ! grep -q '^No dependencies installed.' <<< "$msg";then
     __ Dependencies installed.
 else
@@ -858,17 +791,17 @@ ____
 
 if [ -n "$notfound" ];then
     chapter Mendownload dependencies menggunakan Composer.
-    cd "${prefix}/${project_container}/${project_dir}/drupal"
+    cd "${project_dir}/drupal"
     code sudo -u $php_fpm_user $env bash -c '"'composer -v install'"'
-    sudo -u $php_fpm_user $env bash -c "composer -v install"
+    sudo -u "$php_fpm_user" $env bash -c "composer -v install"
     cd - >/dev/null
     ____
 fi
 
 chapter Mengecek drush.
 notfound=
-cd "${prefix}/${project_container}/${project_dir}/drupal"
-if sudo -u $php_fpm_user $env composer show | grep -q '^drush/drush';then
+cd "${project_dir}/drupal"
+if sudo -u "$php_fpm_user" $env composer show | grep -q '^drush/drush';then
     __ Drush exists.
 else
     __ Drush is not exists.
@@ -879,11 +812,11 @@ ____
 
 if [ -n "$notfound" ];then
     chapter Memasang '`'Drush'`' menggunakan Composer.
-    cd "${prefix}/${project_container}/${project_dir}/drupal"
-    # sudo -u $php_fpm_user HOME='/tmp' -s composer -v require drush/drush
+    cd "${project_dir}/drupal"
+    # sudo -u "$php_fpm_user" HOME='/tmp' -s composer -v require drush/drush
     code sudo -u $php_fpm_user $env bash -c '"'composer -v require drush/drush'"'
-    sudo -u $php_fpm_user $env bash -c "composer -v require drush/drush"
-    if [ -f "${prefix}/${project_container}/${project_dir}/drupal/vendor/bin/drush" ];then
+    sudo -u "$php_fpm_user" $env bash -c "composer -v require drush/drush"
+    if [ -f "${project_dir}/drupal/vendor/bin/drush" ];then
         __; green Binary Drush is exists.
     else
         __; red Binary Drush is not exists.; x
@@ -892,7 +825,7 @@ if [ -n "$notfound" ];then
     ____
 fi
 
-PATH="${prefix}/${project_container}/${project_dir}/drupal/vendor/bin":$PATH
+PATH="${project_dir}/drupal/vendor/bin":$PATH
 
 chapter Mengecek domain-strict.
 if [ -n "$domain_strict" ];then
@@ -903,7 +836,7 @@ fi
 ____
 
 chapter Mengecek apakah Drupal sudah terinstall sebagai singlesite '`'default'`'.
-cd "${prefix}/${project_container}/${project_dir}/drupal"
+cd "${project_dir}/drupal"
 default_installed=
 if drush status --field=db-status | grep -q '^Connected$';then
     __ Drupal site default installed.
@@ -918,7 +851,7 @@ install_type=singlesite
 chapter Mengecek Drupal multisite
 if [ -n "$project_parent_name" ];then
     __ Project parent didefinisikan. Menggunakan Drupal multisite.
-    if [ -f "${prefix}/${project_container}/${project_dir}/drupal/web/sites/sites.php" ];then
+    if [ -f "${project_dir}/drupal/web/sites/sites.php" ];then
         __ Files '`'sites.php'`' ditemukan.
     else
         __ Files '`'sites.php'`' belum ditemukan.
@@ -995,22 +928,24 @@ rcm-mariadb-setup-project-database $isfast --root-sure \
 
 databaseCredentialDrupal
 
-chapter Mengecek website credentials: '`'$prefix/$project_container/$project_dir/credential/drupal/$drupal_fqdn_localhost'`'.
+chapter Mengecek website credentials.
+path="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+code path='"'$path'"'
 websiteCredentialDrupal
 if [[ -z "$account_name" || -z "$account_pass" ]];then
-    __; red Informasi credentials tidak lengkap: '`'$prefix/$project_container/$project_dir/credential/drupal/$drupal_fqdn_localhost'`'.; x
+    __; red Informasi credentials tidak lengkap: '`'$project_dir/credential/drupal/$drupal_fqdn_localhost'`'.; x
 else
     code account_name="$account_name"
     code account_pass="$account_pass"
 fi
 ____
 
-if [[ $install_type == 'singlesite' && -z "$default_installed" ]];then
+if [[ "$install_type" == 'singlesite' && -z "$default_installed" ]];then
     chapter Install Drupal site default.
     code drush site:install --yes \
         --account-name="$account_name" --account-pass="$account_pass" \
         --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}"
-    sudo -u $php_fpm_user PATH="${prefix}/${project_container}/${project_dir}/drupal/vendor/bin":$PATH $env -s \
+    sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin":$PATH $env -s \
         drush site:install --yes \
             --account-name="$account_name" --account-pass="$account_pass" \
             --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}"
@@ -1022,13 +957,13 @@ if [[ $install_type == 'singlesite' && -z "$default_installed" ]];then
     ____
 fi
 
-if [[ $install_type == 'multisite' && -z "$multisite_installed" ]];then
+if [[ "$install_type" == 'multisite' && -z "$multisite_installed" ]];then
     chapter Install Drupal multisite.
     code drush site:install --yes \
         --account-name="$account_name" --account-pass="$account_pass" \
         --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}" \
         --sites-subdir=${sites_subdir}
-    sudo -u $php_fpm_user PATH="${prefix}/${project_container}/${project_dir}/drupal/vendor/bin":$PATH $env -s \
+    sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin":$PATH $env -s \
         drush site:install --yes \
             --account-name="$account_name" --account-pass="$account_pass" \
             --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}" \
@@ -1109,7 +1044,7 @@ EOF
         list_uri+="${domain}"$'\n'
         list_uri+="${domain}.localhost"$'\n'
     fi
-    path="${prefix}/${project_container}/${project_dir}/drupal/web/sites/sites.php"
+    path="${project_dir}/drupal/web/sites/sites.php"
     fileMustExists "$path"
     code path='"'$path'"'
     filename=sites.php
@@ -1203,9 +1138,8 @@ exit 0
 # --project-name
 # --project-parent-name
 # --php-fpm-user
-# --prefix
-# --project-container
 # --domain
+# --project-dir
 # )
 # FLAG_VALUE=(
 # )
