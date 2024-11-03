@@ -135,7 +135,6 @@ Dependency:
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
    rcm-certbot-autoinstaller
-   rcm-drupal-wrapper-certbot-deploy-nginx:`printVersion`
    rcm-dig-watch-domain-exists
 
 Download:
@@ -146,7 +145,6 @@ Download:
    [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
    [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
    [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
-   [rcm-drupal-wrapper-certbot-deploy-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-wrapper-certbot-deploy-nginx.sh)
 EOF
 }
 
