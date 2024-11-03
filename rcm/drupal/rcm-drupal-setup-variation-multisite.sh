@@ -365,8 +365,28 @@ if [ -n "$domain" ];then
         --domain="localhost" \
         --php-fpm-user="$php_fpm_user" \
         --project-dir="$project_dir" \
-        && INDENT+="    " \
-    rcm-drupal-wrapper-certbot-deploy-nginx $isfast --root-sure \
+        ; [ ! $? -eq 0 ] && x
+
+    chapter Mengecek '$PATH'.
+    code PATH="$PATH"
+    if grep -q '/snap/bin' <<< "$PATH";then
+      __ '$PATH' sudah lengkap.
+    else
+      __ '$PATH' belum lengkap.
+      __ Memperbaiki '$PATH'
+      PATH=/snap/bin:$PATH
+        if grep -q '/snap/bin' <<< "$PATH";then
+            __; green '$PATH' sudah lengkap.; _.
+            __; magenta PATH="$PATH"; _.
+        else
+            __; red '$PATH' belum lengkap.; x
+        fi
+    fi
+    ____
+
+    INDENT+="    " \
+    PATH=$PATH \
+    rcm-certbot-deploy-nginx $isfast --root-sure \
         --domain="${domain}" \
         ; [ ! $? -eq 0 ] && x
 fi
