@@ -88,6 +88,7 @@ Dependency:
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
    rcm-dig-watch-domain-exists
+   rcm-certbot-deploy-nginx
 
 Download:
    [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
