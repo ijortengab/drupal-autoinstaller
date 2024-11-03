@@ -504,6 +504,10 @@ code 'drupal_fqdn_localhost="'$drupal_fqdn_localhost'"'
 code 'drupal_db_name="'$drupal_db_name'"'
 code 'sites_subdir="'$sites_subdir'"'
 code 'auto_add_group="'$auto_add_group'"'
+site_name="$drupal_fqdn_localhost"
+if [ -n "$domain" ];then
+    site_name="$domain"
+fi
 nginx_user=
 conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
 if [ -f "$conf_nginx" ];then
@@ -942,11 +946,11 @@ ____
 
 if [[ "$install_type" == 'singlesite' && -z "$default_installed" ]];then
     chapter Install Drupal site default.
-    code drush site:install --yes \
+    code drush site:install --yes --site-name="$site_name" \
         --account-name="$account_name" --account-pass="$account_pass" \
         --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}"
     sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin":$PATH $env -s \
-        drush site:install --yes \
+        drush site:install --yes --site-name="$site_name" \
             --account-name="$account_name" --account-pass="$account_pass" \
             --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}"
     if drush status --field=db-status | grep -q '^Connected$';then
@@ -959,12 +963,12 @@ fi
 
 if [[ "$install_type" == 'multisite' && -z "$multisite_installed" ]];then
     chapter Install Drupal multisite.
-    code drush site:install --yes \
+    code drush site:install --yes --site-name="$site_name" \
         --account-name="$account_name" --account-pass="$account_pass" \
         --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}" \
         --sites-subdir=${sites_subdir}
     sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin":$PATH $env -s \
-        drush site:install --yes \
+        drush site:install --yes --site-name="$site_name" \
             --account-name="$account_name" --account-pass="$account_pass" \
             --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}" \
             --sites-subdir=${sites_subdir}
