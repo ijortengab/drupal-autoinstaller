@@ -61,12 +61,16 @@ printHelp() {
     _ 'Variation '; yellow Default; _, . Just Drupal without LEMP Stack setup. ; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
+    # Populate variable $users.
+    users=`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','`
     nginx_user=
-    conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
+    conf_nginx=`command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
     if [ -f "$conf_nginx" ];then
         nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
     fi
     [ -n "$nginx_user" ] && { nginx_user=" ${nginx_user},"; }
+    [ -n "$users" ] && users=" Available values:${nginx_user}${users} or other."
+    # Populate variable $single_line and $multi_line.
     unset count
     declare -i count
     count=0
@@ -103,7 +107,7 @@ Options:
    --domain-strict ^
         Prevent installing drupal inside directory sites/default. Just hit the Enter key if you confuse.
    --php-fpm-user
-        Set the Unix user that used by PHP FPM. Default value is the user that used by web server. Available values:${nginx_user}`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. If the user does not exists, it will be autocreate as reguler user.
+        Set the Unix user that used by PHP FPM. Default value is the user that used by web server.${users} If the user does not exists, it will be autocreate as reguler user.
    --prefix
         Set prefix directory for project. Default to home directory of --php-fpm-user or /usr/local/share.
    --project-container
@@ -332,8 +336,28 @@ if [ -n "$domain" ];then
         --domain="localhost" \
         --php-fpm-user="$php_fpm_user" \
         --project-dir="$project_dir" \
-        && INDENT+="    " \
-    rcm-drupal-wrapper-certbot-deploy-nginx $isfast --root-sure \
+        ; [ ! $? -eq 0 ] && x
+
+    chapter Mengecek '$PATH'.
+    code PATH="$PATH"
+    if grep -q '/snap/bin' <<< "$PATH";then
+      __ '$PATH' sudah lengkap.
+    else
+      __ '$PATH' belum lengkap.
+      __ Memperbaiki '$PATH'
+      PATH=/snap/bin:$PATH
+        if grep -q '/snap/bin' <<< "$PATH";then
+            __; green '$PATH' sudah lengkap.; _.
+            __; magenta PATH="$PATH"; _.
+        else
+            __; red '$PATH' belum lengkap.; x
+        fi
+    fi
+    ____
+
+    INDENT+="    " \
+    PATH=$PATH \
+    rcm-certbot-deploy-nginx $isfast --root-sure \
         --domain="${domain}" \
         ; [ ! $? -eq 0 ] && x
 fi
