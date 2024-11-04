@@ -153,29 +153,30 @@ ArraySearch() {
 mode-available() {
     command_required=(nginx mysql php dig pwgen)
     command_notfound=
-    mode_available=(1)
+    mode_available=(newproject)
     for each in "${command_required[@]}"; do
         if ! command -v $each >/dev/null;then
             command_notfound+=" $each"
         fi
     done
     if [ -z "$command_notfound" ];then
-        mode_available+=(2)
+        mode_available+=(custom)
     fi
     if command -v ls-drupal >/dev/null;then
         if [[ $(ls-drupal | wc -l) -gt 0 ]];then
-            mode_available+=(3)
+            mode_available+=(subproject)
         fi
     fi
     _; _.
-    if ArraySearch 1 mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color 1; _, . Create a new project + LEMP Stack Setup. ; _.;
-    __; _, '        '; _, LEMP Stack '('Linux, Nginx, MySQL, PHP')'.; _.;
-    if ArraySearch 2 mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color 2; _, . Create a new project. ; _.; eligible+=("0;all;all")
-    if ArraySearch 3 mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color 3; _, . Add sub project from exisiting project. Drupal Multisite.; _.;
-    for each in 1 2 3; do
+    if ArraySearch newproject mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color 1; _, ': '; _, newproject; _, . Create a new project '(pack)' + LEMP Stack Setup. ; _.
+    __; _, '                    '; _, LEMP Stack '('Linux, Nginx, MySQL, PHP')'.; _.;
+    if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color 2; _, ': '; _, custom; _, '    '. Create a new project '(custom)'. ; _.
+    if ArraySearch subproject mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color 3; _, ': '; _, subproject; _, . Add sub project from exisiting project. ; _.
+    __; _, '                    '; _, Drupal Multisite.; _.;
+    for each in newproject custom subproject; do
         if ArraySearch $each mode_available[@] ]];then  echo $each; fi
     done
 }
@@ -218,7 +219,7 @@ delay=.5; [ -n "$fast" ] && unset delay
 
 if [ -n "$mode" ];then
     case "$mode" in
-        1|2|3) ;;
+        newproject|custom|subproject) ;;
         *) error "Argument --mode not valid."; x ;;
     esac
 fi
@@ -229,9 +230,9 @@ code 'mode="'$mode'"'
 ____
 
 case "$mode" in
-    1) rcm_operand=drupal-setup-variation-lemp-stack ;;
-    2) rcm_operand=drupal-setup-variation-default ;;
-    3) rcm_operand=drupal-setup-variation-multisite ;;
+    newproject) rcm_operand=drupal-setup-variation-lemp-stack ;;
+    custom) rcm_operand=drupal-setup-variation-default ;;
+    subproject) rcm_operand=drupal-setup-variation-multisite ;;
 esac
 
 chapter Execute:
