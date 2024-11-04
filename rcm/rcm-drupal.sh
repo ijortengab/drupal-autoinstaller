@@ -9,7 +9,7 @@ while [[ $# -gt 0 ]]; do
         --version) version=1; shift ;;
         --fast) fast=1; shift ;;
         --mode=*) mode="${1#*=}"; shift ;;
-        --mode) if [[ ! $2 == "" && ! $2 =~ ^-[^-] ]]; then mode="$2"; shift; fi; shift ;;
+        --mode) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then mode="$2"; shift; fi; shift ;;
         --non-interactive) non_interactive=1; shift ;;
         --root-sure) root_sure=1; shift ;;
         --verbose|-v) verbose="$((verbose+1))"; shift ;;
