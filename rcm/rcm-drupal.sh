@@ -169,13 +169,13 @@ mode-available() {
     fi
     _; _.
     if ArraySearch newproject mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color 1; _, ': '; _, newproject; _, . Create a new project '(pack)' + LEMP Stack Setup. ; _.
-    __; _, '                    '; _, LEMP Stack '('Linux, Nginx, MySQL, PHP')'.; _.;
+    __; _, 'Mode '; $color newproject; _, . Create a new project '(pack)' + LEMP Stack Setup. ; _.
+    __; _, '                 '; _, LEMP Stack '('Linux, Nginx, MySQL, PHP')'.; _.;
     if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color 2; _, ': '; _, custom; _, '    '. Create a new project '(custom)'. ; _.
+    __; _, 'Mode '; $color custom; _, '    '. Create a new project '(custom)'. ; _.
     if ArraySearch subproject mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color 3; _, ': '; _, subproject; _, . Add sub project from exisiting project. ; _.
-    __; _, '                    '; _, Drupal Multisite.; _.;
+    __; _, 'Mode '; $color subproject; _, . Add sub project from exisiting project. ; _.
+    __; _, '                 '; _, Drupal Multisite.; _.;
     for each in newproject custom subproject; do
         if ArraySearch $each mode_available[@] ]];then  echo $each; fi
     done
