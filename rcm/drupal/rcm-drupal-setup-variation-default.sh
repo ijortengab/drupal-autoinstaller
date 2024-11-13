@@ -101,7 +101,8 @@ Options:
    --php-version *
         Set the version of PHP.${single_line}${multi_line}
    --project-name *
-        Set the project name as identifier. This should be in machine name format.
+        Set the project name as identifier.
+        Allowed characters are a-z, 0-9, and underscore (_).
    --domain
         Set the domain.
    --domain-strict ^

@@ -81,7 +81,8 @@ Options:
    --variation *
         Select the variation setup. Values available from command: rcm-drupal-setup-variation-lemp-stack(eligible).
    --project-name *
-        Set the project name as identifier. This should be in machine name format.
+        Set the project name as identifier.
+        Allowed characters are a-z, 0-9, and underscore (_).
    --domain
         Set the public domain. Leave empty if install in development environment.
    --timezone

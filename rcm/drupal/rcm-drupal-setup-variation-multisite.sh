@@ -57,7 +57,8 @@ Options:
    --existing-project-name *
         Select the existing project to use the same codebase. Value available from command: ls-drupal().
    --sub-project-name *
-        Set the sub project name as identifier. This should be in machine name format.
+        Set the sub project name as identifier.
+        Allowed characters are a-z, 0-9, and underscore (_).
    --domain
         Set the domain.
 
