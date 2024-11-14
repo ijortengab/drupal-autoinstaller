@@ -106,7 +106,8 @@ Options:
    --domain
         Set the domain.
    --domain-strict ^
-        Prevent installing drupal inside directory sites/default. Just hit the Enter key if you confuse.
+        Prevent installing drupal inside directory sites/default.
+        Just skip it if you are confused.
    --php-fpm-user
         Set the Unix user that used by PHP FPM. Default value is the user that used by web server.${users} If the user does not exists, it will be autocreate as reguler user.
    --prefix
