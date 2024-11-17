@@ -287,7 +287,7 @@ link_symbolic() {
             __ Path target saat ini sudah merupakan file symbolic link: '`'$target'`'
             local _readlink=$(readlink "$target")
             __; magenta readlink "$target"; _.
-            e $_readlink
+            _ $_readlink; _.
             if [[ "$_readlink" =~ ^[^/\.] ]];then
                 local target_parent=$(dirname "$target")
                 local _dereference="${target_parent}/${_readlink}"
@@ -398,7 +398,7 @@ link_symbolic_dir() {
             __ Path target saat ini sudah merupakan directory symbolic link: '`'$target'`'
             local _readlink=$(readlink "$target")
             __; magenta readlink "$target"; _.
-            e $_readlink
+            _ $_readlink; _.
             if [[ "$_readlink" =~ ^[^/\.] ]];then
                 local target_parent=$(dirname "$target")
                 local _dereference="${target_parent}/${_readlink}"
@@ -563,9 +563,9 @@ if [ -d "$target" ];then
         __ Directory merupakan sebuah symbolic link.
         _dereference=$(stat ${stat_cached} "$target" -c %N)
         source_current=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
-        e $source_current
+        _ $source_current; _.
         source_current_relpath=$(realpath "$source_current")
-        e $source_current_relpath
+        _ $source_current_relpath; _.
         __; _, Mengecek apakah symbolic link merujuk ke '`'$source'`':
         if [[ "$source_current" == "$source" ]];then
             _, ' 'Merujuk.; _.

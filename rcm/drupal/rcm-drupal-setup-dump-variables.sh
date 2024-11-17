@@ -163,8 +163,8 @@ fi
 
 chapter Drupal "http://${fqdn_string}"
 websiteCredentialDrupal
-e ' - 'username: $account_name
-e '   'password: $account_pass
+_ ' - 'username: $account_name; _.
+_ '   'password: $account_pass; _.
 ____
 
 list_host=("${drupal_fqdn_localhost}")
@@ -173,14 +173,14 @@ if [ -n "$domain" ];then
 fi
 chapter Alias Hostname
 for host in "${list_host[@]}";do
-    e ' - 'http://"$host"
+    _ ' - 'http://"$host"; _.
 done
 ____
 
 chapter Database Credential
 databaseCredentialDrupal
-e ' - 'username: $db_user
-e '   'password: $db_user_password
+_ ' - 'username: $db_user; _.
+_ '   'password: $db_user_password; _.
 ____
 
 list_uri=("${drupal_fqdn_localhost}")
@@ -200,14 +200,14 @@ for uri in "${list_uri[@]}";do
 done
 
 chapter Manual Action
-e If you want to see the credentials again, please execute this command:
+_ If you want to see the credentials again, please execute this command:; _.
 [ -n "$project_parent_name" ] && has_project_parent_name=' --project-parent-name='"'${project_parent_name}'" || has_project_parent_name=''
 [ -n "$domain" ] && has_domain=' --domain='"'${domain}'" || has_domain=''
 __; magenta rcm drupal-setup-dump-variables${isfast} -- --project-name="'${project_name}'"${has_project_parent_name}${has_domain}; _.
-e It is recommended for you to level up file system directory outside web root, please execute this command:
+_ It is recommended for you to level up file system directory outside web root, please execute this command:; _.
 __; magenta rcm install drupal-adjust-file-system-outside-web-root --source drupal; _.
 __; magenta rcm drupal-adjust-file-system-outside-web-root${isfast} -- --project-name="'${project_parent_name:-$project_name}'"; _.
-e There are helpful commands to browse all projects:
+_ There are helpful commands to browse all projects:; _.
 __; magenta cd-drupal --help; _.
 __; magenta ls-drupal --help; _.
 ____
