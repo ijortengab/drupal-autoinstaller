@@ -93,7 +93,7 @@ fi
 
 # Functions.
 printVersion() {
-    echo '0.11.10'
+    echo '0.11.11'
 }
 printHelp() {
     title Drupal Auto-Installer
