@@ -6,8 +6,6 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --domain=*) domain="${1#*=}"; shift ;;
-        --domain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then domain="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
         --project-name=*) project_name="${1#*=}"; shift ;;
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
@@ -57,8 +55,6 @@ Options:
         Set the project name. This should be in machine name format.
    --project-parent-name
         Set the project parent name. Value available from command: ls-drupal().
-   --domain
-        Set the domain.
 
 Global Options.
    --fast
@@ -129,10 +125,30 @@ websiteCredentialDrupal() {
         account_pass=$ACCOUNT_PASS
     fi
 }
+url2Filename() {
+    local url=$1 filename
+    # Contoh 1:
+    # uri=juragan.web.id:10001/cintakita/dot/com/sso
+    # filename=juragan.web.id.10001-cintakita.dot.com.sso
+    # Contoh 2:
+    # uri=http://juragan.web.id:10001/cintakita/dot/com/sso/
+    # filename=http.juragan.web.id.10001-cintakita.dot.com.sso
+    # Contoh 3:
+    # uri=https://juragan.web.id:10001/cintakita/dot/com/sso/
+    # filename=juragan.web.id.10001-cintakita.dot.com.sso
+    filename="${url}"
+    filename="${filename/https:\/\//}"
+    filename="${filename/http:\/\//http.}"
+    filename="${filename/:/.}"
+    filename="${filename/\//-}"
+    filename="${filename//\//.}"
+    echo "$filename"
+}
 
 # Require, validate, and populate value.
 chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
+[ -n "$fast" ] && isfast=' --fast' || isfast=''
 __FILE__=$(resolve_relative_path "$0")
 __DIR__=$(dirname "$__FILE__")
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=$__DIR__}
@@ -140,7 +156,6 @@ code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
 if [ -z "$project_name" ];then
     error "Argument --project-name required."; x
 fi
-code 'domain="'$domain'"'
 code 'project_name="'$project_name'"'
 code 'project_parent_name="'$project_parent_name'"'
 project_dir="$project_name"
@@ -155,25 +170,27 @@ PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
 code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
 ____
 
-if [ -n "$domain" ];then
-    fqdn_string="$domain"
-else
-    fqdn_string="$drupal_fqdn_localhost"
+fqdn_string="http://${drupal_fqdn_localhost}"
+list=("${fqdn_string} cd-drupal-${drupal_fqdn_localhost}")
+if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}/website" ];then
+    . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}/website"
 fi
 
-chapter Drupal "http://${fqdn_string}"
+if [ -n "$URL_DRUPAL" ];then
+    fqdn_string="$URL_DRUPAL"
+    list+=("${URL_DRUPAL} cd-drupal-$(url2Filename "$URL_DRUPAL")" )
+fi
+
+chapter Drupal "${fqdn_string}"
 websiteCredentialDrupal
 _ ' - 'username: $account_name; _.
 _ '   'password: $account_pass; _.
 ____
 
-list_host=("${drupal_fqdn_localhost}")
-if [ -n "$domain" ];then
-    list_host+=("${domain}.localhost")
-fi
 chapter Alias Hostname
-for host in "${list_host[@]}";do
-    _ ' - 'http://"$host"; _.
+for each in "${list[@]}";do
+    url=$(cut -d' ' -f1 <<< "$each")
+    _ ' - '"$url"; _.
 done
 ____
 
@@ -183,33 +200,32 @@ _ ' - 'username: $db_user; _.
 _ '   'password: $db_user_password; _.
 ____
 
-list_uri=("${drupal_fqdn_localhost}")
-if [ -n "$domain" ];then
-    list_uri+=("${domain}")
-    list_uri+=("${domain}.localhost")
-fi
-
-for uri in "${list_uri[@]}";do
-    each="cd-drupal-${uri}"
-    if [ -f "$BINARY_DIRECTORY/$each" ];then
-        chapter The '`'drush'`' command for $uri
-        code . "${each}"
-        code drush status
-        ____
-    fi
-done
-
 chapter Manual Action
-_ If you want to see the credentials again, please execute this command:; _.
-[ -n "$project_parent_name" ] && has_project_parent_name=' --project-parent-name='"'${project_parent_name}'" || has_project_parent_name=''
-[ -n "$domain" ] && has_domain=' --domain='"'${domain}'" || has_domain=''
-__; magenta rcm drupal-setup-dump-variables${isfast} -- --project-name="'${project_name}'"${has_project_parent_name}${has_domain}; _.
-_ It is recommended for you to level up file system directory outside web root, please execute this command:; _.
+_ There are helpful commands:; _.
+_; _.
+_ If you want to see this credentials again:; _.
+[ -n "$project_parent_name" ] && has_project_parent_name=' --project-parent-name='"'${project_parent_name}'" || has_project_parent_name=' --project-parent-name-'
+[ -n "$project_parent_name" ] && has_project_parent_name_2=' --project-parent-name='"'${project_parent_name}'" || has_project_parent_name_2=
+__; magenta rcm-drupal-setup-dump-variables${isfast} --project-name="'${project_name}'"${has_project_parent_name_2}; _.
+_ alternative:; _.
+__; magenta rcm drupal-setup-dump-variables${isfast} -- --project-name="'${project_name}'"${has_project_parent_name} --; _.
+_; _.
+_ It is recommended for you to level up file system directory outside web root:; _.
 __; magenta rcm install drupal-adjust-file-system-outside-web-root --source drupal; _.
 __; magenta rcm drupal-adjust-file-system-outside-web-root${isfast} -- --project-name="'${project_parent_name:-$project_name}'"; _.
-_ There are helpful commands to browse all projects:; _.
-__; magenta cd-drupal --help; _.
-__; magenta ls-drupal --help; _.
+_; _.
+for each in "${list[@]}";do
+    url=$(cut -d' ' -f1 <<< "$each")
+    file=$(cut -d' ' -f2 <<< "$each")
+    if [ -f "$BINARY_DIRECTORY/$file" ];then
+        _ Activate the '`'drush'`' command for '`'$url'`':; _.
+        __; magenta ". ${file}"; _.
+        _; _.
+    fi
+done
+_ Browse all projects:; _.
+__; magenta ls-drupal; _.
+__; magenta . cd-drupal ; _.
 ____
 
 exit 0
@@ -231,7 +247,6 @@ exit 0
 # VALUE=(
 # --project-name
 # --project-parent-name
-# --domain
 # )
 # MULTIVALUE=(
 # )
