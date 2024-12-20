@@ -6,14 +6,20 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --domain=*) domain="${1#*=}"; shift ;;
-        --domain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then domain="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
         --project-name=*) project_name="${1#*=}"; shift ;;
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --root-sure) root_sure=1; shift ;;
+        --url-host=*) url_host="${1#*=}"; shift ;;
+        --url-host) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_host="$2"; shift; fi; shift ;;
+        --url-path=*) url_path="${1#*=}"; shift ;;
+        --url-path) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_path="$2"; shift; fi; shift ;;
+        --url-port=*) url_port="${1#*=}"; shift ;;
+        --url-port) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_port="$2"; shift; fi; shift ;;
+        --url-scheme=*) url_scheme="${1#*=}"; shift ;;
+        --url-scheme) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_scheme="$2"; shift; fi; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -57,8 +63,6 @@ Options:
         Set the project name. This should be in machine name format.
    --project-parent-name
         Set the project parent name.
-   --domain
-        Set the domain.
 
 Global Options.
    --fast
@@ -308,6 +312,25 @@ vercomp() {
     done
     return 0
 }
+url2Filename() {
+    local url=$1 filename
+    # Contoh 1:
+    # uri=juragan.web.id:10001/cintakita/dot/com/sso
+    # filename=juragan.web.id.10001-cintakita.dot.com.sso
+    # Contoh 2:
+    # uri=http://juragan.web.id:10001/cintakita/dot/com/sso/
+    # filename=http.juragan.web.id.10001-cintakita.dot.com.sso
+    # Contoh 3:
+    # uri=https://juragan.web.id:10001/cintakita/dot/com/sso/
+    # filename=juragan.web.id.10001-cintakita.dot.com.sso
+    filename="${uri}"
+    filename="${filename/https:\/\//}"
+    filename="${filename/http:\/\//http.}"
+    filename="${filename/:/.}"
+    filename="${filename/\//-}"
+    filename="${filename//\//.}"
+    echo "$filename"
+}
 
 # Require, validate, and populate value.
 chapter Dump variable.
@@ -319,7 +342,15 @@ code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
 if [ -z "$project_name" ];then
     error "Argument --project-name required."; x
 fi
-code 'domain="'$domain'"'
+
+code 'url_scheme="'$url_scheme'"'
+code 'url_host="'$url_host'"'
+code 'url_port="'$url_port'"'
+code 'url_path="'$url_path'"'
+url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
+url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+code 'url_path_clean="'$url_path_clean'"'
+code 'url_path_clean_trailing="'$url_path_clean_trailing'"'
 code 'project_name="'$project_name'"'
 code 'project_parent_name="'$project_parent_name'"'
 project_dir_basename="$project_name"
@@ -361,13 +392,22 @@ if [ -n "$notfound" ];then
 fi
 
 list_uri=("${drupal_fqdn_localhost}")
-if [ -n "$domain" ];then
-    list_uri+=("${domain}")
-    list_uri+=("${domain}.localhost")
+if [ -n "$url_host" ];then
+    _url_port=
+    if [ -n "$url_port" ];then
+        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+            _url_port=
+        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+            _url_port=
+        else
+            _url_port=":${url_port}"
+        fi
+    fi
+    list_uri+=("${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}")
 fi
 
 for uri in "${list_uri[@]}";do
-    filename="${uri}"
+    filename=$(url2Filename "$uri")
     chapter Script Shortcut ${filename}
     fullpath="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/${SITES_MASTER}/${filename}"
     dirname="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/${SITES_MASTER}"
@@ -378,7 +418,8 @@ for uri in "${list_uri[@]}";do
         if [ -z "$mktemp" ];then
             mktemp=$(mktemp -p /dev/shm)
         fi
-        "$fullpath" --version 2>/dev/null | tee $mktemp
+        "$fullpath" --version 2>/dev/null > $mktemp
+        while read line; do e "$line"; _.; done < $mktemp
         old_version=$(head -1 $mktemp)
         if [[ "$old_version" =~ [^0-9\.]+ ]];then
             old_version=0
@@ -403,6 +444,7 @@ _new_arguments=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --version) version=1; shift ;;
+        --url) url=1; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -413,7 +455,11 @@ unset _new_arguments
 printVersion() {
     echo '__NEW_VERSION__'
 }
+printUrl() {
+    echo '__URI__'
+}
 [ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$url" ] && { printUrl; exit 1; }
 
 [[ -f "$0" && ! "$0" == $(command -v bash) ]] && { echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m"; exit 1; }
 PREFIX_MASTER=__PREFIX_MASTER__
@@ -430,10 +476,10 @@ export SITE_DIR=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=
 export WEB_ROOT=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=root)
 printf "\r\033[K"
 echo export PROJECT_ROOT='"'$PROJECT_ROOT'"'
-echo export WEB_ROOT='"'$WEB_ROOT'"'
-echo export '       'SITE='"'"$SITE"'"'
-echo export '   'SITE_DIR='"'$SITE_DIR'"'
-echo -e alias '      '"\e[95m"' 'drush"\e[39m"='"''$PROJECT_ROOT'/vendor/bin/drush --uri='$SITE''"'
+echo export '    'WEB_ROOT='"'$WEB_ROOT'"'
+echo export '        'SITE='"'"$SITE"'"'
+echo export '    'SITE_DIR='"'$SITE_DIR'"'
+echo -e alias '       '"\e[95m"' 'drush"\e[39m"='"''$PROJECT_ROOT'/vendor/bin/drush --uri='$SITE''"'
 echo
 echo cd '"$PROJECT_ROOT"'' && [ -f .rc ] && . .rc'
 alias drush="$PROJECT_ROOT/vendor/bin/drush --uri=$SITE"
@@ -476,7 +522,10 @@ exit 0
 # VALUE=(
 # --project-name
 # --project-parent-name
-# --domain
+# --url-scheme
+# --url-host
+# --url-port
+# --url-path
 # )
 # MULTIVALUE=(
 # )
