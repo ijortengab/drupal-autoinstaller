@@ -318,7 +318,8 @@ if [ -n "$found" ];then
     if [ -z "$mktemp" ];then
         mktemp=$(mktemp -p /dev/shm)
     fi
-    "$fullpath" --version | tee $mktemp
+    "$fullpath" --version 2>/dev/null > $mktemp
+    while read line; do e "$line"; _.; done < $mktemp
     old_version=$(head -1 $mktemp)
     if [[ "$old_version" =~ [^0-9\.]+ ]];then
         old_version=0
