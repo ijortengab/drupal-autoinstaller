@@ -62,7 +62,7 @@ ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
 # Functions.
 printVersion() {
-    echo '0.9.8'
+    echo '0.11.11'
 }
 printHelp() {
     title RCM ISPConfig Setup Wrapper
@@ -459,7 +459,10 @@ if [ -n "$notfound" ];then
     ____
 fi
 
-target="${nginx_web_root}/${url_path_clean}"
+target="$nginx_web_root"
+if [ -n "$url_path_clean" ];then
+    target+="/${url_path_clean}"
+fi
 code 'target="'$target'"'
 chapter Memeriksa direktori target '`'$target'`'
 create=
