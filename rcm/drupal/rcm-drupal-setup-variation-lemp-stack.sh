@@ -7,10 +7,8 @@ while [[ $# -gt 0 ]]; do
         --help) help=1; shift ;;
         --version) version=1; shift ;;
         --auto-add-group) auto_add_group=1; shift ;;
-        --domain=*) domain="${1#*=}"; shift ;;
-        --domain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then domain="$2"; shift; fi; shift ;;
-        --domain-strict) domain_strict=1; shift ;;
         --fast) fast=1; shift ;;
+        --no-default) no_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --prefix=*) prefix="${1#*=}"; shift ;;
@@ -24,12 +22,10 @@ while [[ $# -gt 0 ]]; do
         --root-sure) root_sure=1; shift ;;
         --timezone=*) timezone="${1#*=}"; shift ;;
         --timezone) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then timezone="$2"; shift; fi; shift ;;
+        --url=*) url="${1#*=}"; shift ;;
+        --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
         --variation=*) variation="${1#*=}"; shift ;;
         --variation) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then variation="$2"; shift; fi; shift ;;
-        --with-update-system) update_system=1; shift ;;
-        --without-update-system) update_system=0; shift ;;
-        --with-upgrade-system) upgrade_system=1; shift ;;
-        --without-upgrade-system) upgrade_system=0; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -83,11 +79,13 @@ Options:
    --project-name *
         Set the project name as identifier.
         Allowed characters are a-z, 0-9, and underscore (_).
-   --domain
-        Set the public domain. Leave empty if install in development environment.
+   --url
+        Add Drupal public domain. The value can be domain or URL.
+        Drupal automatically has address at http://drupal.localhost/.
+        Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
    --timezone
         Set the timezone of this machine. Available values: Asia/Jakarta, or other.
-   --domain-strict ^
+   --no-default ^
         Prevent installing drupal inside directory sites/default.
         Just skip it if you are confused.
    --php-fpm-user
@@ -98,10 +96,6 @@ Options:
         Set the container directory for all projects. Available value: drupal-projects, drupal, public_html, or other. Default to drupal-projects.
    --auto-add-group ^
         If Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
-   --without-update-system ^
-        Skip execute update system. Default to --with-update-system.
-   --without-upgrade-system ^
-        Skip execute upgrade system. Default to --with-upgrade-system.
 
 Global Options.
    --fast
@@ -135,9 +129,11 @@ Dependency:
    rcm-drupal-setup-internal-command-cd-drupal:`printVersion`
    rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
+   rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root:`printVersion`
    rcm-php-fpm-setup-project-config
    rcm-certbot-autoinstaller
    rcm-dig-watch-domain-exists
+   rcm-dig-autoinstaller
 
 Download:
    [rcm-php-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/php/rcm-php-setup-drupal.sh)
@@ -147,6 +143,7 @@ Download:
    [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
    [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
    [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
+   [rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root.sh)
 EOF
 }
 
@@ -175,18 +172,18 @@ eligible() {
         . /etc/os-release
     fi
     _; _.
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 1; _, . Debian 11, '   'PHP 8.2, Drupal 10, Drush 12.; _.; eligible+=("1;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 2; _, . Debian 11, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("2;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 3; _, . Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("3;ubuntu;22.04")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 4; _, . Ubuntu 22.04, PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("4;ubuntu;22.04")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 5; _, . Debian 12, '   'PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("5;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 6; _, . Debian 12, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("6;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 7; _, . Debian 12, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("7;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color 8; _, . Debian 11, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("8;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 9; _, . Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("9;ubuntu;22.04")
-    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color 10; _, . Ubuntu 22.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("10;ubuntu;22.04")
-    __; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color 11; _, . Debian 12, '   'PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("11;debian;12")
-    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green || color=red; $color 12; _, . Ubuntu 24.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("12;ubuntu;24.04")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color d1; _, . Debian 11, '   'PHP 8.2, Drupal 10, Drush 12.; _.; eligible+=("d1;debian;11")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color d2; _, . Debian 11, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("d2;debian;11")
+    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color u3; _, . Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("u3;ubuntu;22.04")
+    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color u4; _, . Ubuntu 22.04, PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("u4;ubuntu;22.04")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color d5; _, . Debian 12, '   'PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("d5;debian;12")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color d6; _, . Debian 12, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("d6;debian;12")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color d7; _, . Debian 12, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("d7;debian;12")
+    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color d8; _, . Debian 11, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("d8;debian;11")
+    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color u9; _, . Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("u9;ubuntu;22.04")
+    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color u10; _, . Ubuntu 22.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("u10;ubuntu;22.04")
+    __; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color d11; _, . Debian 12, '   'PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("d11;debian;12")
+    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green || color=red; $color u12; _, . Ubuntu 24.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("u12;ubuntu;24.04")
     for each in "${eligible[@]}";do
         variation=$(cut -d';' -f1 <<< "$each")
         _id=$(cut -d';' -f2 <<< "$each")
@@ -207,6 +204,11 @@ fi
 title rcm-drupal-setup-variation-lemp-stack
 ____
 
+# Dependency.
+while IFS= read -r line; do
+    [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { echo -e "\e[91m""Unable to proceed, "'`'"${line}"'`'" command not found." "\e[39m"; exit 1; }
+done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
+
 if [ -z "$root_sure" ];then
     chapter Mengecek akses root.
     if [[ "$EUID" -ne 0 ]]; then
@@ -216,11 +218,6 @@ if [ -z "$root_sure" ];then
     fi
     ____
 fi
-
-# Dependency.
-while IFS= read -r line; do
-    [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { echo -e "\e[91m""Unable to proceed, "'`'"${line}"'`'" command not found." "\e[39m"; exit 1; }
-done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 #  Functions.
 validateMachineName() {
@@ -237,45 +234,128 @@ validateMachineName() {
         return 1
     fi
 }
+Rcm_parse_url() {
+    # Reset
+    PHP_URL_SCHEME=
+    PHP_URL_HOST=
+    PHP_URL_PORT=
+    PHP_URL_USER=
+    PHP_URL_PASS=
+    PHP_URL_PATH=
+    PHP_URL_QUERY=
+    PHP_URL_FRAGMENT=
+    PHP_URL_SCHEME="$(echo "$1" | grep :// | sed -e's,^\(.*\)://.*,\1,g')"
+    _PHP_URL_SCHEME_SLASH="${PHP_URL_SCHEME}://"
+    _PHP_URL_SCHEME_REVERSE="$(echo ${1/${_PHP_URL_SCHEME_SLASH}/})"
+    if grep -q '#' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_FRAGMENT=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f1)
+    fi
+    if grep -q '\?' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_QUERY=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f1)
+    fi
+    _PHP_URL_USER_PASS="$(echo $_PHP_URL_SCHEME_REVERSE | grep @ | cut -d@ -f1)"
+    PHP_URL_PASS=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f2`
+    if [ -n "$PHP_URL_PASS" ]; then
+        PHP_URL_USER=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f1`
+    else
+        PHP_URL_USER=$_PHP_URL_USER_PASS
+    fi
+    _PHP_URL_HOST_PORT="$(echo ${_PHP_URL_SCHEME_REVERSE/$_PHP_URL_USER_PASS@/} | cut -d/ -f1)"
+    PHP_URL_HOST="$(echo $_PHP_URL_HOST_PORT | sed -e 's,:.*,,g')"
+    if grep -q -E ':[0-9]+$' <<< "$_PHP_URL_HOST_PORT";then
+        PHP_URL_PORT="$(echo $_PHP_URL_HOST_PORT | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+    fi
+    _PHP_URL_HOST_PORT_LENGTH=${#_PHP_URL_HOST_PORT}
+    _LENGTH="$_PHP_URL_HOST_PORT_LENGTH"
+    if [ -n "$_PHP_URL_USER_PASS" ];then
+        _PHP_URL_USER_PASS_LENGTH=${#_PHP_URL_USER_PASS}
+        _LENGTH=$((_LENGTH + 1 + _PHP_URL_USER_PASS_LENGTH))
+    fi
+    PHP_URL_PATH="${_PHP_URL_SCHEME_REVERSE:$_LENGTH}"
+
+    # Debug
+    # e '"$PHP_URL_SCHEME"' "$PHP_URL_SCHEME"; _.
+    # e '"$PHP_URL_HOST"' "$PHP_URL_HOST"; _.
+    # e '"$PHP_URL_PORT"' "$PHP_URL_PORT"; _.
+    # e '"$PHP_URL_USER"' "$PHP_URL_USER"; _.
+    # e '"$PHP_URL_PASS"' "$PHP_URL_PASS"; _.
+    # e '"$PHP_URL_PATH"' "$PHP_URL_PATH"; _.
+    # e '"$PHP_URL_QUERY"' "$PHP_URL_QUERY"; _.
+    # e '"$PHP_URL_FRAGMENT"' "$PHP_URL_FRAGMENT"; _.
+}
+ArrayUnique() {
+    local e source=("${!1}")
+    # inArray is alternative of ArraySearch.
+    inArray () {
+        local e match="$1"
+        shift
+        for e; do [[ "$e" == "$match" ]] && return 0; done
+        return 1
+    }
+    _return=()
+    for e in "${source[@]}";do
+        if ! inArray "$e" "${_return[@]}";then
+            _return+=("$e")
+        fi
+    done
+}
+fileMustExists() {
+    # global used:
+    # global modified:
+    # function used: __, success, error, x
+    if [ -f "$1" ];then
+        __; green File '`'$(basename "$1")'`' ditemukan.; _.
+    else
+        __; red File '`'$(basename "$1")'`' tidak ditemukan.; x
+    fi
+}
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 code auto_add_group="$auto_add_group"
-code update_system="$update_system"
-code upgrade_system="$upgrade_system"
 [ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''
-[[ "$update_system" == "0" ]] && is_without_update_system=' --without-update-system' || is_without_update_system=''
-[[ "$upgrade_system" == "0" ]] && is_without_upgrade_system=' --without-upgrade-system' || is_without_upgrade_system=''
 if [ -z "$variation" ];then
     error "Argument --variation required."; x
 fi
-# Variation 1. Debian 11,    PHP 8.2, Drupal 10, Drush 12.
-# Variation 2. Debian 11,    PHP 8.1, Drupal  9, Drush 11.
-# Variation 3. Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12.
-# Variation 4. Ubuntu 22.04, PHP 8.1, Drupal  9, Drush 11.
-# Variation 5. Debian 12,    PHP 8.2, Drupal 10, Drush 12.
-# Variation 6. Debian 12,    PHP 8.1, Drupal  9, Drush 11.
-# Variation 7. Debian 12,    PHP 8.3, Drupal 10, Drush 12.
-# Variation 8. Debian 11,    PHP 8.3, Drupal 10, Drush 12.
-# Variation 9. Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12.
 case "$variation" in
-    1) os=debian; os_version=11   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    2) os=debian; os_version=11   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    3) os=ubuntu; os_version=22.04; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    4) os=ubuntu; os_version=22.04; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    5) os=debian; os_version=12   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    6) os=debian; os_version=12   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    7) os=debian; os_version=12   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    8) os=debian; os_version=11   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    10) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
-    11) os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13 ;;
-    12) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    d1) os=debian; os_version=11   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
+    d2) os=debian; os_version=11   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
+    u3) os=ubuntu; os_version=22.04; php_version=8.2; drupal_version=10; drush_version=12 ;;
+    u4) os=ubuntu; os_version=22.04; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
+    d5) os=debian; os_version=12   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
+    d6) os=debian; os_version=12   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
+    d7) os=debian; os_version=12   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
+    d8) os=debian; os_version=11   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
+    u9) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=10; drush_version=12 ;;
+    u10) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    d11) os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    u12) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
     *) error "Argument --variation is not valid."; x;;
 esac
 code os="$os"
 code os_version="$os_version"
+rcm_setup_os_basic=
+case "$os" in
+    debian)
+        case "$os_version" in
+            11) rcm_setup_os_basic=rcm-debian-11-setup-basic ;;
+            12) rcm_setup_os_basic=rcm-debian-12-setup-basic ;;
+        esac
+        ;;
+    ubuntu)
+        case "$os_version" in
+            22.04) rcm_setup_os_basic=rcm-ubuntu-22.04-setup-basic ;;
+            24.04) rcm_setup_os_basic=rcm-ubuntu-24.04-setup-basic ;;
+        esac
+        ;;
+esac
+if [ -z "$rcm_setup_os_basic" ];then
+    error "Operating System is not support."; x
+fi
 code php_version="$php_version"
 code drupal_version="$drupal_version"
 code drush_version="$drush_version"
@@ -284,15 +364,13 @@ if [ -z "$project_name" ];then
 fi
 code 'project_name="'$project_name'"'
 if ! validateMachineName "$project_name" project_name;then x; fi
-# Parent must empty.
-# Mode 1. Create a new project + LEMP Stack Setup.
-project_parent_name=
+# Advanced user can fill variable $project_parent_name from command line.
 code 'project_parent_name="'$project_parent_name'"'
 if [ -n "$project_parent_name" ];then
     if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
 fi
-code 'domain_strict="'$domain_strict'"'
-code 'domain="'$domain'"'
+code 'no_default="'$no_default'"'
+
 is_wsl=
 if [ -f /proc/sys/kernel/osrelease ];then
     read osrelease </proc/sys/kernel/osrelease
@@ -301,24 +379,65 @@ if [ -f /proc/sys/kernel/osrelease ];then
     fi
 fi
 code 'is_wsl="'$is_wsl'"'
+code 'url="'$url'"'
+fqdn_array=()
+fqdn_path_array=()
+if [ -n "$url" ];then
+    Rcm_parse_url "$url"
+	if [ -z "$PHP_URL_HOST" ];then
+        error Argument --url is not valid: '`'"$url"'`'.; x
+    else
+        [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
+        [ -n "$PHP_URL_PORT" ] && url_port="$PHP_URL_PORT" || url_port=443
+        [ -n "$PHP_URL_PATH" ] && fqdn_path_array+=("$PHP_URL_HOST")
+        url_host="$PHP_URL_HOST"
+        url_path="$PHP_URL_PATH"
+        fqdn_array+=("$PHP_URL_HOST")
+        # Modify variable url, auto add scheme.
+        url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+        _url_port=
+        if [ -n "$url_port" ];then
+            if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+                _url_port=
+            elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+                _url_port=
+            else
+                _url_port=":${url_port}"
+            fi
+        fi
+        # Modify variable url, auto trim trailing slash, auto add port.
+        url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
+    fi
+fi
+code 'url="'$url'"'
+code 'fqdn_array=('"${fqdn_array[@]}"')'
+ArrayUnique fqdn_array[@]
+fqdn_array=("${_return[@]}")
+unset _return
+code 'fqdn_array=('"${fqdn_array[@]}"')'
+code 'fqdn_path_array=('"${fqdn_path_array[@]}"')'
+ArrayUnique fqdn_path_array[@]
+fqdn_path_array=("${_return[@]}")
+unset _return
+code 'fqdn_path_array=('"${fqdn_path_array[@]}"')'
 ____
 
-INDENT+="    " \
-rcm-$os-$os_version-setup-basic $isfast --root-sure \
-    $is_without_update_system \
-    $is_without_upgrade_system \
-    --timezone="$timezone" \
-    ; [ ! $? -eq 0 ] && x
-
-if [ -n "$domain" ];then
+if [ -n "$url" ];then
     INDENT+="    " \
+    rcm-dig-autoinstaller $isfast --root-sure \
+        && INDENT+="    " \
     rcm-dig-watch-domain-exists $isfast --root-sure \
-        --domain="$domain" \
+        --domain="$url_host" \
         --waiting-time="60" \
         ; [ ! $? -eq 0 ] && x
 fi
 
 INDENT+="    " \
+$rcm_setup_os_basic $isfast --root-sure \
+    --without-update-system \
+    --without-upgrade-system \
+    --timezone="$timezone" \
+    && INDENT+="    " \
 rcm-nginx-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
 rcm-mariadb-autoinstaller $isfast --root-sure \
@@ -400,7 +519,7 @@ rcm-composer-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast --root-sure \
     $is_auto_add_group \
-    --domain="$domain" \
+    --no-default="$no_default" \
     --drupal-version="$drupal_version" \
     --drush-version="$drush_version" \
     --php-version="$php_version" \
@@ -408,59 +527,55 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
     --project-dir="$project_dir" \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
+    --url-scheme="$url_scheme" \
+    --url-host="$url_host" \
+    --url-port="$url_port" \
+    --url-path="$url_path" \
     ; [ ! $? -eq 0 ] && x
 
-if [ -n "$domain" ];then
+if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
-        --php-version="$php_version" \
-        --project-name="$project_name" \
-        --project-parent-name="$project_parent_name" \
-        --domain="$domain" \
-        --php-fpm-user="$php_fpm_user" \
-        --project-dir="$project_dir" \
-        && INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
-        --php-version="$php_version" \
-        --project-name="$project_name" \
-        --project-parent-name="$project_parent_name" \
-        --subdomain="$domain" \
-        --domain="localhost" \
-        --php-fpm-user="$php_fpm_user" \
-        --project-dir="$project_dir" \
-        && INDENT+="    " \
     rcm-certbot-autoinstaller $isfast --root-sure \
+        && INDENT+="    " \
+    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast --root-sure \
+        --php-version="$php_version" \
+        --php-fpm-user="$php_fpm_user" \
+        --project-dir="$project_dir" \
+        --project-name="$project_name" \
+        --project-parent-name="$project_parent_name" \
+        --url-scheme="$url_scheme" \
+        --url-host="$url_host" \
+        --url-port="$url_port" \
+        --url-path="$url_path" \
         ; [ ! $? -eq 0 ] && x
 
-    chapter Mengecek '$PATH'.
-    code PATH="$PATH"
-    if grep -q '/snap/bin' <<< "$PATH";then
-      __ '$PATH' sudah lengkap.
-    else
-      __ '$PATH' belum lengkap.
-      __ Memperbaiki '$PATH'
-      PATH=/snap/bin:$PATH
-        if grep -q '/snap/bin' <<< "$PATH";then
-            __; green '$PATH' sudah lengkap.; _.
-            __; magenta PATH="$PATH"; _.
-        else
-            __; red '$PATH' belum lengkap.; x
-        fi
-    fi
+    chapter Flush cache.
+    code drush cache:rebuild --uri="$url"
+    sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin":$PATH $env -s \
+        drush cache:rebuild --uri="$url"
     ____
 
-    INDENT+="    " \
-    PATH=$PATH \
-    rcm-certbot-deploy-nginx $isfast --root-sure \
-        --domain="${domain}" \
-        ; [ ! $? -eq 0 ] && x
+fi
+
+if [ -n "$url" ];then
+    chapter Saving URL information.
+    code mkdir -p /usr/local/share/drupal/projects/"$project_name"
+    mkdir -p "/usr/local/share/drupal/projects/${project_name}"
+    cat << EOF > "/usr/local/share/drupal/projects/${project_name}/website"
+URL_DRUPAL=$url
+EOF
+    fileMustExists "/usr/local/share/drupal/projects/${project_name}/website"
+    ____
 fi
 
 INDENT+="    " \
 rcm-drupal-setup-drush-alias $isfast --root-sure \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
-    --domain="$domain" \
+    --url-scheme="$url_scheme" \
+    --url-host="$url_host" \
+    --url-port="$url_port" \
+    --url-path="$url_path" \
     && INDENT+="    " \
 rcm-drupal-setup-internal-command-cd-drupal $isfast --root-sure \
     && INDENT+="    " \
@@ -490,14 +605,14 @@ exit 0
 # --version
 # --help
 # --root-sure
-# --domain-strict
+# --no-default
 # --auto-add-group
 # )
 # VALUE=(
 # --project-name
 # --project-parent-name
 # --timezone
-# --domain
+# --url
 # --php-fpm-user
 # --prefix
 # --project-container
@@ -508,10 +623,6 @@ exit 0
 # FLAG_VALUE=(
 # )
 # CSV=(
-    # 'long:--with-update-system,parameter:update_system'
-    # 'long:--without-update-system,parameter:update_system,flag_option:reverse'
-    # 'long:--with-upgrade-system,parameter:upgrade_system'
-    # 'long:--without-upgrade-system,parameter:upgrade_system,flag_option:reverse'
 # )
 # EOF
 # clear
