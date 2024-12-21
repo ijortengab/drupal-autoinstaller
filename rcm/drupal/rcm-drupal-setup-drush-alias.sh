@@ -334,7 +334,7 @@ url2Filename() {
     # Contoh 3:
     # uri=https://juragan.web.id:10001/cintakita/dot/com/sso/
     # filename=juragan.web.id.10001-cintakita.dot.com.sso
-    filename="${uri}"
+    filename="${url}"
     filename="${filename/https:\/\//}"
     filename="${filename/http:\/\//http.}"
     filename="${filename/:/.}"
