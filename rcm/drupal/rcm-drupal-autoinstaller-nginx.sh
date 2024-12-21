@@ -7,12 +7,10 @@ while [[ $# -gt 0 ]]; do
         --help) help=1; shift ;;
         --version) version=1; shift ;;
         --auto-add-group) auto_add_group=1; shift ;;
-        --domain=*) domain="${1#*=}"; shift ;;
-        --domain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then domain="$2"; shift; fi; shift ;;
-        --domain-strict) domain_strict=1; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
+        --no-default) no_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
@@ -24,6 +22,14 @@ while [[ $# -gt 0 ]]; do
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --root-sure) root_sure=1; shift ;;
+        --url-host=*) url_host="${1#*=}"; shift ;;
+        --url-host) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_host="$2"; shift; fi; shift ;;
+        --url-path=*) url_path="${1#*=}"; shift ;;
+        --url-path) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_path="$2"; shift; fi; shift ;;
+        --url-port=*) url_port="${1#*=}"; shift ;;
+        --url-port) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_port="$2"; shift; fi; shift ;;
+        --url-scheme=*) url_scheme="${1#*=}"; shift ;;
+        --url-scheme) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_scheme="$2"; shift; fi; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -478,7 +484,7 @@ code 'project_parent_name="'$project_parent_name'"'
 if [ -n "$project_parent_name" ];then
     if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
 fi
-code 'domain_strict="'$domain_strict'"'
+code 'no_default="'$no_default'"'
 if [ -z "$drupal_version" ];then
     error "Argument --drupal-version required."; x
 fi
@@ -513,10 +519,55 @@ code 'drupal_fqdn_localhost="'$drupal_fqdn_localhost'"'
 code 'drupal_db_name="'$drupal_db_name'"'
 code 'sites_subdir="'$sites_subdir'"'
 code 'auto_add_group="'$auto_add_group'"'
-site_name="$drupal_fqdn_localhost"
-if [ -n "$domain" ];then
-    site_name="$domain"
+
+code 'url_scheme="'$url_scheme'"'
+code 'url_host="'$url_host'"'
+code 'url_port="'$url_port'"'
+code 'url_path="'$url_path'"'
+url=
+url_minus_scheme=
+url_minus_scheme_key_array=
+url_path_clean=
+url_path_clean_trailing=
+if [ -n "$url_path" ];then
+    url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
+    url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
 fi
+code 'url_path_clean="'$url_path_clean'"'
+code 'url_path_clean_trailing="'$url_path_clean_trailing'"'
+if [ -n "$url_host" ];then
+    if [ -z "$url_scheme" ];then
+        url_scheme=https
+    fi
+    _url_port=
+    _url_port_2=
+    if [ -n "$url_port" ];then
+        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+            _url_port=
+        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+            _url_port=
+        else
+            _url_port=":${url_port}"
+            _url_port_2="${url_port}."
+        fi
+    fi
+    url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
+    url_minus_scheme="${url_host}${_url_port}${url_path_clean_trailing}"
+    url_minus_scheme_key_array="${_url_port_2}${url_host}${url_path_clean_trailing}"
+    url_minus_scheme_key_array="${url_minus_scheme_key_array//\//.}"
+fi
+code 'url="'$url'"'
+code 'url_minus_scheme="'$url_minus_scheme'"'
+code 'url_minus_scheme_key_array="'$url_minus_scheme_key_array'"'
+code 'url_scheme="'$url_scheme'"'
+code 'url_host="'$url_host'"'
+code 'url_port="'$url_port'"'
+code 'url_path="'$url_path'"'
+site_name="$drupal_fqdn_localhost"
+if [ -n "$url_minus_scheme" ];then
+    site_name="$url_minus_scheme"
+fi
+code 'site_name="'$site_name'"'
 nginx_user=
 conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
 if [ -f "$conf_nginx" ];then
@@ -549,7 +600,7 @@ MARIADB_PREFIX_MASTER=${MARIADB_PREFIX_MASTER:=/usr/local/share/mariadb}
 code 'MARIADB_PREFIX_MASTER="'$MARIADB_PREFIX_MASTER'"'
 MARIADB_USERS_CONTAINER_MASTER=${MARIADB_USERS_CONTAINER_MASTER:=users}
 code 'MARIADB_USERS_CONTAINER_MASTER="'$MARIADB_USERS_CONTAINER_MASTER'"'
-code 'domain="'$domain'"'
+mktemp=
 ____
 
 chapter Mengecek PHP-FPM User.
@@ -707,25 +758,25 @@ rcm-nginx-setup-drupal \
     --fastcgi-pass="unix:${socket_filename}" \
     ; [ ! $? -eq 0 ] && x
 
-chapter Mengecek subdomain '`'$drupal_fqdn_localhost'`'.
+chapter Mengecek address host local '`'$drupal_fqdn_localhost'`'.
 notfound=
 string="$drupal_fqdn_localhost"
 string_quoted=$(sed "s/\./\\\./g" <<< "$string")
 if grep -q -E "^\s*127\.0\.0\.1\s+${string_quoted}" /etc/hosts;then
-    __ Subdomain terdapat pada local DNS resolver '`'/etc/hosts'`'.
+    __ Address Host local terdapat pada local DNS resolver '`'/etc/hosts'`'.
 else
-    __ Subdomain tidak terdapat pada local DNS resolver '`'/etc/hosts'`'.
+    __ Address Host local tidak terdapat pada local DNS resolver '`'/etc/hosts'`'.
     notfound=1
 fi
 ____
 
 if [ -n "$notfound" ];then
-    chapter Menambahkan subdomain '`'$drupal_fqdn_localhost'`'.
+    chapter Menambahkan host '`'$drupal_fqdn_localhost'`'.
     echo "127.0.0.1"$'\t'"${drupal_fqdn_localhost}" >> /etc/hosts
     if grep -q -E "^\s*127\.0\.0\.1\s+${string_quoted}" /etc/hosts;then
-        __; green Subdomain terdapat pada local DNS resolver '`'/etc/hosts'`'.; _.
+        __; green Address Host local terdapat pada local DNS resolver '`'/etc/hosts'`'.; _.
     else
-        __; red Subdomain tidak terdapat pada local DNS resolver '`'/etc/hosts'`'.; x
+        __; red Address Host local tidak terdapat pada local DNS resolver '`'/etc/hosts'`'.; x
     fi
     ____
 fi
@@ -840,8 +891,8 @@ fi
 
 PATH="${project_dir}/drupal/vendor/bin":$PATH
 
-chapter Mengecek domain-strict.
-if [ -n "$domain_strict" ];then
+chapter Mengecek no-default.
+if [ -n "$no_default" ];then
     __ Instalasi Drupal tidak menggunakan '`'default'`'.
 else
     __ Instalasi Drupal menggunakan '`'default'`'.
@@ -873,23 +924,33 @@ if [ -n "$project_parent_name" ];then
 else
     __ Project parent tidak didefinisikan.
 fi
-if [[ -n "$domain_strict"  && -z "$default_installed" ]];then
-    __ Domain strict didefinisikan. Menggunakan Drupal multisite.
+if [[ -n "$no_default"  && -z "$default_installed" ]];then
+    __ No default didefinisikan. Menggunakan Drupal multisite.
     install_type=multisite
 else
-    __ Domain strict tidak didefinisikan.
+    __ No default tidak didefinisikan.
 fi
 ____
 
-list_uri=("${drupal_fqdn_localhost}")
-if [ -n "$domain" ];then
-    list_uri+=("${domain}")
-    list_uri+=("${domain}.localhost")
+list_url=("${drupal_fqdn_localhost}")
+list_url_key="${drupal_fqdn_localhost}"
+if [ -n "$url" ];then
+    list_url+=("$url_minus_scheme")
+    list_url_key+=$'\n'"$url_minus_scheme_key_array"
 fi
+
 multisite_installed=
-for uri in "${list_uri[@]}" ;do
+if [ -z "$mktemp" ];then
+    mktemp=$(mktemp -p /dev/shm)
+fi
+for uri in "${list_url[@]}" ;do
     chapter Mengecek apakah Drupal sudah terinstall sebagai multisite '`'$uri'`'.
-    if [[ "sites/${sites_subdir}" == $(drush status --uri=$uri --field=site) ]];then
+    code drush status --uri=$uri --field=site
+    drush status --uri=$uri --field=site > $mktemp
+    _site=$(< $mktemp)
+    if [ `echo "$_site" | wc -l` -eq 1 ];then e "$_site"; _.; else while read line; do e "$line"; _.; done <<< "$_site"; fi
+    code "sites/${sites_subdir}"
+    if [[ "sites/${sites_subdir}" == "$_site" ]];then
         __ Site direktori dari domain '`'$uri'`' sesuai, yakni: '`'sites/$sites_subdir'`'.
         if drush status --uri=$uri --field=db-status | grep -q '^Connected$';then
             __ Drupal site '`'$uri'`' installed.
@@ -905,14 +966,14 @@ done
 
 chapter Dump variable installed.
 code install_type="$install_type"
-code domain_strict="$domain_strict"
+code no_default="$no_default"
 code default_installed="$default_installed"
 code multisite_installed="$multisite_installed"
 ____
 
-if [[ "$install_type" == singlesite && -z "$domain_strict" && -z "$default_installed" && -n "$multisite_installed" ]];then
+if [[ "$install_type" == singlesite && -z "$no_default" && -z "$default_installed" && -n "$multisite_installed" ]];then
     chapter Drupal multisite sudah terinstall.
-    __ Sebelumnya sudah di-install dengan option --domain-strict.
+    __ Sebelumnya sudah di-install dengan option --no-default.
     __ Agar proses dapat dilanjutkan, perlu kerja manual dengan memperhatikan sbb:
     __ - Move file '`'settings.php'`' dari '`'sites/'<'sites_subdir'>''`' menjadi '`'sites/default'`'.
     __ - Move file-file script PHP yang di-include oleh '`'settings.php'`'.
@@ -921,9 +982,9 @@ if [[ "$install_type" == singlesite && -z "$domain_strict" && -z "$default_insta
     __; red Process terminated; x
 fi
 
-if [[ -n "$domain_strict" && -n "$default_installed" ]];then
+if [[ -n "$no_default" && -n "$default_installed" ]];then
     chapter Drupal singlesite default sudah terinstall.
-    __ Option --domain-strict tidak bisa digunakan.
+    __ Option --no-default tidak bisa digunakan.
     __ Agar proses dapat dilanjutkan, perlu kerja manual dengan memperhatikan sbb:
     __ - Move file '`'settings.php'`' dari '`'sites/default'`' menjadi '`'sites/'<'sites_subdir'>''`'.
     __ - Move file-file script PHP yang di-include oleh '`'settings.php'`'.
@@ -1052,16 +1113,11 @@ switch ($mode) {
 EOF
     )
     chapter Mengecek informasi file konfigurasi MultiSite.
-    list_uri="${drupal_fqdn_localhost}"$'\n'
-    if [ -n "$domain" ];then
-        list_uri+="${domain}"$'\n'
-        list_uri+="${domain}.localhost"$'\n'
-    fi
     path="${project_dir}/drupal/web/sites/sites.php"
-    fileMustExists "$path"
+    [ -f "$path" ] || fileMustExists "$path"
     code path='"'$path'"'
     filename=sites.php
-    reference="$(php -r "$php" build_reference "$sites_subdir" <<< "$list_uri")"
+    reference="$(php -r "$php" build_reference "$sites_subdir" <<< "$list_url_key")"
     is_different=
     if php -r "$php" is_different "$path" "$reference";then
         is_different=1
@@ -1084,17 +1140,13 @@ EOF
         ____
     fi
 
-    list_uri=("${drupal_fqdn_localhost}")
-    if [ -n "$domain" ];then
-        list_uri+=("${domain}")
-        list_uri+=("${domain}.localhost")
-    fi
+    chapter Mengecek ulang informasi file konfigurasi MultiSite.
     error=
-    for uri in "${list_uri[@]}" ;do
+    for uri in "${list_url[@]}" ;do
         if [[ "sites/${sites_subdir}" == $(drush status --uri=$uri --field=site) ]];then
             __; green Site direktori dari domain '`'$uri'`' sesuai, yakni: '`'sites/$sites_subdir'`'.; _.
         else
-            __; red Site direktori dari domain '`'$uri'`' tidak sesuai.
+            __; red Site direktori dari domain '`'$uri'`' tidak sesuai.; _.
             error=1
         fi
         if drush status --uri=$uri --field=db-status | grep -q '^Connected$';then
@@ -1104,10 +1156,11 @@ EOF
             error=1
         fi
     done
+    ____
+
     if [ -n "$error" ];then
         x
     fi
-    ____
 fi
 
 chapter Mengecek HTTP Response Code.
@@ -1127,6 +1180,10 @@ code=$(curl -L \
 __ HTTP Response code '`'$code'`'.
 ____
 
+if [ -n "$mktemp" ];then
+    rm "$mktemp"
+fi
+
 exit 0
 
 # parse-options.sh \
@@ -1142,7 +1199,7 @@ exit 0
 # --version
 # --help
 # --root-sure
-# --domain-strict
+# --no-default
 # --auto-add-group
 # )
 # VALUE=(
@@ -1151,8 +1208,11 @@ exit 0
 # --project-name
 # --project-parent-name
 # --php-fpm-user
-# --domain
 # --project-dir
+# --url-scheme
+# --url-host
+# --url-port
+# --url-path
 # )
 # FLAG_VALUE=(
 # )
