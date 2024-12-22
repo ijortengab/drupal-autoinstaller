@@ -81,7 +81,7 @@ Options:
         Allowed characters are a-z, 0-9, and underscore (_).
    --url
         Add Drupal public domain. The value can be domain or URL.
-        Drupal automatically has address at http://drupal.localhost/.
+        Drupal automatically has address at http://<project>.drupal.localhost/.
         Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
    --timezone
         Set the timezone of this machine. Available values: Asia/Jakarta, or other.
@@ -285,22 +285,6 @@ Rcm_parse_url() {
     # e '"$PHP_URL_QUERY"' "$PHP_URL_QUERY"; _.
     # e '"$PHP_URL_FRAGMENT"' "$PHP_URL_FRAGMENT"; _.
 }
-ArrayUnique() {
-    local e source=("${!1}")
-    # inArray is alternative of ArraySearch.
-    inArray () {
-        local e match="$1"
-        shift
-        for e; do [[ "$e" == "$match" ]] && return 0; done
-        return 1
-    }
-    _return=()
-    for e in "${source[@]}";do
-        if ! inArray "$e" "${_return[@]}";then
-            _return+=("$e")
-        fi
-    done
-}
 fileMustExists() {
     # global used:
     # global modified:
@@ -317,7 +301,9 @@ chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 code auto_add_group="$auto_add_group"
+code 'no_default="'$no_default'"'
 [ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''
+[ -n "$no_default" ] && is_no_default=' --no-default' || is_no_default=''
 if [ -z "$variation" ];then
     error "Argument --variation required."; x
 fi
@@ -369,8 +355,6 @@ code 'project_parent_name="'$project_parent_name'"'
 if [ -n "$project_parent_name" ];then
     if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
 fi
-code 'no_default="'$no_default'"'
-
 is_wsl=
 if [ -f /proc/sys/kernel/osrelease ];then
     read osrelease </proc/sys/kernel/osrelease
@@ -380,8 +364,6 @@ if [ -f /proc/sys/kernel/osrelease ];then
 fi
 code 'is_wsl="'$is_wsl'"'
 code 'url="'$url'"'
-fqdn_array=()
-fqdn_path_array=()
 if [ -n "$url" ];then
     Rcm_parse_url "$url"
 	if [ -z "$PHP_URL_HOST" ];then
@@ -389,10 +371,8 @@ if [ -n "$url" ];then
     else
         [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
         [ -n "$PHP_URL_PORT" ] && url_port="$PHP_URL_PORT" || url_port=443
-        [ -n "$PHP_URL_PATH" ] && fqdn_path_array+=("$PHP_URL_HOST")
         url_host="$PHP_URL_HOST"
         url_path="$PHP_URL_PATH"
-        fqdn_array+=("$PHP_URL_HOST")
         # Modify variable url, auto add scheme.
         url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
         _url_port=
@@ -410,16 +390,12 @@ if [ -n "$url" ];then
     fi
 fi
 code 'url="'$url'"'
-code 'fqdn_array=('"${fqdn_array[@]}"')'
-ArrayUnique fqdn_array[@]
-fqdn_array=("${_return[@]}")
-unset _return
-code 'fqdn_array=('"${fqdn_array[@]}"')'
-code 'fqdn_path_array=('"${fqdn_path_array[@]}"')'
-ArrayUnique fqdn_path_array[@]
-fqdn_path_array=("${_return[@]}")
-unset _return
-code 'fqdn_path_array=('"${fqdn_path_array[@]}"')'
+if [ -n "$project_parent_name" ];then
+    url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_parent_name}/subprojects/${project_name}"
+else
+    url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}"
+fi
+code 'url_dirname_website_info="'$url_dirname_website_info'"'
 ____
 
 if [ -n "$url" ];then
@@ -519,7 +495,7 @@ rcm-composer-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast --root-sure \
     $is_auto_add_group \
-    --no-default="$no_default" \
+    $is_no_default \
     --drupal-version="$drupal_version" \
     --drush-version="$drush_version" \
     --php-version="$php_version" \
@@ -554,17 +530,16 @@ if [ -n "$url" ];then
     sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin":$PATH $env -s \
         drush cache:rebuild --uri="$url"
     ____
-
 fi
 
 if [ -n "$url" ];then
     chapter Saving URL information.
-    code mkdir -p /usr/local/share/drupal/projects/"$project_name"
-    mkdir -p "/usr/local/share/drupal/projects/${project_name}"
-    cat << EOF > "/usr/local/share/drupal/projects/${project_name}/website"
+    code mkdir -p '"'$url_dirname_website_info'"'
+    mkdir -p "$url_dirname_website_info"
+    cat << EOF >> "${url_dirname_website_info}/website"
 URL_DRUPAL=$url
 EOF
-    fileMustExists "/usr/local/share/drupal/projects/${project_name}/website"
+    fileMustExists "${url_dirname_website_info}/website"
     ____
 fi
 
