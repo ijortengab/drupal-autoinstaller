@@ -153,27 +153,31 @@ __FILE__=$(resolve_relative_path "$0")
 __DIR__=$(dirname "$__FILE__")
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=$__DIR__}
 code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
+PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
+code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
+PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
+code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
 if [ -z "$project_name" ];then
     error "Argument --project-name required."; x
 fi
 code 'project_name="'$project_name'"'
 code 'project_parent_name="'$project_parent_name'"'
-project_dir="$project_name"
-drupal_fqdn_localhost="$project_name".drupal.localhost
-[ -n "$project_parent_name" ] && {
-    drupal_fqdn_localhost="$project_name"."$project_parent_name".drupal.localhost
+if [ -n "$project_parent_name" ];then
     project_dir="$project_parent_name"
-}
-PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
-code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
-PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
-code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
+    drupal_fqdn_localhost="$project_name"."$project_parent_name".drupal.localhost
+    url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_parent_name}/subprojects/${project_name}"
+else
+    project_dir="$project_name"
+    drupal_fqdn_localhost="$project_name".drupal.localhost
+    url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}"
+fi
 ____
 
 fqdn_string="http://${drupal_fqdn_localhost}"
 list=("${fqdn_string} cd-drupal-${drupal_fqdn_localhost}")
-if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}/website" ];then
-    . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}/website"
+
+if [ -f "${url_dirname_website_info}/website" ];then
+    . "${url_dirname_website_info}/website"
 fi
 
 if [ -n "$URL_DRUPAL" ];then
