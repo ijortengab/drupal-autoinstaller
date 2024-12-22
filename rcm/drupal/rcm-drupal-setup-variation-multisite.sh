@@ -6,15 +6,14 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --domain=*) domain="${1#*=}"; shift ;;
-        --domain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then domain="$2"; shift; fi; shift ;;
-        --domain-strict) domain_strict=1; shift ;;
         --existing-project-name=*) project_parent_name="${1#*=}"; shift ;;
         --existing-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
         --root-sure) root_sure=1; shift ;;
         --sub-project-name=*) project_name="${1#*=}"; shift ;;
         --sub-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
+        --url=*) url="${1#*=}"; shift ;;
+        --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -59,8 +58,10 @@ Options:
    --sub-project-name *
         Set the sub project name as identifier.
         Allowed characters are a-z, 0-9, and underscore (_).
-   --domain
-        Set the domain.
+   --url
+        Add Drupal public domain. The value can be domain or URL.
+        Drupal automatically has address at http://<subproject>.<project>.drupal.localhost/.
+        Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
 
 Global Options.
    --fast
@@ -84,8 +85,6 @@ Dependency:
    rcm-drupal-autoinstaller-nginx:`printVersion`
    rcm-drupal-setup-wrapper-nginx-setup-drupal:`printVersion`
    rcm-drupal-setup-drush-alias:`printVersion`
-   rcm-drupal-setup-internal-command-cd-drupal:`printVersion`
-   rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
    rcm-dig-watch-domain-exists
@@ -95,8 +94,6 @@ Download:
    [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
    [rcm-drupal-setup-wrapper-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-setup-drupal.sh)
    [rcm-drupal-setup-drush-alias](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-drush-alias.sh)
-   [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
-   [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
    [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
 EOF
 }
@@ -125,6 +122,57 @@ while IFS= read -r line; do
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 # Functions.
+Rcm_parse_url() {
+    # Reset
+    PHP_URL_SCHEME=
+    PHP_URL_HOST=
+    PHP_URL_PORT=
+    PHP_URL_USER=
+    PHP_URL_PASS=
+    PHP_URL_PATH=
+    PHP_URL_QUERY=
+    PHP_URL_FRAGMENT=
+    PHP_URL_SCHEME="$(echo "$1" | grep :// | sed -e's,^\(.*\)://.*,\1,g')"
+    _PHP_URL_SCHEME_SLASH="${PHP_URL_SCHEME}://"
+    _PHP_URL_SCHEME_REVERSE="$(echo ${1/${_PHP_URL_SCHEME_SLASH}/})"
+    if grep -q '#' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_FRAGMENT=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f1)
+    fi
+    if grep -q '\?' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_QUERY=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f1)
+    fi
+    _PHP_URL_USER_PASS="$(echo $_PHP_URL_SCHEME_REVERSE | grep @ | cut -d@ -f1)"
+    PHP_URL_PASS=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f2`
+    if [ -n "$PHP_URL_PASS" ]; then
+        PHP_URL_USER=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f1`
+    else
+        PHP_URL_USER=$_PHP_URL_USER_PASS
+    fi
+    _PHP_URL_HOST_PORT="$(echo ${_PHP_URL_SCHEME_REVERSE/$_PHP_URL_USER_PASS@/} | cut -d/ -f1)"
+    PHP_URL_HOST="$(echo $_PHP_URL_HOST_PORT | sed -e 's,:.*,,g')"
+    if grep -q -E ':[0-9]+$' <<< "$_PHP_URL_HOST_PORT";then
+        PHP_URL_PORT="$(echo $_PHP_URL_HOST_PORT | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+    fi
+    _PHP_URL_HOST_PORT_LENGTH=${#_PHP_URL_HOST_PORT}
+    _LENGTH="$_PHP_URL_HOST_PORT_LENGTH"
+    if [ -n "$_PHP_URL_USER_PASS" ];then
+        _PHP_URL_USER_PASS_LENGTH=${#_PHP_URL_USER_PASS}
+        _LENGTH=$((_LENGTH + 1 + _PHP_URL_USER_PASS_LENGTH))
+    fi
+    PHP_URL_PATH="${_PHP_URL_SCHEME_REVERSE:$_LENGTH}"
+
+    # Debug
+    # e '"$PHP_URL_SCHEME"' "$PHP_URL_SCHEME"; _.
+    # e '"$PHP_URL_HOST"' "$PHP_URL_HOST"; _.
+    # e '"$PHP_URL_PORT"' "$PHP_URL_PORT"; _.
+    # e '"$PHP_URL_USER"' "$PHP_URL_USER"; _.
+    # e '"$PHP_URL_PASS"' "$PHP_URL_PASS"; _.
+    # e '"$PHP_URL_PATH"' "$PHP_URL_PATH"; _.
+    # e '"$PHP_URL_QUERY"' "$PHP_URL_QUERY"; _.
+    # e '"$PHP_URL_FRAGMENT"' "$PHP_URL_FRAGMENT"; _.
+}
 validateMachineName() {
     local value="$1" _value
     local parameter="$2"
@@ -177,40 +225,6 @@ EOF
         chmod 0400 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
     fi
 }
-backupFile() {
-    local mode="$1"
-    local oldpath="$2" i newpath
-    local target_dir="$3"
-    i=1
-    oldpath=$(realpath "$oldpath")
-    dirname=$(dirname "$oldpath")
-    basename=$(basename "$oldpath")
-    if [ -n "$target_dir" ];then
-        case "$target_dir" in
-            parent) dirname=$(dirname "$dirname") ;;
-            *) dirname="$target_dir"
-        esac
-    fi
-    [ -d "$target_dir" ] || { echo 'Directory is not exists.' >&2; return 1; }
-    newpath="${dirname}/${basename}.${i}"
-    if [ -f "$newpath" ]; then
-        let i++
-        newpath="${dirname}/${basename}.${i}"
-        while [ -f "$newpath" ] ; do
-            let i++
-            newpath="${dirname}/${basename}.${i}"
-        done
-    fi
-    case $mode in
-        move)
-            mv "$oldpath" "$newpath" ;;
-        copy)
-            local user=$(stat -c "%U" "$oldpath")
-            local group=$(stat -c "%G" "$oldpath")
-            cp "$oldpath" "$newpath"
-            chown ${user}:${group} "$newpath"
-    esac
-}
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
@@ -234,7 +248,6 @@ if [ -z "$project_name" ];then
     error "Argument --sub-project-name required."; x
 fi
 code 'project_name="'$project_name'"'
-code 'domain="'$domain'"'
 project_dir_basename="$project_parent_name"
 code 'project_dir_basename="'$project_dir_basename'"'
 target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/drupal"
@@ -281,12 +294,41 @@ if [ -f /proc/sys/kernel/osrelease ];then
     fi
 fi
 code 'is_wsl="'$is_wsl'"'
+code 'url="'$url'"'
+if [ -n "$url" ];then
+    Rcm_parse_url "$url"
+	if [ -z "$PHP_URL_HOST" ];then
+        error Argument --url is not valid: '`'"$url"'`'.; x
+    else
+        [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
+        [ -n "$PHP_URL_PORT" ] && url_port="$PHP_URL_PORT" || url_port=443
+        url_host="$PHP_URL_HOST"
+        url_path="$PHP_URL_PATH"
+        # Modify variable url, auto add scheme.
+        url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+        _url_port=
+        if [ -n "$url_port" ];then
+            if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+                _url_port=
+            elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+                _url_port=
+            else
+                _url_port=":${url_port}"
+            fi
+        fi
+        # Modify variable url, auto trim trailing slash, auto add port.
+        url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
+    fi
+fi
+code 'url="'$url'"'
+url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_parent_name}/subprojects/${project_name}"
+code 'url_dirname_website_info="'$url_dirname_website_info'"'
 ____
 
-if [ -n "$domain" ];then
+if [ -n "$url" ];then
     INDENT+="    " \
     rcm-dig-watch-domain-exists $isfast --root-sure \
-        --domain="$domain" \
+        --domain="$url_host" \
         --waiting-time="60" \
         ; [ ! $? -eq 0 ] && x
 fi
@@ -349,73 +391,62 @@ rcm-php-fpm-setup-project-config $isfast --root-sure \
 INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast --root-sure \
     $is_auto_add_group \
-    --domain="$domain" \
     --drupal-version="$drupal_version" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
     --project-dir="$project_dir" \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
+    --url-scheme="$url_scheme" \
+    --url-host="$url_host" \
+    --url-port="$url_port" \
+    --url-path="$url_path" \
     ; [ ! $? -eq 0 ] && x
 
-if [ -n "$domain" ];then
+if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
+    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast --root-sure \
         --php-version="$php_version" \
-        --project-name="$project_name" \
-        --project-parent-name="$project_parent_name" \
-        --domain="$domain" \
         --php-fpm-user="$php_fpm_user" \
         --project-dir="$project_dir" \
-        && INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
-        --php-version="$php_version" \
         --project-name="$project_name" \
         --project-parent-name="$project_parent_name" \
-        --subdomain="$domain" \
-        --domain="localhost" \
-        --php-fpm-user="$php_fpm_user" \
-        --project-dir="$project_dir" \
+        --url-scheme="$url_scheme" \
+        --url-host="$url_host" \
+        --url-port="$url_port" \
+        --url-path="$url_path" \
         ; [ ! $? -eq 0 ] && x
 
-    chapter Mengecek '$PATH'.
-    code PATH="$PATH"
-    if grep -q '/snap/bin' <<< "$PATH";then
-      __ '$PATH' sudah lengkap.
-    else
-      __ '$PATH' belum lengkap.
-      __ Memperbaiki '$PATH'
-      PATH=/snap/bin:$PATH
-        if grep -q '/snap/bin' <<< "$PATH";then
-            __; green '$PATH' sudah lengkap.; _.
-            __; magenta PATH="$PATH"; _.
-        else
-            __; red '$PATH' belum lengkap.; x
-        fi
-    fi
+    chapter Flush cache.
+    code drush cache:rebuild --uri="$url"
+    sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin":$PATH $env -s \
+        drush cache:rebuild --uri="$url"
     ____
+fi
 
-    INDENT+="    " \
-    PATH=$PATH \
-    rcm-certbot-deploy-nginx $isfast --root-sure \
-        --domain="${domain}" \
-        ; [ ! $? -eq 0 ] && x
+if [ -n "$url" ];then
+    chapter Saving URL information.
+    code mkdir -p '"'$url_dirname_website_info'"'
+    mkdir -p "$url_dirname_website_info"
+    cat << EOF >> "${url_dirname_website_info}/website"
+URL_DRUPAL=$url
+EOF
+    fileMustExists "${url_dirname_website_info}/website"
+    ____
 fi
 
 INDENT+="    " \
 rcm-drupal-setup-drush-alias $isfast --root-sure \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
-    --domain="$domain" \
-    && INDENT+="    " \
-rcm-drupal-setup-internal-command-cd-drupal $isfast --root-sure \
-    && INDENT+="    " \
-rcm-drupal-setup-internal-command-ls-drupal $isfast --root-sure \
+    --url-scheme="$url_scheme" \
+    --url-host="$url_host" \
+    --url-port="$url_port" \
+    --url-path="$url_path" \
     && INDENT+="    " \
 rcm-drupal-setup-dump-variables $isfast --root-sure \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
-    --domain="$domain" \
     ; [ ! $? -eq 0 ] && x
 
 chapter Finish
@@ -436,10 +467,9 @@ exit 0
 # --version
 # --help
 # --root-sure
-# --domain-strict
 # )
 # VALUE=(
-# --domain
+# --url
 # )
 # MULTIVALUE=(
 # )
