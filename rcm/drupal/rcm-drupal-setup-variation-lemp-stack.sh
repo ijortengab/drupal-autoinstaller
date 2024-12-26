@@ -300,6 +300,10 @@ fileMustExists() {
 chapter Dump variable.
 delay=.5; [ -n "$fast" ] && unset delay
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
+PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
+code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
+PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
+code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
 code auto_add_group="$auto_add_group"
 code 'no_default="'$no_default'"'
 [ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''
