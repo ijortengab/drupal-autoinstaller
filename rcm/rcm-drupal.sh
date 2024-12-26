@@ -123,9 +123,6 @@ Global Options.
 
 Dependency:
    rcm:0.16.2
-   rcm-drupal-setup-variation-default:`printVersion`
-   rcm-drupal-setup-variation-lemp-stack:`printVersion`
-   rcm-drupal-setup-variation-multisite:`printVersion`
 
 Download:
    [rcm-drupal-setup-variation-default](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-default.sh)
@@ -191,6 +188,63 @@ fi
 title rcm-drupal
 ____
 
+wordWrapCommand() {
+    # global words_array
+    local inline_description="$1"
+    local current_line first_line
+    declare -i min; min=80
+    declare -i max; max=100
+    declare -i i; i=0
+    local count="${#words_array[@]}"
+    current_line=
+    first_line=1
+    for each in "${words_array[@]}"; do
+        i+=1
+        [ "$i" == "$count" ] && last=1 || last=
+        if [ -z "$current_line" ]; then
+            if [ -z "$first_line" ];then
+                current_line="    ${each}"
+                e; magenta "    $each";
+            else
+                first_line=
+                if [ -n "$inline_description" ];then
+                    e; _, "${inline_description} "; magenta "$each"
+                    current_line="${inline_description} ${each}"
+                else
+                    e; magenta "$each"
+                    current_line="$each"
+                fi
+            fi
+            if [ -n "$last" ];then
+                _.
+            fi
+        else
+            _current_line="${current_line} ${each}"
+            if [ "${#_current_line}" -le $min ];then
+                if [ -n "$last" ];then
+                    _, ' '; magenta "$each"; _.
+                else
+                    _, ' '; magenta "$each"
+                fi
+                current_line+=" ${each}"
+            elif [ "${#_current_line}" -le $max ];then
+                if [ -n "$last" ];then
+                    _, ' '; magenta "${each}"''; _.
+                else
+                    _, ' '; magenta "${each}"' \'; _.
+                fi
+                current_line=
+            else
+                magenta ' \'; _.; e; magenta "    $each"
+                current_line="    ${each}"
+                if [ -n "$last" ];then
+                    _.
+                fi
+            fi
+        fi
+    done
+}
+
 if [ -z "$root_sure" ];then
     chapter Mengecek akses root.
     if [[ "$EUID" -ne 0 ]]; then
@@ -239,7 +293,8 @@ chapter Execute:
 
 case "$rcm_operand" in
     *)
-        code rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand -- "$@"
+        words_array=(rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand -- "$@")
+        wordWrapCommand
         ____
 
         INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand --root-sure --binary-directory-exists-sure --non-immediately -- "$@"
