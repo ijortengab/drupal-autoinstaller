@@ -374,7 +374,14 @@ if [ -n "$url" ];then
         error Argument --url is not valid: '`'"$url"'`'.; x
     else
         [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
-        [ -n "$PHP_URL_PORT" ] && url_port="$PHP_URL_PORT" || url_port=443
+        if [ -z "$PHP_URL_PORT" ];then
+            case "$url_scheme" in
+                http) url_port=80;;
+                https) url_port=443;;
+            esac
+        else
+            url_port="$PHP_URL_PORT"
+        fi
         url_host="$PHP_URL_HOST"
         url_path="$PHP_URL_PATH"
         # Modify variable url, auto add scheme.
