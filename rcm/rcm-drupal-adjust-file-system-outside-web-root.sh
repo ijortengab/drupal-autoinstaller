@@ -40,7 +40,7 @@ ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
 # Functions.
 printVersion() {
-    echo '0.11.13'
+    echo '0.11.14'
 }
 printHelp() {
     title RCM Drupal Adjust File System
