@@ -6,9 +6,9 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --auto-add-group) auto_add_group=1; shift ;;
         --fast) fast=1; shift ;;
-        --no-default) no_default=1; shift ;;
+        --no-auto-add-group) no_auto_add_group=1; shift ;;
+        --no-sites-default) no_sites_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --prefix=*) prefix="${1#*=}"; shift ;;
@@ -85,17 +85,24 @@ Options:
         Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
    --timezone
         Set the timezone of this machine. Available values: Asia/Jakarta, or other.
-   --no-default ^
-        Prevent installing drupal inside directory sites/default.
-        Just skip it if you are confused.
    --php-fpm-user
-        Set the Unix user that used by PHP FPM. Default value is the user that used by web server.${users} If the user does not exists, it will be autocreate as reguler user.
+        Set the Unix user that used by PHP FPM.
+        Default value is the user that used by web server (the common name is www-data).
+        If the user does not exists, it will be autocreate as reguler user.${users}
    --prefix
         Set prefix directory for project. Default to home directory of --php-fpm-user or /usr/local/share.
    --project-container
         Set the container directory for all projects. Available value: drupal-projects, drupal, public_html, or other. Default to drupal-projects.
-   --auto-add-group ^
-        If Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
+
+Other Options (For expert only):
+   --project-parent-name
+        Set the project parent name. The parent is not have to installed before.
+   --no-sites-default ^
+        Prevent installing drupal inside directory sites/default.
+        Drupal will install inside sites/[<project-parent-name>--]<project-name>.
+   --no-auto-add-group ^
+        By default, if Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
+        Use this flag to omit that default action.
 
 Global Options.
    --fast
@@ -106,10 +113,6 @@ Global Options.
         Show this help.
    --root-sure
         Bypass root checking.
-
-Other Options:
-   --project-parent-name
-        Set the project parent name. The parent is not have to installed before. For expert only.
 
 Dependency:
    rcm-ubuntu-22.04-setup-basic
@@ -304,10 +307,10 @@ PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
 code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
 PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
 code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
-code auto_add_group="$auto_add_group"
-code 'no_default="'$no_default'"'
-[ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''
-[ -n "$no_default" ] && is_no_default=' --no-default' || is_no_default=''
+code no_auto_add_group="$no_auto_add_group"
+code 'no_sites_default="'$no_sites_default'"'
+[ -n "$no_auto_add_group" ] && is_no_auto_add_group='' || is_no_auto_add_group=' --auto-add-group'
+[ -n "$no_sites_default" ] && is_no_sites_default=' --no-sites-default' || is_no_sites_default=''
 if [ -z "$variation" ];then
     error "Argument --variation required."; x
 fi
@@ -505,8 +508,8 @@ INDENT+="    " \
 rcm-composer-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast --root-sure \
-    $is_auto_add_group \
-    $is_no_default \
+    $is_no_auto_add_group \
+    $is_no_sites_default \
     --drupal-version="$drupal_version" \
     --drush-version="$drush_version" \
     --php-version="$php_version" \
@@ -591,8 +594,8 @@ exit 0
 # --version
 # --help
 # --root-sure
-# --no-default
-# --auto-add-group
+# --no-sites-default
+# --no-auto-add-group
 # )
 # VALUE=(
 # --project-name
