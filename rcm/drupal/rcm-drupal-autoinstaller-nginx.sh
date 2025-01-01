@@ -10,7 +10,7 @@ while [[ $# -gt 0 ]]; do
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
-        --no-default) no_default=1; shift ;;
+        --no-sites-default) no_sites_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
@@ -499,7 +499,7 @@ code 'project_parent_name="'$project_parent_name'"'
 if [ -n "$project_parent_name" ];then
     if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
 fi
-code 'no_default="'$no_default'"'
+code 'no_sites_default="'$no_sites_default'"'
 if [ -z "$drupal_version" ];then
     error "Argument --drupal-version required."; x
 fi
@@ -906,22 +906,22 @@ fi
 
 PATH="${project_dir}/drupal/vendor/bin":$PATH
 
-chapter Mengecek no-default.
-if [ -n "$no_default" ];then
-    __ Instalasi Drupal tidak menggunakan '`'default'`'.
+chapter Mengecek option no-sites-default.
+if [ -n "$no_sites_default" ];then
+    __ Instalasi Drupal tidak menggunakan '`'sites/default'`'.
 else
-    __ Instalasi Drupal menggunakan '`'default'`'.
+    __ Instalasi Drupal menggunakan '`'sites/default'`'.
 fi
 ____
 
-chapter Mengecek apakah Drupal sudah terinstall sebagai singlesite '`'default'`'.
+chapter Mengecek apakah Drupal sudah terinstall sebagai singlesite '`'sites/default'`'.
 cd "${project_dir}/drupal"
 default_installed=
 if drush status --field=db-status | grep -q '^Connected$';then
-    __ Drupal site default installed.
+    __ Drupal sites/default installed.
     default_installed=1
 else
-    __ Drupal site default not installed.
+    __ Drupal sites/default not installed.
 fi
 cd - >/dev/null
 ____
@@ -939,11 +939,11 @@ if [ -n "$project_parent_name" ];then
 else
     __ Project parent tidak didefinisikan.
 fi
-if [[ -n "$no_default"  && -z "$default_installed" ]];then
-    __ No default didefinisikan. Menggunakan Drupal multisite.
+if [[ -n "$no_sites_default"  && -z "$default_installed" ]];then
+    __ Option --no-sites-default digunakan. Menggunakan Drupal multisite.
     install_type=multisite
 else
-    __ No default tidak didefinisikan.
+    __ Option --no-sites-default tidak digunakan.
 fi
 ____
 
@@ -981,14 +981,14 @@ done
 
 chapter Dump variable installed.
 code install_type="$install_type"
-code no_default="$no_default"
+code no_sites_default="$no_sites_default"
 code default_installed="$default_installed"
 code multisite_installed="$multisite_installed"
 ____
 
-if [[ "$install_type" == singlesite && -z "$no_default" && -z "$default_installed" && -n "$multisite_installed" ]];then
+if [[ "$install_type" == singlesite && -z "$no_sites_default" && -z "$default_installed" && -n "$multisite_installed" ]];then
     chapter Drupal multisite sudah terinstall.
-    __ Sebelumnya sudah di-install dengan option --no-default.
+    __ Sebelumnya sudah di-install dengan option --no-sites-default.
     __ Agar proses dapat dilanjutkan, perlu kerja manual dengan memperhatikan sbb:
     __ - Move file '`'settings.php'`' dari '`'sites/'<'sites_subdir'>''`' menjadi '`'sites/default'`'.
     __ - Move file-file script PHP yang di-include oleh '`'settings.php'`'.
@@ -997,9 +997,9 @@ if [[ "$install_type" == singlesite && -z "$no_default" && -z "$default_installe
     __; red Process terminated; x
 fi
 
-if [[ -n "$no_default" && -n "$default_installed" ]];then
+if [[ -n "$no_sites_default" && -n "$default_installed" ]];then
     chapter Drupal singlesite default sudah terinstall.
-    __ Option --no-default tidak bisa digunakan.
+    __ Option --no-sites-default tidak bisa digunakan.
     __ Agar proses dapat dilanjutkan, perlu kerja manual dengan memperhatikan sbb:
     __ - Move file '`'settings.php'`' dari '`'sites/default'`' menjadi '`'sites/'<'sites_subdir'>''`'.
     __ - Move file-file script PHP yang di-include oleh '`'settings.php'`'.
@@ -1214,7 +1214,7 @@ exit 0
 # --version
 # --help
 # --root-sure
-# --no-default
+# --no-sites-default
 # --auto-add-group
 # )
 # VALUE=(
