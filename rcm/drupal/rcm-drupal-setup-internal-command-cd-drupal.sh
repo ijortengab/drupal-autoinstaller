@@ -437,10 +437,11 @@ if [[ -d "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}" ]];then
             echo -e There are Site available. Press the "\e[93m"yellow"\e[39m" number key to select.
         fi
         count+=1
+        line_url=$("${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/${SITES_MASTER}/${line}" --url)
         if [ $count -lt 10 ];then
-            echo -ne '['"\e[93m"$count"\e[39m"']' "$line" "\n"
+            echo -ne '['"\e[93m"$count"\e[39m"']' "$line_url" "\n"
         else
-            echo '['$count']' "$line"
+            echo '['$count']' "$line_url"
         fi
         source+=("$line")
     done <<< `ls "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/${SITES_MASTER}"`
@@ -478,7 +479,8 @@ if [[ -d "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}" ]];then
                 value="${source[$value]}"
             fi
         done
-        echo -e Site "\e[93m""$value""\e[39m" selected.
+        value_url=$("${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/${SITES_MASTER}/${value}" --url)
+        echo -e Site "\e[93m""$value_url""\e[39m" selected.
     fi
     echo
     echo -e We will execute: "\e[95m". cd-drupal-${value}"\e[39m"
