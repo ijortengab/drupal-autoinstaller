@@ -115,10 +115,6 @@ Global Options.
         Bypass root checking.
 
 Dependency:
-   rcm-ubuntu-22.04-setup-basic
-   rcm-ubuntu-24.04-setup-basic
-   rcm-debian-11-setup-basic
-   rcm-debian-12-setup-basic
    rcm-nginx-autoinstaller
    rcm-mariadb-autoinstaller
    rcm-php-autoinstaller
@@ -136,7 +132,6 @@ Dependency:
    rcm-php-fpm-setup-project-config
    rcm-certbot-autoinstaller
    rcm-dig-watch-domain-exists
-   rcm-dig-autoinstaller
 
 Download:
    [rcm-php-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/php/rcm-php-setup-drupal.sh)
@@ -331,22 +326,22 @@ case "$variation" in
 esac
 code os="$os"
 code os_version="$os_version"
-rcm_setup_os_basic=
+rcm_operand_setup_basic=
 case "$os" in
     debian)
         case "$os_version" in
-            11) rcm_setup_os_basic=rcm-debian-11-setup-basic ;;
-            12) rcm_setup_os_basic=rcm-debian-12-setup-basic ;;
+            11) rcm_operand_setup_basic=debian-11-setup-basic ;;
+            12) rcm_operand_setup_basic=debian-12-setup-basic ;;
         esac
         ;;
     ubuntu)
         case "$os_version" in
-            22.04) rcm_setup_os_basic=rcm-ubuntu-22.04-setup-basic ;;
-            24.04) rcm_setup_os_basic=rcm-ubuntu-24.04-setup-basic ;;
+            22.04) rcm_operand_setup_basic=ubuntu-22.04-setup-basic ;;
+            24.04) rcm_operand_setup_basic=ubuntu-24.04-setup-basic ;;
         esac
         ;;
 esac
-if [ -z "$rcm_setup_os_basic" ];then
+if [ -z "$rcm_operand_setup_basic" ];then
     error "Operating System is not support."; x
 fi
 code php_version="$php_version"
@@ -410,23 +405,16 @@ else
     url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}"
 fi
 code 'url_dirname_website_info="'$url_dirname_website_info'"'
+code 'timezone="'$timezone'"'
+[ -n "$timezone" ] && is_timezone="--timezone=${timezone}" || is_timezone='--timezone-'
 ____
 
-if [ -n "$url" ];then
-    INDENT+="    " \
-    rcm-dig-autoinstaller $isfast --root-sure \
-        && INDENT+="    " \
-    rcm-dig-watch-domain-exists $isfast --root-sure \
-        --domain="$url_host" \
-        --waiting-time="60" \
-        ; [ ! $? -eq 0 ] && x
-fi
-
 INDENT+="    " \
-$rcm_setup_os_basic $isfast --root-sure \
-    --without-update-system \
+rcm $rcm_operand_setup_basic $isfast --root-sure -- $isfast --root-sure \
+    --without-update-system- \
     --without-upgrade-system \
-    --timezone="$timezone" \
+    $is_timezone \
+    -- \
     && INDENT+="    " \
 rcm-nginx-autoinstaller $isfast --root-sure \
     && INDENT+="    " \
@@ -441,6 +429,14 @@ rcm-php-setup-adjust-cli-version $isfast --root-sure \
 rcm-php-setup-drupal $isfast --root-sure \
     --php-version="$php_version" \
     ; [ ! $? -eq 0 ] && x
+
+if [ -n "$url" ];then
+    INDENT+="    " \
+    rcm-dig-watch-domain-exists $isfast --root-sure \
+        --domain="$url_host" \
+        --waiting-time="60" \
+        ; [ ! $? -eq 0 ] && x
+fi
 
 # Di baris ini seharusnya sudah terinstall nginx.
 chapter Populate variables.
