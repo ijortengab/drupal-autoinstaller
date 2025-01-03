@@ -170,18 +170,18 @@ eligible() {
         . /etc/os-release
     fi
     _; _.
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color d1; _, . Debian 11, '   'PHP 8.2, Drupal 10, Drush 12.; _.; eligible+=("d1;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color d2; _, . Debian 11, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("d2;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color u3; _, . Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("u3;ubuntu;22.04")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color u4; _, . Ubuntu 22.04, PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("u4;ubuntu;22.04")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color d5; _, . Debian 12, '   'PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("d5;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color d6; _, . Debian 12, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("d6;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color d7; _, . Debian 12, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("d7;debian;12")
-    __; _, 'Variation  '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=green || color=red; $color d8; _, . Debian 11, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("d8;debian;11")
-    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color u9; _, . Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("u9;ubuntu;22.04")
-    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green || color=red; $color u10; _, . Ubuntu 22.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("u10;ubuntu;22.04")
-    __; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=green || color=red; $color d11; _, . Debian 12, '   'PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("d11;debian;12")
-    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green || color=red; $color u12; _, . Ubuntu 24.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("u12;ubuntu;24.04")
+    __; _, 'Variation    '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=rainbow || color=red; $color d11p81d9; _, . Debian 11, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("d11p81d9;debian;11")
+    __; _, 'Variation   '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=rainbow || color=red; $color d11p82d10; _, . Debian 11, '   'PHP 8.2, Drupal 10, Drush 12.; _.; eligible+=("d11p82d10;debian;11")
+    __; _, 'Variation   '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]] && color=rainbow || color=red; $color d11p83d10; _, . Debian 11, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("d11p83d10;debian;11")
+    __; _, 'Variation  '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=rainbow || color=red; $color u2204p81d9; _, . Ubuntu 22.04, PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("u2204p81d9;ubuntu;22.04")
+    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=rainbow || color=red; $color u2204p82d10; _, . Ubuntu 22.04, PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("u2204p82d10;ubuntu;22.04")
+    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=rainbow || color=red; $color u2204p83d10; _, . Ubuntu 22.04, PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("u2204p83d10;ubuntu;22.04")
+    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=rainbow || color=red; $color u2204p83d11; _, . Ubuntu 22.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("u2204p83d11;ubuntu;22.04")
+    __; _, 'Variation    '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=rainbow || color=red; $color d12p81d9; _, . Debian 12, '   'PHP 8.1, Drupal ' '9, Drush 11. ; _.; eligible+=("d12p81d9;debian;12")
+    __; _, 'Variation   '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=rainbow || color=red; $color d12p82d10; _, . Debian 12, '   'PHP 8.2, Drupal 10, Drush 12. ; _.; eligible+=("d12p82d10;debian;12")
+    __; _, 'Variation   '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=rainbow || color=red; $color d12p83d10; _, . Debian 12, '   'PHP 8.3, Drupal 10, Drush 12. ; _.; eligible+=("d12p83d10;debian;12")
+    __; _, 'Variation   '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]] && color=rainbow || color=red; $color d12p83d11; _, . Debian 12, '   'PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("d12p83d11;debian;12")
+    __; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=rainbow || color=red; $color u2404p83d11; _, . Ubuntu 24.04, PHP 8.3, Drupal 11, Drush 13. ; _.; eligible+=("u2404p83d11;ubuntu;24.04")
     for each in "${eligible[@]}";do
         variation=$(cut -d';' -f1 <<< "$each")
         _id=$(cut -d';' -f2 <<< "$each")
@@ -190,6 +190,26 @@ eligible() {
             echo $variation
         fi
     done
+}
+rainbow() {
+    local number=yellow
+    local other=green
+    local word=$1 segment
+    local current last
+    for ((i = 0 ; i < ${#word} ; i++)); do
+        if [[ ${word:$i:1} =~ ^[0-9]+$ ]];then
+            current=number
+        else
+            current=other
+        fi
+        if [[ -n "$last" && ! "$last" == "$current" ]];then
+            ${!last} $segment
+            segment=
+        fi
+        last="$current"
+        segment+=${word:$i:1}
+    done
+    ${!last} $segment
 }
 
 # Execute command.
@@ -310,18 +330,18 @@ if [ -z "$variation" ];then
     error "Argument --variation required."; x
 fi
 case "$variation" in
-    d1) os=debian; os_version=11   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    d2) os=debian; os_version=11   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    u3) os=ubuntu; os_version=22.04; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    u4) os=ubuntu; os_version=22.04; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    d5) os=debian; os_version=12   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    d6) os=debian; os_version=12   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    d7) os=debian; os_version=12   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    d8) os=debian; os_version=11   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    u9) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    u10) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
-    d11) os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13 ;;
-    u12) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    d11p82d10)   os=debian; os_version=11   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
+    d11p81d9)    os=debian; os_version=11   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
+    u2204p82d10) os=ubuntu; os_version=22.04; php_version=8.2; drupal_version=10; drush_version=12 ;;
+    u2204p81d9)  os=ubuntu; os_version=22.04; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
+    d12p82d10)   os=debian; os_version=12   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
+    d12p81d9)    os=debian; os_version=12   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
+    d12p83d10)   os=debian; os_version=12   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
+    d11p83d10)   os=debian; os_version=11   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
+    u2204p83d10) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=10; drush_version=12 ;;
+    u2204p83d11) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    d12p83d11)   os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    u2404p83d11) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
     *) error "Argument --variation is not valid."; x;;
 esac
 code os="$os"
