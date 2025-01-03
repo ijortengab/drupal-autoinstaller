@@ -128,6 +128,7 @@ Download:
    [rcm-drupal-setup-variation-default](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-default.sh)
    [rcm-drupal-setup-variation-lemp-stack](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-lemp-stack.sh)
    [rcm-drupal-setup-variation-multisite](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-multisite.sh)
+   [rcm-drupal-setup-variation-bundle](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-bundle.sh)
 EOF
 }
 
@@ -148,33 +149,38 @@ ArraySearch() {
 
 # Functions.
 mode-available() {
-    command_required=(nginx mysql php dig pwgen)
+    command_required=(nginx mysql php)
     command_notfound=
-    mode_available=(newproject)
     for each in "${command_required[@]}"; do
         if ! command -v $each >/dev/null;then
             command_notfound+=" $each"
         fi
     done
-    if [ -z "$command_notfound" ];then
+
+    if [ -n "$command_notfound" ];then
+        mode_available+=(init)
+    else
+        mode_available+=(new)
         mode_available+=(custom)
-    fi
-    if command -v ls-drupal >/dev/null;then
-        if [[ $(ls-drupal | wc -l) -gt 0 ]];then
-            mode_available+=(subproject)
+        if command -v ls-drupal >/dev/null;then
+            if [[ $(ls-drupal | wc -l) -gt 0 ]];then
+                mode_available+=(multisite)
+            fi
         fi
     fi
     _; _.
-    if ArraySearch newproject mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color newproject; _, . Create a new project '(pack)' + LEMP Stack Setup. ; _.
-    __; _, '                 '; _, LEMP Stack '('Linux, Nginx, MySQL, PHP')'.; _.;
+    if ArraySearch init mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color init; _, '       ' LEMP Stack Setup + Create a new project '(bundle)'. ; _.
+    __; _, '                 '; _, 'Linux, (e)Nginx, MySQL/MariaDB, PHP'.; _.;
+    if ArraySearch new mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color new; _, '        ' Create a new project '(bundle)'. ; _.
     if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color custom; _, '    '. Create a new project '(custom)'. ; _.
-    if ArraySearch subproject mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color subproject; _, . Add sub project from exisiting project. ; _.
+    __; _, 'Mode '; $color custom; _, '     ' Create a new project '(custom)'. ; _.
+    if ArraySearch multisite mode_available[@] ]];then color=green; else color=red; fi
+    __; _, 'Mode '; $color multisite; _, '  ' Add sub project from exisiting project. ; _.
     __; _, '                 '; _, Drupal Multisite.; _.;
-    for each in newproject custom subproject; do
-        if ArraySearch $each mode_available[@] ]];then  echo $each; fi
+    for each in init new custom multisite; do
+        if ArraySearch $each mode_available[@] ]];then echo $each; fi
     done
 }
 
@@ -273,7 +279,7 @@ delay=.5; [ -n "$fast" ] && unset delay
 
 if [ -n "$mode" ];then
     case "$mode" in
-        newproject|custom|subproject) ;;
+        init|new|custom|multisite) ;;
         *) error "Argument --mode not valid."; x ;;
     esac
 fi
@@ -284,9 +290,11 @@ code 'mode="'$mode'"'
 ____
 
 case "$mode" in
-    newproject) rcm_operand=drupal-setup-variation-lemp-stack ;;
+    init) rcm_operand=drupal-setup-variation-lemp-stack ;;
+    new) rcm_operand=drupal-setup-variation-bundle ;;
     custom) rcm_operand=drupal-setup-variation-default ;;
-    subproject) rcm_operand=drupal-setup-variation-multisite ;;
+    multisite) rcm_operand=drupal-setup-variation-multisite ;;
+    *) error "Argument --mode not valid."; x ;;
 esac
 
 chapter Execute:
