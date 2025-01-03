@@ -115,6 +115,10 @@ Global Options.
         Bypass root checking.
 
 Dependency:
+   rcm-ubuntu-22.04-setup-basic
+   rcm-ubuntu-24.04-setup-basic
+   rcm-debian-11-setup-basic
+   rcm-debian-12-setup-basic
    rcm-nginx-autoinstaller
    rcm-mariadb-autoinstaller
    rcm-php-autoinstaller
@@ -350,14 +354,14 @@ rcm_operand_setup_basic=
 case "$os" in
     debian)
         case "$os_version" in
-            11) rcm_operand_setup_basic=debian-11-setup-basic ;;
-            12) rcm_operand_setup_basic=debian-12-setup-basic ;;
+            11) rcm_operand_setup_basic=rcm-debian-11-setup-basic ;;
+            12) rcm_operand_setup_basic=rcm-debian-12-setup-basic ;;
         esac
         ;;
     ubuntu)
         case "$os_version" in
-            22.04) rcm_operand_setup_basic=ubuntu-22.04-setup-basic ;;
-            24.04) rcm_operand_setup_basic=ubuntu-24.04-setup-basic ;;
+            22.04) rcm_operand_setup_basic=rcm-ubuntu-22.04-setup-basic ;;
+            24.04) rcm_operand_setup_basic=rcm-ubuntu-24.04-setup-basic ;;
         esac
         ;;
 esac
@@ -426,14 +430,12 @@ else
 fi
 code 'url_dirname_website_info="'$url_dirname_website_info'"'
 code 'timezone="'$timezone'"'
-[ -n "$timezone" ] && is_timezone="--timezone=${timezone}" || is_timezone='--timezone-'
 ____
 
 INDENT+="    " \
-rcm $rcm_operand_setup_basic $isfast --root-sure -- $isfast --root-sure \
-    --without-update-system- \
+$rcm_operand_setup_basic $isfast --root-sure \
     --without-upgrade-system \
-    $is_timezone \
+    --timezone="$timezone" \
     -- \
     && INDENT+="    " \
 rcm-nginx-autoinstaller $isfast --root-sure \
