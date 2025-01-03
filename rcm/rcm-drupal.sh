@@ -76,6 +76,7 @@ _() { echo -n "$INDENT" >&2; echo -n "#" "$@" >&2; }
 _,() { echo -n "$@" >&2; }
 _.() { echo >&2; }
 __() { echo -n "$INDENT" >&2; echo -n "#" '    ' >&2; [ -n "$1" ] && echo "$@" >&2 || echo -n  >&2; }
+___() { echo -n "$INDENT" >&2; echo -n "#" '        ' >&2; [ -n "$1" ] && echo "$@" >&2 || echo -n  >&2; }
 ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
 # Command.
@@ -170,15 +171,15 @@ mode-available() {
     fi
     _; _.
     if ArraySearch init mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color init; _, '       ' LEMP Stack Setup + Create a new project '(bundle)'. ; _.
-    __; _, '                 '; _, 'Linux, (e)Nginx, MySQL/MariaDB, PHP'.; _.;
+    ___; _, 'Mode '; $color init; _, '       ' LEMP Stack Setup + Create a new project '(bundle)'. ; _.
+    ___; _, '                 '; _, 'Linux, (e)Nginx, MySQL/MariaDB, PHP'.; _.;
     if ArraySearch new mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color new; _, '        ' Create a new project '(bundle)'. ; _.
+    ___; _, 'Mode '; $color new; _, '        ' Create a new project '(bundle)'. ; _.
     if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color custom; _, '     ' Create a new project '(custom)'. ; _.
+    ___; _, 'Mode '; $color custom; _, '     ' Create a new project '(custom)'. ; _.
     if ArraySearch multisite mode_available[@] ]];then color=green; else color=red; fi
-    __; _, 'Mode '; $color multisite; _, '  ' Add sub project from exisiting project. ; _.
-    __; _, '                 '; _, Drupal Multisite.; _.;
+    ___; _, 'Mode '; $color multisite; _, '  ' Add sub project from exisiting project. ; _.
+    ___; _, '                 '; _, Drupal Multisite.; _.;
     for each in init new custom multisite; do
         if ArraySearch $each mode_available[@] ]];then echo $each; fi
     done
