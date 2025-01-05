@@ -11,7 +11,6 @@ while [[ $# -gt 0 ]]; do
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --root-sure) root_sure=1; shift ;;
         --url-host=*) url_host="${1#*=}"; shift ;;
         --url-host) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_host="$2"; shift; fi; shift ;;
         --url-path=*) url_path="${1#*=}"; shift ;;
@@ -79,8 +78,6 @@ Global Options.
         Print version of this script.
    --help
         Show this help.
-   --root-sure
-        Bypass root checking.
 
 Environment Variables:
    BINARY_DIRECTORY
@@ -104,15 +101,7 @@ EOF
 title rcm-drupal-setup-drush-alias
 ____
 
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
+[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Functions.
 resolve_relative_path() {
@@ -534,7 +523,6 @@ exit 0
 # --fast
 # --version
 # --help
-# --root-sure
 # )
 # VALUE=(
 # --project-name

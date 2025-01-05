@@ -23,7 +23,6 @@ while [[ $# -gt 0 ]]; do
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --root-sure) root_sure=1; shift ;;
         --subdomain=*) subdomain="${1#*=}"; shift ;;
         --subdomain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then subdomain="$2"; shift; fi; shift ;;
         --url-host=*) url_host="${1#*=}"; shift ;;
@@ -92,8 +91,6 @@ Global Options:
         Print version of this script.
    --help
         Show this help.
-   --root-sure
-        Bypass root checking.
 
 Dependency:
    rcm-nginx-virtual-host-autocreate-php-multiple-root
@@ -110,15 +107,7 @@ EOF
 title rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root
 ____
 
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
+[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do
@@ -396,7 +385,7 @@ nginx_user_home=$(getent passwd "$nginx_user" | cut -d: -f6 )
 prefix="${project_dir}"
 code 'prefix="'$prefix'"'
 root="${prefix}/drupal/web"
-____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --root-sure --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name"  --project-parent-name="$project_parent_name" get listen)
+____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name"  --project-parent-name="$project_parent_name" get listen)
 if [ -z "$socket_filename" ];then
     __; red Socket Filename of PHP-FPM not found.; x
 fi
@@ -515,7 +504,7 @@ code 'slave_url_path="'$slave_url_path'"'
 ____
 
 INDENT+="    " \
-rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast --root-sure \
+rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
     --with-certbot-obtain \
     --master-root="$master_root" \
     --master-include="$master_include" \
@@ -562,7 +551,6 @@ exit 0
 # --fast
 # --version
 # --help
-# --root-sure
 # )
 # VALUE=(
 # --domain

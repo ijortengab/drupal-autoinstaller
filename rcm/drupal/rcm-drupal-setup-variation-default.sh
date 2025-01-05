@@ -25,7 +25,6 @@ while [[ $# -gt 0 ]]; do
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --root-sure) root_sure=1; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -127,8 +126,6 @@ Global Options.
         Print version of this script.
    --help
         Show this help.
-   --root-sure
-        Bypass root checking.
 
 Other Options:
    --project-parent-name
@@ -166,15 +163,7 @@ EOF
 title rcm-drupal-setup-variation-default
 ____
 
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
+[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do
@@ -233,7 +222,7 @@ ____
 
 if [ -n "$domain" ];then
     INDENT+="    " \
-    rcm-dig-watch-domain-exists $isfast --root-sure \
+    rcm-dig-watch-domain-exists $isfast \
         --domain="$domain" \
         --waiting-time="60" \
         ; [ ! $? -eq 0 ] && x
@@ -257,19 +246,19 @@ code 'php_fpm_user="'$php_fpm_user'"'
 ____
 
 INDENT+="    " \
-rcm-php-setup-adjust-cli-version $isfast --root-sure \
+rcm-php-setup-adjust-cli-version $isfast \
     --php-version="$php_version" \
     ; [ ! $? -eq 0 ] && x
 
 if [ -n "$is_wsl" ];then
     INDENT+="    " \
-    rcm-wsl-setup-lemp-stack $isfast --root-sure \
+    rcm-wsl-setup-lemp-stack $isfast \
         --php-version="$php_version" \
         ; [ ! $? -eq 0 ] && x
 fi
 
 INDENT+="    " \
-rcm-php-fpm-setup-project-config $isfast --root-sure \
+rcm-php-fpm-setup-project-config $isfast \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
     --project-name="$project_name" \
@@ -307,9 +296,9 @@ code 'project_dir="'$project_dir'"'
 ____
 
 INDENT+="    " \
-rcm-composer-autoinstaller $isfast --root-sure \
+rcm-composer-autoinstaller $isfast \
     && INDENT+="    " \
-rcm-drupal-autoinstaller-nginx $isfast --root-sure \
+rcm-drupal-autoinstaller-nginx $isfast \
     $is_auto_add_group \
     --domain="$domain" \
     --drupal-version="$drupal_version" \
@@ -322,7 +311,7 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
 
 if [ -n "$domain" ];then
     INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
+    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast \
         --php-version="$php_version" \
         --project-name="$project_name" \
         --project-parent-name="$project_parent_name" \
@@ -330,7 +319,7 @@ if [ -n "$domain" ];then
         --php-fpm-user="$php_fpm_user" \
         --project-dir="$project_dir" \
         && INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast --root-sure \
+    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast \
         --php-version="$php_version" \
         --project-name="$project_name" \
         --project-parent-name="$project_parent_name" \
@@ -359,22 +348,22 @@ if [ -n "$domain" ];then
 
     INDENT+="    " \
     PATH=$PATH \
-    rcm-certbot-deploy-nginx $isfast --root-sure \
+    rcm-certbot-deploy-nginx $isfast \
         --domain="${domain}" \
         ; [ ! $? -eq 0 ] && x
 fi
 
 INDENT+="    " \
-rcm-drupal-setup-drush-alias $isfast --root-sure \
+rcm-drupal-setup-drush-alias $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     --domain="$domain" \
     && INDENT+="    " \
-rcm-drupal-setup-internal-command-cd-drupal $isfast --root-sure \
+rcm-drupal-setup-internal-command-cd-drupal $isfast \
     && INDENT+="    " \
-rcm-drupal-setup-internal-command-ls-drupal $isfast --root-sure \
+rcm-drupal-setup-internal-command-ls-drupal $isfast \
     && INDENT+="    " \
-rcm-drupal-setup-dump-variables $isfast --root-sure \
+rcm-drupal-setup-dump-variables $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     --domain="$domain" \
@@ -397,7 +386,6 @@ exit 0
 # --fast
 # --version
 # --help
-# --root-sure
 # --domain-strict
 # --auto-add-group
 # )

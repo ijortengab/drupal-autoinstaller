@@ -19,7 +19,6 @@ while [[ $# -gt 0 ]]; do
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --root-sure) root_sure=1; shift ;;
         --timezone=*) timezone="${1#*=}"; shift ;;
         --timezone) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then timezone="$2"; shift; fi; shift ;;
         --url=*) url="${1#*=}"; shift ;;
@@ -118,8 +117,6 @@ Global Options.
         Print version of this script.
    --help
         Show this help.
-   --root-sure
-        Bypass root checking.
 
 Dependency:
    rcm-ubuntu-22.04-setup-basic
@@ -244,15 +241,7 @@ while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { echo -e "\e[91m""Unable to proceed, "'`'"${line}"'`'" command not found." "\e[39m"; exit 1; }
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
+[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 #  Functions.
 validateMachineName() {
@@ -445,28 +434,28 @@ code 'timezone="'$timezone'"'
 ____
 
 INDENT+="    " \
-$rcm_operand_setup_basic $isfast --root-sure \
+$rcm_operand_setup_basic $isfast \
     --without-upgrade-system \
     --timezone="$timezone" \
     -- \
     && INDENT+="    " \
-rcm-nginx-autoinstaller $isfast --root-sure \
+rcm-nginx-autoinstaller $isfast \
     && INDENT+="    " \
-rcm-mariadb-autoinstaller $isfast --root-sure \
+rcm-mariadb-autoinstaller $isfast \
     && INDENT+="    " \
-rcm-php-autoinstaller $isfast --root-sure \
+rcm-php-autoinstaller $isfast \
     --php-version="$php_version" \
     && INDENT+="    " \
-rcm-php-setup-adjust-cli-version $isfast --root-sure \
+rcm-php-setup-adjust-cli-version $isfast \
     --php-version="$php_version" \
     && INDENT+="    " \
-rcm-php-setup-drupal $isfast --root-sure \
+rcm-php-setup-drupal $isfast \
     --php-version="$php_version" \
     ; [ ! $? -eq 0 ] && x
 
 if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-dig-watch-domain-exists $isfast --root-sure \
+    rcm-dig-watch-domain-exists $isfast \
         --domain="$url_host" \
         --waiting-time="60" \
         ; [ ! $? -eq 0 ] && x
@@ -491,13 +480,13 @@ ____
 
 if [ -n "$is_wsl" ];then
     INDENT+="    " \
-    rcm-wsl-setup-lemp-stack $isfast --root-sure \
+    rcm-wsl-setup-lemp-stack $isfast \
         --php-version="$php_version" \
         ; [ ! $? -eq 0 ] && x
 fi
 
 INDENT+="    " \
-rcm-php-fpm-setup-project-config $isfast --root-sure \
+rcm-php-fpm-setup-project-config $isfast \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
     --project-name="$project_name" \
@@ -535,9 +524,9 @@ code 'project_dir="'$project_dir'"'
 ____
 
 INDENT+="    " \
-rcm-composer-autoinstaller $isfast --root-sure \
+rcm-composer-autoinstaller $isfast \
     && INDENT+="    " \
-rcm-drupal-autoinstaller-nginx $isfast --root-sure \
+rcm-drupal-autoinstaller-nginx $isfast \
     $is_no_auto_add_group \
     $is_no_sites_default \
     --drupal-version="$drupal_version" \
@@ -555,9 +544,9 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
 
 if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-certbot-autoinstaller $isfast --root-sure \
+    rcm-certbot-autoinstaller $isfast \
         && INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast --root-sure \
+    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
         --php-version="$php_version" \
         --php-fpm-user="$php_fpm_user" \
         --project-dir="$project_dir" \
@@ -588,7 +577,7 @@ EOF
 fi
 
 INDENT+="    " \
-rcm-drupal-setup-drush-alias $isfast --root-sure \
+rcm-drupal-setup-drush-alias $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     --url-scheme="$url_scheme" \
@@ -596,11 +585,11 @@ rcm-drupal-setup-drush-alias $isfast --root-sure \
     --url-port="$url_port" \
     --url-path="$url_path" \
     && INDENT+="    " \
-rcm-drupal-setup-internal-command-cd-drupal $isfast --root-sure \
+rcm-drupal-setup-internal-command-cd-drupal $isfast \
     && INDENT+="    " \
-rcm-drupal-setup-internal-command-ls-drupal $isfast --root-sure \
+rcm-drupal-setup-internal-command-ls-drupal $isfast \
     && INDENT+="    " \
-rcm-drupal-setup-dump-variables $isfast --root-sure \
+rcm-drupal-setup-dump-variables $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     --domain="$domain" \
@@ -623,7 +612,6 @@ exit 0
 # --fast
 # --version
 # --help
-# --root-sure
 # --no-sites-default
 # --no-auto-add-group
 # )

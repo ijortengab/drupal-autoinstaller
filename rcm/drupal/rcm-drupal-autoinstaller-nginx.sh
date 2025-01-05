@@ -21,7 +21,6 @@ while [[ $# -gt 0 ]]; do
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --root-sure) root_sure=1; shift ;;
         --url-host=*) url_host="${1#*=}"; shift ;;
         --url-host) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_host="$2"; shift; fi; shift ;;
         --url-path=*) url_path="${1#*=}"; shift ;;
@@ -102,8 +101,6 @@ Global Options.
         Print version of this script.
    --help
         Show this help.
-   --root-sure
-        Bypass root checking.
 
 Environment Variables.
    DRUPAL_DB_USER_HOST
@@ -141,15 +138,7 @@ EOF
 title rcm-drupal-autoinstaller-nginx
 ____
 
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
+[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do
@@ -753,7 +742,7 @@ fi
 ____
 
 chapter Prepare arguments.
-____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --root-sure --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name" --project-parent-name="$project_parent_name" --config-suffix-name="drupal" get listen)
+____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name" --project-parent-name="$project_parent_name" --config-suffix-name="drupal" get listen)
 if [ -z "$socket_filename" ];then
     __; red Socket Filename of PHP-FPM not found.; x
 fi
@@ -768,7 +757,7 @@ ____
 
 INDENT+="    " \
 rcm-nginx-setup-drupal \
-    --root-sure \
+    \
     --root="$root" \
     --filename="$filename" \
     --server-name="$server_name" \
@@ -1011,7 +1000,7 @@ if [[ -n "$no_sites_default" && -n "$default_installed" ]];then
 fi
 
 INDENT+="    " \
-rcm-mariadb-setup-project-database $isfast --root-sure \
+rcm-mariadb-setup-project-database $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     --db-suffix-name="drupal" \
@@ -1215,7 +1204,6 @@ exit 0
 # --fast
 # --version
 # --help
-# --root-sure
 # --no-sites-default
 # --auto-add-group
 # )

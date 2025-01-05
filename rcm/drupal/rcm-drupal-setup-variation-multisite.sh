@@ -9,7 +9,6 @@ while [[ $# -gt 0 ]]; do
         --existing-project-name=*) project_parent_name="${1#*=}"; shift ;;
         --existing-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
-        --root-sure) root_sure=1; shift ;;
         --sub-project-name=*) project_name="${1#*=}"; shift ;;
         --sub-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --url=*) url="${1#*=}"; shift ;;
@@ -73,8 +72,6 @@ Global Options.
         Print version of this script.
    --help
         Show this help.
-   --root-sure
-        Bypass root checking.
 
 Environment Variables.
    PREFIX_MASTER
@@ -109,15 +106,7 @@ EOF
 title rcm-drupal-setup-variation-multisite
 ____
 
-if [ -z "$root_sure" ];then
-    chapter Mengecek akses root.
-    if [[ "$EUID" -ne 0 ]]; then
-        error This script needs to be run with superuser privileges.; x
-    else
-        __ Privileges.
-    fi
-    ____
-fi
+[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do
@@ -336,7 +325,7 @@ ____
 
 if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-dig-watch-domain-exists $isfast --root-sure \
+    rcm-dig-watch-domain-exists $isfast \
         --domain="$url_host" \
         --waiting-time="60" \
         ; [ ! $? -eq 0 ] && x
@@ -377,19 +366,19 @@ __; magenta php_version="$php_version"; _.
 ____
 
 INDENT+="    " \
-rcm-php-setup-adjust-cli-version $isfast --root-sure \
+rcm-php-setup-adjust-cli-version $isfast \
     --php-version="$php_version" \
     ; [ ! $? -eq 0 ] && x
 
 if [ -n "$is_wsl" ];then
     INDENT+="    " \
-    rcm-wsl-setup-lemp-stack $isfast --root-sure \
+    rcm-wsl-setup-lemp-stack $isfast \
         --php-version="$php_version" \
         ; [ ! $? -eq 0 ] && x
 fi
 
 INDENT+="    " \
-rcm-php-fpm-setup-project-config $isfast --root-sure \
+rcm-php-fpm-setup-project-config $isfast \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
     --project-name="$project_name" \
@@ -398,7 +387,7 @@ rcm-php-fpm-setup-project-config $isfast --root-sure \
     ; [ ! $? -eq 0 ] && x
 
 INDENT+="    " \
-rcm-drupal-autoinstaller-nginx $isfast --root-sure \
+rcm-drupal-autoinstaller-nginx $isfast \
     $is_auto_add_group \
     --drupal-version="$drupal_version" \
     --php-version="$php_version" \
@@ -414,7 +403,7 @@ rcm-drupal-autoinstaller-nginx $isfast --root-sure \
 
 if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast --root-sure \
+    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
         --php-version="$php_version" \
         --php-fpm-user="$php_fpm_user" \
         --project-dir="$project_dir" \
@@ -445,7 +434,7 @@ EOF
 fi
 
 INDENT+="    " \
-rcm-drupal-setup-drush-alias $isfast --root-sure \
+rcm-drupal-setup-drush-alias $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     --url-scheme="$url_scheme" \
@@ -453,7 +442,7 @@ rcm-drupal-setup-drush-alias $isfast --root-sure \
     --url-port="$url_port" \
     --url-path="$url_path" \
     && INDENT+="    " \
-rcm-drupal-setup-dump-variables $isfast --root-sure \
+rcm-drupal-setup-dump-variables $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
     ; [ ! $? -eq 0 ] && x
@@ -475,7 +464,6 @@ exit 0
 # --fast
 # --version
 # --help
-# --root-sure
 # )
 # VALUE=(
 # --url
