@@ -38,6 +38,9 @@ _.() { echo >&2; }
 __() { echo -n "$INDENT" >&2; echo -n "#" '    ' >&2; [ -n "$1" ] && echo "$@" >&2; }
 ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
+# Define variables and constants.
+delay=.5; [ -n "$fast" ] && unset delay
+
 # Functions.
 printVersion() {
     echo '0.11.16'
@@ -312,7 +315,6 @@ link_symbolic_dir() {
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
-delay=.5; [ -n "$fast" ] && unset delay
 PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
 code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
 PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}

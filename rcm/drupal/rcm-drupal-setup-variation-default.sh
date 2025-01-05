@@ -52,6 +52,9 @@ _.() { echo >&2; }
 __() { echo -n "$INDENT" >&2; echo -n "#" '    ' >&2; [ -n "$1" ] && echo "$@" >&2; }
 ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
+# Define variables and constants.
+delay=.5; [ -n "$fast" ] && unset delay
+
 # Functions.
 printVersion() {
     echo '0.11.16'
@@ -196,7 +199,6 @@ validateMachineName() {
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
-delay=.5; [ -n "$fast" ] && unset delay
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 code auto_add_group="$auto_add_group"
 [ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''

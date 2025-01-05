@@ -42,6 +42,9 @@ _.() { echo >&2; }
 __() { echo -n "$INDENT" >&2; echo -n "#" '    ' >&2; [ -n "$1" ] && echo "$@" >&2; }
 ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
+# Define variables and constants.
+delay=.5; [ -n "$fast" ] && unset delay
+
 # Functions.
 printVersion() {
     echo '0.11.16'
@@ -150,7 +153,6 @@ if [[ ${#server_name[@]} -eq 0 ]];then
 fi
 code 'server_name=('"${server_name[@]}"')'
 code 'fastcgi_pass="'$fastcgi_pass'"'
-delay=.5; [ -n "$fast" ] && unset delay
 ____
 
 file_config="/etc/nginx/sites-available/$filename"
