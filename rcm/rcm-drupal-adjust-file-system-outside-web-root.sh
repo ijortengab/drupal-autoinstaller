@@ -40,6 +40,8 @@ ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
 # Define variables and constants.
 delay=.5; [ -n "$fast" ] && unset delay
+DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
+DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 
 # Functions.
 printVersion() {
@@ -50,7 +52,7 @@ printHelp() {
     _ 'Variation '; yellow Outside Web Root; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
-    cat << 'EOF'
+    cat << EOF
 Usage: rcm-drupal-adjust-file-system-outside-web-root
 
 Options:
@@ -70,10 +72,10 @@ Global Options:
         Bypass root checking.
 
 Environment Variables:
-   PREFIX_MASTER
-        Default to /usr/local/share/drupal
-   PROJECTS_CONTAINER_MASTER
-        Default to projects
+   DRUPAL_PREFIX
+        Default to $DRUPAL_PREFIX
+   DRUPAL_PROJECTS_DIRNAME
+        Default to $DRUPAL_PROJECTS_DIRNAME
 
 Dependency:
    ls-drupal
@@ -315,10 +317,8 @@ link_symbolic_dir() {
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
-PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
-code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
-PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
-code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
+code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
+code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
 code 'project_name="'$project_name'"'
 code 'domain="'$domain'"'
 vercomp `stat --version | head -1 | grep -o -E '\S+$'` 8.31
@@ -342,7 +342,7 @@ reference_key="$_return"; unset _return; # Clear.
 if [ -z "$reference_key" ];then
     error Site tidak ditemukan: '`'$domain'`'. ; x
 fi
-target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}/drupal"
+target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_name}/drupal"
 isDirExists "$target"
 if [ -n "$notfound" ];then
     error Directory is not found: "$target".; x

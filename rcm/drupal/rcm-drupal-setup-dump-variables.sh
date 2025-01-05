@@ -40,6 +40,9 @@ ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
 # Define variables and constants.
 delay=.5; [ -n "$fast" ] && unset delay
+BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
+DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
+DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 
 # Functions.
 printVersion() {
@@ -50,7 +53,7 @@ printHelp() {
     _ 'Variation '; yellow Default; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
-    cat << 'EOF'
+    cat << EOF
 Usage: rcm-drupal-setup-dump-variables [options]
 
 Options:
@@ -71,11 +74,11 @@ Global Options.
 
 Environment Variables:
    BINARY_DIRECTORY
-        Default to $__DIR__
-   PREFIX_MASTER
-        Default to /usr/local/share/drupal
-   PROJECTS_CONTAINER_MASTER
-        Default to projects
+        Default to $BINARY_DIRECTORY
+   DRUPAL_PREFIX
+        Default to $DRUPAL_PREFIX
+   DRUPAL_PROJECTS_DIRNAME
+        Default to $DRUPAL_PROJECTS_DIRNAME
 EOF
 }
 
@@ -112,18 +115,18 @@ resolve_relative_path() {
     fi
 }
 databaseCredentialDrupal() {
-    if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/database" ];then
+    if [ -f "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/credential/database" ];then
         local DB_USER DB_USER_PASSWORD
         # Populate.
-        . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/database"
+        . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/credential/database"
         db_user=$DB_USER
         db_user_password=$DB_USER_PASSWORD
     fi
 }
 websiteCredentialDrupal() {
-    if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/drupal/${drupal_fqdn_localhost}" ];then
+    if [ -f "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/credential/drupal/${drupal_fqdn_localhost}" ];then
         local ACCOUNT_NAME ACCOUNT_PASS
-        . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir}/credential/drupal/${drupal_fqdn_localhost}"
+        . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/credential/drupal/${drupal_fqdn_localhost}"
         account_name=$ACCOUNT_NAME
         account_pass=$ACCOUNT_PASS
     fi
@@ -153,12 +156,13 @@ chapter Dump variable.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 __FILE__=$(resolve_relative_path "$0")
 __DIR__=$(dirname "$__FILE__")
-BINARY_DIRECTORY=${BINARY_DIRECTORY:=$__DIR__}
 code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
-PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
-code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
-PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
-code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
+find='[__DIR__]'
+replace="$__DIR__"
+BINARY_DIRECTORY="${BINARY_DIRECTORY/"$find"/"$replace"}"
+code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
+code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
+code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
 if [ -z "$project_name" ];then
     error "Argument --project-name required."; x
 fi
@@ -167,11 +171,11 @@ code 'project_parent_name="'$project_parent_name'"'
 if [ -n "$project_parent_name" ];then
     project_dir="$project_parent_name"
     drupal_fqdn_localhost="$project_name"."$project_parent_name".drupal.localhost
-    url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_parent_name}/subprojects/${project_name}"
+    url_dirname_website_info="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_parent_name}/subprojects/${project_name}"
 else
     project_dir="$project_name"
     drupal_fqdn_localhost="$project_name".drupal.localhost
-    url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}"
+    url_dirname_website_info="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_name}"
 fi
 ____
 

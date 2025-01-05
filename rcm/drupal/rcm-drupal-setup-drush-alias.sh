@@ -48,6 +48,11 @@ ____() { echo >&2; [ -n "$delay" ] && sleep "$delay"; }
 
 # Define variables and constants.
 delay=.5; [ -n "$fast" ] && unset delay
+DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
+DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
+DRUPAL_BINARY_DIRNAME=${DRUPAL_BINARY_DIRNAME:=bin}
+DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
+BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 
 # Functions.
 printVersion() {
@@ -58,7 +63,7 @@ printHelp() {
     _ 'Variation '; yellow Drush Alias; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
-    cat << 'EOF'
+    cat << EOF
 Usage: rcm-drupal-setup-drush-alias [options]
 
 Options:
@@ -79,15 +84,15 @@ Global Options.
 
 Environment Variables:
    BINARY_DIRECTORY
-        Default to $__DIR__
-   PREFIX_MASTER
-        Default to /usr/local/share/drupal
-   PROJECTS_CONTAINER_MASTER
-        Default to projects
-   SITES_MASTER
-        Default to sites
-   BINARY_MASTER
-        Default to bin
+        Default to $BINARY_DIRECTORY
+   DRUPAL_PREFIX
+        Default to $DRUPAL_PREFIX
+   DRUPAL_PROJECTS_DIRNAME
+        Default to $DRUPAL_PROJECTS_DIRNAME
+   DRUPAL_SITES_DIRNAME
+        Default to $DRUPAL_SITES_DIRNAME
+   DRUPAL_BINARY_DIRNAME
+        Default to $DRUPAL_BINARY_DIRNAME
 EOF
 }
 
@@ -351,12 +356,14 @@ url2Filename() {
 chapter Dump variable.
 __FILE__=$(resolve_relative_path "$0")
 __DIR__=$(dirname "$__FILE__")
-BINARY_DIRECTORY=${BINARY_DIRECTORY:=$__DIR__}
+code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
+find='[__DIR__]'
+replace="$__DIR__"
+BINARY_DIRECTORY="${BINARY_DIRECTORY/"$find"/"$replace"}"
 code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
 if [ -z "$project_name" ];then
     error "Argument --project-name required."; x
 fi
-
 code 'url_scheme="'$url_scheme'"'
 code 'url_host="'$url_host'"'
 code 'url_port="'$url_port'"'
@@ -379,20 +386,16 @@ if [[ $? -lt 2 ]];then
 else
     stat_cached=''
 fi
-PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
-code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
-PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
-code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
-BINARY_MASTER=${BINARY_MASTER:=bin}
-code 'BINARY_MASTER="'$BINARY_MASTER'"'
-SITES_MASTER=${SITES_MASTER:=sites}
-code 'SITES_MASTER="'$SITES_MASTER'"'
-NEW_VERSION=`printVersion`
-code 'NEW_VERSION="'$NEW_VERSION'"'
+code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
+code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
+code 'DRUPAL_BINARY_DIRNAME="'$DRUPAL_BINARY_DIRNAME'"'
+code 'DRUPAL_SITES_DIRNAME="'$DRUPAL_SITES_DIRNAME'"'
+print_version=`printVersion`
+code 'print_version="'$print_version'"'
 mktemp=
 ____
 
-target_master="${PREFIX_MASTER}/${BINARY_MASTER}"
+target_master="${DRUPAL_PREFIX}/${DRUPAL_BINARY_DIRNAME}"
 chapter Mengecek direktori master binary '`'$target_master'`'.
 isDirExists "$target_master"
 ____
@@ -423,8 +426,8 @@ fi
 for uri in "${list_uri[@]}";do
     filename=$(url2Filename "$uri")
     chapter Script Shortcut ${filename}
-    fullpath="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/${SITES_MASTER}/${filename}"
-    dirname="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/${SITES_MASTER}"
+    fullpath="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/${DRUPAL_SITES_DIRNAME}/${filename}"
+    dirname="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/${DRUPAL_SITES_DIRNAME}"
     isFileExists "$fullpath"
     if [ -n "$found" ];then
         __ Mengecek versi '`'${filename}'`' command.
@@ -438,13 +441,13 @@ for uri in "${list_uri[@]}";do
         if [[ "$old_version" =~ [^0-9\.]+ ]];then
             old_version=0
         fi
-        vercomp $NEW_VERSION $old_version
+        vercomp $print_version $old_version
         if [[ $? -eq 1 ]];then
-            __ Command perlu diupdate. Versi saat ini ${NEW_VERSION}.
+            __ Command perlu diupdate. Versi saat ini ${print_version}.
             found=
             notfound=1
         else
-            __ Command tidak perlu diupdate. Versi saat ini ${NEW_VERSION}.
+            __ Command tidak perlu diupdate. Versi saat ini ${print_version}.
         fi
     fi
     if [ -n "$notfound" ];then
@@ -467,7 +470,7 @@ set -- "${_new_arguments[@]}"
 unset _new_arguments
 
 printVersion() {
-    echo '__NEW_VERSION__'
+    echo '__CURRENT_VERSION__'
 }
 printUrl() {
     echo '__URI__'
@@ -476,10 +479,10 @@ printUrl() {
 [ -n "$url" ] && { printUrl; exit 1; }
 
 [[ -f "$0" && ! "$0" == $(command -v bash) ]] && { echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m"; exit 1; }
-PREFIX_MASTER=__PREFIX_MASTER__
-PROJECTS_CONTAINER_MASTER=__PROJECTS_CONTAINER_MASTER__
+DRUPAL_PREFIX=__DRUPAL_PREFIX__
+DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
 PROJECT_ROOT=__PROJECT_ROOT__
-_target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${PROJECT_ROOT}/drupal"
+_target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${PROJECT_ROOT}/drupal"
 _dereference=$(stat "$_target" -c %N)
 PROJECT_ROOT=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
 echo
@@ -501,11 +504,11 @@ echo
 # rc means run commands. @see: https://superuser.com/a/173167
 cd "$PROJECT_ROOT" && [ -f .rc ] && . .rc
 EOF
-        sed -i "s|__PREFIX_MASTER__|${PREFIX_MASTER}|g" "$fullpath"
-        sed -i "s|__PROJECTS_CONTAINER_MASTER__|${PROJECTS_CONTAINER_MASTER}|g" "$fullpath"
+        sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
+        sed -i "s|__DRUPAL_PROJECTS_DIRNAME__|${DRUPAL_PROJECTS_DIRNAME}|g" "$fullpath"
         sed -i "s|__PROJECT_ROOT__|${project_dir_basename}|g" "$fullpath"
         sed -i "s|__URI__|${uri}|g" "$fullpath"
-        sed -i "s|__NEW_VERSION__|${NEW_VERSION}|g" "$fullpath"
+        sed -i "s|__CURRENT_VERSION__|${print_version}|g" "$fullpath"
         fileMustExists "$fullpath"
     fi
     ____
