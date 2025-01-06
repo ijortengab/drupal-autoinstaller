@@ -52,7 +52,7 @@ RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 
 # Functions.
 printVersion() {
-    echo '0.11.16'
+    echo '0.11.17'
 }
 printHelp() {
     title RCM Drupal Setup
