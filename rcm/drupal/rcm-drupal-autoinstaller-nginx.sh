@@ -9,6 +9,8 @@ while [[ $# -gt 0 ]]; do
         --auto-add-group) auto_add_group=1; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
+        --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
+        --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
@@ -57,6 +59,12 @@ ____() { echo >&2; [ -n "$RCM_DELAY" ] && sleep "$RCM_DELAY"; }
 
 # Define variables and constants.
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
+DRUPAL_DB_USER_HOST=${DRUPAL_DB_USER_HOST:=localhost}
+PHP_FPM_POOL_DIRECTORY=${PHP_FPM_POOL_DIRECTORY:=/etc/php/[php-version]/fpm/pool.d}
+DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
+DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
+MARIADB_PREFIX=${MARIADB_PREFIX:=/usr/local/share/mariadb}
+MARIADB_USERS_DIRNAME=${MARIADB_USERS_DIRNAME:=users}
 
 # Functions.
 printVersion() {
@@ -102,19 +110,19 @@ Global Options.
    --help
         Show this help.
 
-Environment Variables.
+Environment Variables:
    DRUPAL_DB_USER_HOST
-        Default to localhost
+        Default to $DRUPAL_DB_USER_HOST
    PHP_FPM_POOL_DIRECTORY
-        Default to /etc/php/[php-version]/fpm/pool.d
-   PREFIX_MASTER
-        Default to /usr/local/share/drupal
-   PROJECTS_CONTAINER_MASTER
-        Default to projects
-   MARIADB_PREFIX_MASTER
-        Default to /usr/local/share/mariadb
-   MARIADB_USERS_CONTAINER_MASTER
-        Default to users
+        Default to $PHP_FPM_POOL_DIRECTORY
+   DRUPAL_PREFIX
+        Default to $DRUPAL_PREFIX
+   DRUPAL_PROJECTS_DIRNAME
+        Default to $DRUPAL_PROJECTS_DIRNAME
+   MARIADB_PREFIX
+        Default to $MARIADB_PREFIX
+   MARIADB_USERS_DIRNAME
+        Default to $MARIADB_USERS_DIRNAME
 
 Dependency:
    nginx
@@ -162,48 +170,48 @@ validateMachineName() {
 }
 databaseCredentialDrupal() {
     local DB_USER DB_USER_PASSWORD
-    if [ ! -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/database" ];then
+    if [ ! -f "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/database" ];then
         chapter Membuat database credentials: '`'$project_dir/credential/database'`'.
         db_user="$project_name"
         [ -n "$project_parent_name" ] && {
             db_user=$project_parent_name
         }
-        __ Memerlukan file '`'"${MARIADB_PREFIX_MASTER}/${MARIADB_USERS_CONTAINER_MASTER}/${db_user}"'`'
-        fileMustExists "${MARIADB_PREFIX_MASTER}/${MARIADB_USERS_CONTAINER_MASTER}/${db_user}"
+        __ Memerlukan file '`'"${MARIADB_PREFIX}/${MARIADB_USERS_DIRNAME}/${db_user}"'`'
+        fileMustExists "${MARIADB_PREFIX}/${MARIADB_USERS_DIRNAME}/${db_user}"
         ____
 
-        source="${MARIADB_PREFIX_MASTER}/${MARIADB_USERS_CONTAINER_MASTER}/${db_user}"
-        target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/database"
-        mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
-        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
+        source="${MARIADB_PREFIX}/${MARIADB_USERS_DIRNAME}/${db_user}"
+        target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/database"
+        mkdir -p "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential"
+        chmod 0500 "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential"
         link_symbolic "$source" "$target"
     fi
-    source="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
+    source="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential"
     target="${project_dir}/credential"
     link_symbolic_dir "$source" "$target" - absolute
 
     # Populate.
-    . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/database"
+    . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/database"
     db_user=$DB_USER
     db_user_password=$DB_USER_PASSWORD
 }
 websiteCredentialDrupal() {
-    if [ -f "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}" ];then
+    if [ -f "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}" ];then
         local ACCOUNT_NAME ACCOUNT_PASS
-        . "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+        . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
         account_name=$ACCOUNT_NAME
         account_pass=$ACCOUNT_PASS
     else
         account_name=system
         account_pass=$(pwgen -s 32 -1)
-        mkdir -p "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal"
-        cat << EOF > "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+        mkdir -p "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal"
+        cat << EOF > "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
 ACCOUNT_NAME=$account_name
 ACCOUNT_PASS=$account_pass
 EOF
-        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential"
-        chmod 0500 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal"
-        chmod 0400 "${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+        chmod 0500 "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential"
+        chmod 0500 "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal"
+        chmod 0400 "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
     fi
 }
 fileMustExists() {
@@ -479,7 +487,6 @@ link_symbolic_dir() {
 # Requirement, validate, and populate value.
 chapter Dump variable.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
-DRUPAL_DB_USER_HOST=${DRUPAL_DB_USER_HOST:=localhost}
 code 'DRUPAL_DB_USER_HOST="'$DRUPAL_DB_USER_HOST'"'
 if [ -z "$project_name" ];then
     error "Argument --project-name required."; x
@@ -499,6 +506,7 @@ vercomp 7 "$drupal_version"
 if [[ $? -lt 2 ]];then
     red Hanya mendukung Drupal versi '>=' 8.; x
 fi
+code 'drupalcms_version="'$drupalcms_version'"'
 if [ -z "$php_version" ];then
     error "Argument --php-version required."; x
 fi
@@ -525,7 +533,6 @@ code 'drupal_fqdn_localhost="'$drupal_fqdn_localhost'"'
 code 'drupal_db_name="'$drupal_db_name'"'
 code 'sites_subdir="'$sites_subdir'"'
 code 'auto_add_group="'$auto_add_group'"'
-
 code 'url_scheme="'$url_scheme'"'
 code 'url_host="'$url_host'"'
 code 'url_port="'$url_port'"'
@@ -587,7 +594,6 @@ if [ -z "$php_fpm_user" ];then
     error "Argument --php-fpm-user required."; x
 fi
 code 'php_fpm_user="'$php_fpm_user'"'
-PHP_FPM_POOL_DIRECTORY=${PHP_FPM_POOL_DIRECTORY:=/etc/php/[php-version]/fpm/pool.d}
 find='[php-version]'
 replace="$php_version"
 PHP_FPM_POOL_DIRECTORY="${PHP_FPM_POOL_DIRECTORY/"$find"/"$replace"}"
@@ -598,14 +604,10 @@ if [[ $? -lt 2 ]];then
 else
     stat_cached=''
 fi
-PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
-code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
-PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
-code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
-MARIADB_PREFIX_MASTER=${MARIADB_PREFIX_MASTER:=/usr/local/share/mariadb}
-code 'MARIADB_PREFIX_MASTER="'$MARIADB_PREFIX_MASTER'"'
-MARIADB_USERS_CONTAINER_MASTER=${MARIADB_USERS_CONTAINER_MASTER:=users}
-code 'MARIADB_USERS_CONTAINER_MASTER="'$MARIADB_USERS_CONTAINER_MASTER'"'
+code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
+code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
+code 'MARIADB_PREFIX="'$MARIADB_PREFIX'"'
+code 'MARIADB_USERS_DIRNAME="'$MARIADB_USERS_DIRNAME'"'
 mktemp=
 ____
 
@@ -619,7 +621,7 @@ fi
 ____
 
 source="${project_dir}/drupal"
-target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/drupal"
+target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/drupal"
 chapter Memeriksa direktori '`'$target'`'
 create=
 if [ -d "$target" ];then
@@ -654,7 +656,7 @@ else
     create=1
 fi
 
-target_master="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}"
+target_master="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}"
 chapter Mengecek direktori master project '`'$target_master'`'.
 isDirExists "$target_master"
 ____
@@ -698,7 +700,7 @@ fi
 
 if [ -n "$create" ];then
     source="${project_dir}/drupal"
-    target="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/drupal"
+    target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/drupal"
     link_symbolic_dir "$source" "$target" - absolute
 fi
 
@@ -807,7 +809,7 @@ rmdir "${root}/.well-known" --ignore-fail-on-non-empty
 rmdir "${project_dir}/drupal/web" --ignore-fail-on-non-empty
 ____
 
-chapter Mengecek file '`'composer.json'`' untuk project '`'drupal/recommended-project'`'
+chapter Mengecek file '`'composer.json'`' untuk project '`drupal/*`'
 notfound=
 if [ -f "${project_dir}/drupal/composer.json" ];then
     __ File '`'composer.json'`' ditemukan.
@@ -825,22 +827,33 @@ fi
 ____
 
 if [ -n "$notfound" ];then
-    chapter Mendownload composer.json untuk project '`'drupal/recommended-project'`'.
-    cd ${project_dir}
-    # Jika version hanya angka 9 atau 10, maka ubah menjadi ^9 atau ^10.
-    if [[ "$drupal_version" =~ ^[0-9]+$ ]];then
-        _drupal_version="$drupal_version"
-        drupal_version="^${drupal_version}"
+    if [ -n "$drupalcms_version" ];then
+        package=drupal/cms
+        package_version="$drupalcms_version"
+    else
+        package=drupal/recommended-project
+        package_version="$drupal_version"
     fi
+    package_version_normalized="$package_version"
+    composer_options=" --no-install"
+    if [[ "$package_version_normalized" =~ ^rc[0-9]+$ ]];then
+        package_version_normalized=${package_version_normalized#rc}
+        composer_options+=" -s rc"
+    fi
+    # Jika version hanya angka 9 atau 10, maka ubah menjadi ^9 atau ^10.
+    if [[ "$package_version_normalized" =~ ^[0-9]+$ ]];then
+        package_version_normalized="^${package_version_normalized}"
+    fi
+    chapter Mendownload composer.json untuk project '`'$package'`'.
+    cd ${project_dir}
     # https://www.drupal.org/docs/develop/using-composer/manage-dependencies
     # Code dibawah ini tidak mendetect environment variable terutama http_proxy,
     # sehingga composer gagal mendownload.
-    # sudo -u $user_nginx HOME='/tmp' -s composer create-project --no-install drupal/recommended-project drupal $drupal_version
+    # sudo -u $user_nginx HOME='/tmp' -s composer create-project --no-install $package drupal $drupal_version
     # Alternative menggunakan code dibawah ini.
     # Credit: https://stackoverflow.com/a/8633575
-    code sudo -u $php_fpm_user $env bash -c '"'composer create-project --no-install drupal/recommended-project:${drupal_version} drupal'"'
-    sudo -u "$php_fpm_user" $env bash -c "composer create-project --no-install drupal/recommended-project:${drupal_version} drupal"
-    drupal_version="$_drupal_version"
+    code sudo -u $php_fpm_user $env bash -c '"'composer create-project${composer_options} ${package}:${package_version_normalized} drupal'"'
+    sudo -u "$php_fpm_user" $env bash -c "composer create-project${composer_options} ${package}:${package_version_normalized} drupal"
     cd - >/dev/null
     fileMustExists "${project_dir}/drupal/composer.json"
     ____
@@ -1009,7 +1022,7 @@ rcm-mariadb-setup-project-database $isfast \
 databaseCredentialDrupal
 
 chapter Mengecek website credentials.
-path="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
 code path='"'$path'"'
 websiteCredentialDrupal
 if [[ -z "$account_name" || -z "$account_pass" ]];then
@@ -1209,6 +1222,7 @@ exit 0
 # )
 # VALUE=(
 # --drupal-version
+# --drupalcms-version
 # --php-version
 # --project-name
 # --project-parent-name
