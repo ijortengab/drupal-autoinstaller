@@ -168,18 +168,19 @@ eligible() {
         . /etc/os-release
     fi
     _; _.
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11a; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.1; _, , Drupal' '; hN 9; _, , ' 'Drush' '; hN 11. ; _.; eligible+=("debian11a;debian;11")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11b; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.2; _, , Drupal' '; hN 10;   _, , Drush' '; hN 12.; _.; eligible+=("debian11b;debian;11")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11c; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.3; _, , Drupal' '; hN 10;   _, , Drush' '; hN 12. ; _.; eligible+=("debian11c;debian;11")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22a; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.1; _, , Drupal' '; hN 9; _, , ' 'Drush' '; hN 11. ; _.; eligible+=("ubuntu22a;ubuntu;22.04")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22b; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.2; _, , Drupal' '; hN 10;   _, , Drush' '; hN 12. ; _.; eligible+=("ubuntu22b;ubuntu;22.04")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22c; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '; hN 10;   _, , Drush' '; hN 12. ; _.; eligible+=("ubuntu22c;ubuntu;22.04")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22d; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '; hN 11;   _, , Drush' '; hN 13. ; _.; eligible+=("ubuntu22d;ubuntu;22.04")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12a; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.1; _, , Drupal' '; hN 9; _, , ' 'Drush' '; hN 11. ; _.; eligible+=("debian12a;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12b; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.2; _, , Drupal' '; hN 10;   _, , Drush' '; hN 12. ; _.; eligible+=("debian12b;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12c; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '; hN 10;   _, , Drush' '; hN 12. ; _.; eligible+=("debian12c;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12d; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '; hN 11;   _, , Drush' '; hN 13. ; _.; eligible+=("debian12d;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; $color ubuntu24a; _, . Ubuntu' '; hN 24.04;   _, , PHP' '; hN 8.3; _, , Drupal' '; hN 11;   _, , Drush' '; hN 13. ; _.; eligible+=("ubuntu24a;ubuntu;24.04")
+    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11a; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("debian11a;debian;11")
+    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11b; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian11b;debian;11")
+    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11c; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian11c;debian;11")
+    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22a; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("ubuntu22a;ubuntu;22.04")
+    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22b; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("ubuntu22b;ubuntu;22.04")
+    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22c; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("ubuntu22c;ubuntu;22.04")
+    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22d; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("ubuntu22d;ubuntu;22.04")
+    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12a; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("debian12a;debian;12")
+    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12b; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian12b;debian;12")
+    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12c; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian12c;debian;12")
+    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12d; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("debian12d;debian;12")
+    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12e; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal CMS' '; hN rc1.; _.; eligible+=("debian12e;debian;12")
+    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; $color ubuntu24a; _, . Ubuntu' '; hN 24.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("ubuntu24a;ubuntu;24.04")
     for each in "${eligible[@]}";do
         variation=$(cut -d';' -f1 <<< "$each")
         _id=$(cut -d';' -f2 <<< "$each")
@@ -189,7 +190,6 @@ eligible() {
         fi
     done
 }
-
 green2() {
     local word=$1
     hN "$word" green
@@ -227,12 +227,12 @@ fi
 title rcm-drupal-setup-variation-bundle
 ____
 
+[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
+
 # Dependency.
 while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { error Unable to proceed, command not found: '`'`cut -d: -f1 <<< "${line}"`'`'.; x; }
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 #  Functions.
 validateMachineName() {
@@ -337,6 +337,7 @@ case "$variation" in
     ubuntu22c) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=10; drush_version=12 ;;
     ubuntu22d) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
     debian12d) os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    debian12e) os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13; drupalcms_version=rc1 ;;
     ubuntu24a) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
     *) error "Argument --variation is not valid."; x;;
 esac
@@ -491,6 +492,7 @@ rcm-drupal-autoinstaller-nginx $isfast \
     $is_no_auto_add_group \
     $is_no_sites_default \
     --drupal-version="$drupal_version" \
+    --drupalcms-version="$drupalcms_version" \
     --drush-version="$drush_version" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
