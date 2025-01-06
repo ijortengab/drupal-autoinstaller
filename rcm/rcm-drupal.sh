@@ -80,6 +80,8 @@ ____() { echo >&2; [ -n "$RCM_DELAY" ] && sleep "$RCM_DELAY"; }
 
 # Define variables and constants.
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
+DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
+DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 
 # Command.
 command="$1"; shift
@@ -165,6 +167,10 @@ mode-available() {
         mode_available+=(custom)
         if command -v ls-drupal >/dev/null;then
             if [[ $(ls-drupal | wc -l) -gt 0 ]];then
+                mode_available+=(multisite)
+            fi
+        elif [ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" ];then
+            if [[ $(ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" | wc -l) -gt 0 ]];then
                 mode_available+=(multisite)
             fi
         fi
