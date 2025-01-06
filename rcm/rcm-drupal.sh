@@ -82,6 +82,7 @@ ____() { echo >&2; [ -n "$RCM_DELAY" ] && sleep "$RCM_DELAY"; }
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
 DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
+[ -n "$RCM_TABLE_DOWNLOADS" ] && table_downloads="$RCM_TABLE_DOWNLOADS"
 
 # Command.
 command="$1"; shift
@@ -285,6 +286,7 @@ if [ -z "$mode" ];then
     error "Argument --mode required."; x
 fi
 code 'mode="'$mode'"'
+print_version=`printVersion`
 ____
 
 case "$mode" in
@@ -295,15 +297,23 @@ case "$mode" in
     *) error "Argument --mode not valid."; x ;;
 esac
 
+_help=$(printHelp 2>/dev/null)
+_download=$(echo "$_help" | sed -n '/^Download:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g')
+if [ -n "$_download" ];then
+    [ -n "$table_downloads" ] && table_downloads+=$'\n'
+    table_downloads+="$_download"
+fi
+export RCM_TABLE_DOWNLOADS="$table_downloads"
+
 chapter Execute:
 
 case "$rcm_operand" in
     *)
-        words_array=(rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand -- "$@")
+        words_array=(rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand:$print_version -- "$@")
         wordWrapCommand
         ____
 
-        INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand --binary-directory-exists-sure --non-immediately -- "$@"
+        INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand:$print_version -- "$@"
         ;;
 esac
 ____
