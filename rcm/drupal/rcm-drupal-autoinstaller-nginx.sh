@@ -63,6 +63,7 @@ DRUPAL_DB_USER_HOST=${DRUPAL_DB_USER_HOST:=localhost}
 PHP_FPM_POOL_DIRECTORY=${PHP_FPM_POOL_DIRECTORY:=/etc/php/[php-version]/fpm/pool.d}
 DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
 DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
+DRUPAL_USERS_DIRNAME=${DRUPAL_USERS_DIRNAME:=users}
 MARIADB_PREFIX=${MARIADB_PREFIX:=/usr/local/share/mariadb}
 MARIADB_USERS_DIRNAME=${MARIADB_USERS_DIRNAME:=users}
 
@@ -119,6 +120,8 @@ Environment Variables:
         Default to $DRUPAL_PREFIX
    DRUPAL_PROJECTS_DIRNAME
         Default to $DRUPAL_PROJECTS_DIRNAME
+   DRUPAL_USERS_DIRNAME
+        Default to $DRUPAL_USERS_DIRNAME
    MARIADB_PREFIX
         Default to $MARIADB_PREFIX
    MARIADB_USERS_DIRNAME
@@ -655,19 +658,33 @@ if [ -d "$target" ];then
 else
     create=1
 fi
+____
 
-target_master="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}"
-chapter Mengecek direktori master project '`'$target_master'`'.
+target_master="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"
+chapter Mengecek direktori master '`'$target_master'`'.
 isDirExists "$target_master"
 ____
 
 if [ -n "$notfound" ];then
-    chapter Membuat direktori master project.
+    chapter Membuat direktori master.
     code mkdir -p '"'$target_master'"'
-    code chown $php_fpm_user:$php_fpm_user '"'$target_master'"'
     mkdir -p "$target_master"
-    chown $php_fpm_user:$php_fpm_user "$target_master"
     dirMustExists "$target_master"
+    ____
+fi
+
+target_master_project="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}"
+chapter Mengecek direktori master project '`'$target_master_project'`'.
+isDirExists "$target_master_project"
+____
+
+if [ -n "$notfound" ];then
+    chapter Membuat direktori master project.
+    code mkdir -p '"'$target_master_project'"'
+    code chown $php_fpm_user:$php_fpm_user '"'$target_master_project'"'
+    mkdir -p "$target_master_project"
+    chown $php_fpm_user:$php_fpm_user "$target_master_project"
+    dirMustExists "$target_master_project"
     ____
 fi
 
@@ -703,6 +720,27 @@ if [ -n "$create" ];then
     target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/drupal"
     link_symbolic_dir "$source" "$target" - absolute
 fi
+
+target_master_user="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${php_fpm_user}"
+chapter Mengecek direktori users '`'$target_master_user'`'.
+isDirExists "$target_master_user"
+____
+
+if [ -n "$notfound" ];then
+    chapter Membuat direktori users.
+    code mkdir -p "${target_master_user}/projects"
+    code chown -R $php_fpm_user:$php_fpm_user '"'$target_master_user'"'
+    code chmod 0700 '"'$target_master_user'"'
+    mkdir -p "$target_master_user"
+    chown -R $php_fpm_user:$php_fpm_user "$target_master_user"
+    chmod 0700 "$target_master_user"
+    dirMustExists "$target_master_user"
+    ____
+fi
+
+source="${project_dir}/drupal"
+target_master_user_project="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${php_fpm_user}/projects/${project_dir_basename}"
+link_symbolic_dir "$source" "$target_master_user_project" "$php_fpm_user" absolute
 
 is_access=
 chapter Memastikan Nginx User dapat mengakses Direktori Project.
