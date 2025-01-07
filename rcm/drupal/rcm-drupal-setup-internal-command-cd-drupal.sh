@@ -44,7 +44,7 @@ BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 
 # Functions.
 printVersion() {
-    echo '0.11.17'
+    echo '0.11.18'
 }
 printHelp() {
     title RCM Drupal Setup Internal Command
