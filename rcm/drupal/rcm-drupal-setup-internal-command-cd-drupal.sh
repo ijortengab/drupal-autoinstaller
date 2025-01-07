@@ -37,6 +37,7 @@ ____() { echo >&2; [ -n "$RCM_DELAY" ] && sleep "$RCM_DELAY"; }
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
 DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
+DRUPAL_USERS_DIRNAME=${DRUPAL_USERS_DIRNAME:=users}
 DRUPAL_BINARY_DIRNAME=${DRUPAL_BINARY_DIRNAME:=bin}
 DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
@@ -70,6 +71,8 @@ Environment Variables:
         Default to $DRUPAL_PREFIX
    DRUPAL_PROJECTS_DIRNAME
         Default to $DRUPAL_PROJECTS_DIRNAME
+   DRUPAL_USERS_DIRNAME
+        Default to $DRUPAL_USERS_DIRNAME
    DRUPAL_SITES_DIRNAME
         Default to $DRUPAL_SITES_DIRNAME
    DRUPAL_BINARY_DIRNAME
@@ -372,24 +375,29 @@ EOL
 [[ -f "$0" && ! "$0" == $(command -v bash) ]] && { echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m"; exit 1; }
 DRUPAL_PREFIX=__DRUPAL_PREFIX__
 DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
+DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
 DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
-[[ ! -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" ]] && { echo -e "\e[91m""There's no Drupal Directory Master : ${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" "\e[39m"; }
-if [[ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" ]];then
+whoami=`whoami`
+source=()
+[ "$EUID" -eq 0 ] && path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" || \
+    path="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${whoami}/projects"
+[ ! -d "$path" ] && {
+    echo -e "\e[91m""There's no Drupal Directory Project: ${path}" "\e[39m";
+} || {
+    source=(`ls "$path"`)
+}
+[ "${#source[@]}" -eq 0 ] && echo -e There are no Drupal project available. || {
     echo -e There are Drupal project available. Press the "\e[93m"yellow"\e[39m" number key to select.
-    unset count
     declare -i count
     count=0
-    source=()
-    while read line; do
-        basename=$(basename "$line")
+    for each in "${source[@]}";do
         count+=1
         if [ $count -lt 10 ];then
-            echo -ne '['"\e[93m"$count"\e[39m"']' "$basename" "\n"
+            echo -ne '['"\e[93m"$count"\e[39m"']' "$each" "\n"
         else
-            echo '['$count']' "$basename"
+            echo '['$count']' "$each"
         fi
-        source+=("$basename")
-    done <<< `ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"`
+    done
     echo -ne '['"\e[93m"Enter"\e[39m"']' "\e[93m"T"\e[39m"ype the number key instead. "\n"
     count_max="${#source[@]}"
     if [ $count_max -gt 9 ];then
@@ -500,10 +508,11 @@ if [[ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" ]];then
         echo -e "\e[95m". cd-drupal-${value}"\e[39m"
         . cd-drupal-${value}
     fi
-fi
+}
 EOF
     sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
     sed -i "s|__DRUPAL_PROJECTS_DIRNAME__|${DRUPAL_PROJECTS_DIRNAME}|g" "$fullpath"
+    sed -i "s|__DRUPAL_USERS_DIRNAME__|${DRUPAL_USERS_DIRNAME}|g" "$fullpath"
     sed -i "s|__DRUPAL_SITES_DIRNAME__|${DRUPAL_SITES_DIRNAME}|g" "$fullpath"
     sed -i "s|__CURRENT_VERSION__|${print_version}|g" "$fullpath"
     fileMustExists "$fullpath"

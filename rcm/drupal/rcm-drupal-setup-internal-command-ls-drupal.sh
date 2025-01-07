@@ -37,6 +37,7 @@ ____() { echo >&2; [ -n "$RCM_DELAY" ] && sleep "$RCM_DELAY"; }
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
 DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
+DRUPAL_USERS_DIRNAME=${DRUPAL_USERS_DIRNAME:=users}
 DRUPAL_BINARY_DIRNAME=${DRUPAL_BINARY_DIRNAME:=bin}
 DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
@@ -70,6 +71,8 @@ Environment Variables:
         Default to $DRUPAL_PREFIX
    DRUPAL_PROJECTS_DIRNAME
         Default to $DRUPAL_PROJECTS_DIRNAME
+   DRUPAL_USERS_DIRNAME
+        Default to $DRUPAL_USERS_DIRNAME
    DRUPAL_SITES_DIRNAME
         Default to $DRUPAL_SITES_DIRNAME
    DRUPAL_BINARY_DIRNAME
@@ -380,16 +383,20 @@ EOL
 
 DRUPAL_PREFIX=__DRUPAL_PREFIX__
 DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
+DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
 DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
+whoami=`whoami`
+[ "$EUID" -eq 0 ] && path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" || \
+    path="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${whoami}/projects"
 project_name="$1"; shift
 if [ -z "$project_name" ];then
-    ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"
+    ls "$path"
 else
     case "$project_name" in
         -)
             while read line; do
                 ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${line}/${DRUPAL_SITES_DIRNAME}"
-            done <<< `ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"`
+            done <<< `ls "$path"`
             ;;
         *)
             ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_name}/${DRUPAL_SITES_DIRNAME}"
@@ -398,6 +405,7 @@ fi
 EOF
     sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
     sed -i "s|__DRUPAL_PROJECTS_DIRNAME__|${DRUPAL_PROJECTS_DIRNAME}|g" "$fullpath"
+    sed -i "s|__DRUPAL_USERS_DIRNAME__|${DRUPAL_USERS_DIRNAME}|g" "$fullpath"
     sed -i "s|__DRUPAL_SITES_DIRNAME__|${DRUPAL_SITES_DIRNAME}|g" "$fullpath"
     sed -i "s|__CURRENT_VERSION__|${print_version}|g" "$fullpath"
     fileMustExists "$fullpath"
