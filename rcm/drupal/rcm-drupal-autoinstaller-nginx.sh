@@ -1071,6 +1071,16 @@ else
 fi
 ____
 
+# Hapus cache.
+# https://www.drupal.org/project/drupal_cms/issues/3497786
+if [ -n "drupalcms_version" ];then
+    chapter Remove Drupal CMS Cache
+    path="${project_dir}/drupal/web/profiles/drupal_cms_installer/cache"
+    code rm -rf '"'$path'"'
+    rm -rf "$path"
+    ____
+fi
+
 if [[ "$install_type" == 'singlesite' && -z "$default_installed" ]];then
     chapter Install Drupal site default.
     code drush site:install --yes --site-name="$site_name" \
@@ -1080,6 +1090,7 @@ if [[ "$install_type" == 'singlesite' && -z "$default_installed" ]];then
         drush site:install --yes --site-name="$site_name" \
             --account-name="$account_name" --account-pass="$account_pass" \
             --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}"
+    [ ! $? -eq 0 ] && x
     if drush status --field=db-status | grep -q '^Connected$';then
         __; green Drupal site default installed.
     else
