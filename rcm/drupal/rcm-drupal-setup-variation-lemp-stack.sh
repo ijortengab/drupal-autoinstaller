@@ -123,9 +123,9 @@ Dependency:
    rcm-ubuntu-24.04-setup-basic
    rcm-debian-11-setup-basic
    rcm-debian-12-setup-basic
-   rcm-nginx-autoinstaller
-   rcm-mariadb-autoinstaller
-   rcm-php-autoinstaller
+   rcm-nginx-apt
+   rcm-mariadb-apt
+   rcm-php-apt
    rcm-php-setup-adjust-cli-version
    rcm-php-setup-drupal:`printVersion`
    rcm-wsl-setup-lemp-stack
@@ -138,7 +138,7 @@ Dependency:
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root:`printVersion`
    rcm-php-fpm-setup-project-config
-   rcm-certbot-autoinstaller
+   rcm-certbot-apt
    rcm-dig-watch-domain-exists
 
 Download:
@@ -441,11 +441,11 @@ $rcm_operand_setup_basic $isfast \
     --timezone="$timezone" \
     -- \
     && INDENT+="    " \
-rcm-nginx-autoinstaller $isfast \
+rcm-nginx-apt $isfast \
     && INDENT+="    " \
-rcm-mariadb-autoinstaller $isfast \
+rcm-mariadb-apt $isfast \
     && INDENT+="    " \
-rcm-php-autoinstaller $isfast \
+rcm-php-apt $isfast \
     --php-version="$php_version" \
     && INDENT+="    " \
 rcm-php-setup-adjust-cli-version $isfast \
@@ -547,7 +547,7 @@ rcm-drupal-autoinstaller-nginx $isfast \
 
 if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-certbot-autoinstaller $isfast \
+    rcm-certbot-apt $isfast \
         && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
         --php-version="$php_version" \

@@ -115,7 +115,7 @@ Global Options.
         Show this help.
 
 Dependency:
-   rcm-php-autoinstaller
+   rcm-php-apt
    rcm-php-setup-adjust-cli-version
    rcm-php-setup-drupal:`printVersion`
    rcm-wsl-setup-lemp-stack
@@ -128,7 +128,7 @@ Dependency:
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root:`printVersion`
    rcm-php-fpm-setup-project-config
-   rcm-certbot-autoinstaller
+   rcm-certbot-apt
    rcm-dig-watch-domain-exists
 
 Download:
@@ -405,7 +405,7 @@ code 'url_dirname_website_info="'$url_dirname_website_info'"'
 ____
 
 INDENT+="    " \
-rcm-php-autoinstaller $isfast \
+rcm-php-apt $isfast \
     --php-version="$php_version" \
     && INDENT+="    " \
 rcm-php-setup-adjust-cli-version $isfast \
@@ -507,7 +507,7 @@ rcm-drupal-autoinstaller-nginx $isfast \
 
 if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-certbot-autoinstaller $isfast \
+    rcm-certbot-apt $isfast \
         && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
         --php-version="$php_version" \
