@@ -569,10 +569,13 @@ code 'slave_fastcgi_pass="'$slave_fastcgi_pass'"'
 code 'slave_url_path="'$slave_url_path'"'
 ____
 
+tempfile=$(mktemp -p /dev/shm -t rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root.XXXXXX)
+
 INDENT+="    " \
 rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
     --with-certbot-obtain \
     --without-nginx-reload \
+    --tempfile-trigger-reload="$tempfile" \
     --master-root="$master_root" \
     --master-include="$master_include" \
     --master-include-2="$master_include_2" \
@@ -634,6 +637,11 @@ EOF
         rcm_nginx_reload=1
     fi
 fi
+
+if [ -s "$tempfile" ];then
+    rcm_nginx_reload=1
+fi
+rm "$tempfile"
 
 if [ -n "$rcm_nginx_reload" ];then
     INDENT+="    " \
