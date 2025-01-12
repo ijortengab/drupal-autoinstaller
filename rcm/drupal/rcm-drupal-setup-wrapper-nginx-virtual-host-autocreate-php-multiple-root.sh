@@ -96,6 +96,7 @@ Dependency:
    rcm-nginx-virtual-host-autocreate-php-multiple-root
    rcm-php-fpm-setup-project-config
    curl
+   rcm-nginx-reload
 EOF
 }
 
@@ -319,6 +320,70 @@ adjustNginxWebRoot() {
     array=("${_return[@]}"); unset _return
     for each in "${array[@]}"; do nginx_web_root+="/${each}.d"; done;
 }
+fileMustExists() {
+    # global used:
+    # global modified:
+    # function used: __, success, error, x
+    if [ -f "$1" ];then
+        __; green File '`'$(basename "$1")'`' ditemukan.; _.
+    else
+        __; red File '`'$(basename "$1")'`' tidak ditemukan.; x
+    fi
+}
+isFileExists() {
+    # global used:
+    # global modified: found, notfound
+    # function used: __
+    found=
+    notfound=
+    if [ -f "$1" ];then
+        __ File '`'$(basename "$1")'`' ditemukan.
+        found=1
+    else
+        __ File '`'$(basename "$1")'`' tidak ditemukan.
+        notfound=1
+    fi
+}
+findString() {
+    # global debug
+    # global find_quoted
+    # $find_quoted agar bisa di gunakan oleh sed.
+    local find="$1" string path="$2" tempfile="$3" deletetempfile
+    if [ -z "$tempfile" ];then
+        tempfile=$(mktemp -p /dev/shm)
+        deletetempfile=1
+    fi
+    _; _, Memeriksa baris dengan kalimat: '`'$find'`'.;_.
+    find_quoted="$find"
+    find_quoted=$(sed -E "s/\s+/\\\s\+/g" <<< "$find_quoted")
+    find_quoted=$(sed "s/\./\\\./g" <<< "$find_quoted")
+    find_quoted=$(sed "s/\*/\\\*/g" <<< "$find_quoted")
+    find_quoted=$(sed "s/;$/\\\s\*;/g" <<< "$find_quoted")
+    if [[ ! "${find_quoted:0:1}" == '^' ]];then
+        find_quoted="^\s*${find_quoted}"
+    fi
+    _; magenta grep -E '"'"${find_quoted}"'"' '"'"\$path"'"'; _.
+    if grep -E "${find_quoted}" "$path" > "$tempfile";then
+        string="$(< "$tempfile")"
+        while read -r line; do e "$line"; _.; done <<< "$string"
+        __ Baris ditemukan.
+        [ -n "$deletetempfile" ] && rm "$tempfile"
+        return 0
+    else
+        __ Baris tidak ditemukan.
+        [ -n "$deletetempfile" ] && rm "$tempfile"
+        return 1
+    fi
+}
+validateContent2582295() {
+    local path="$1"
+    template="location ~* /__SLAVE_URL_PATH_CLEAN__/__SLAVE_URL_PATH_CLEAN__/"
+    find=$(echo "$template" | sed "s|__SLAVE_URL_PATH_CLEAN__|${slave_url_path_clean}|g")
+    if findString "$find" "$path";then
+        return 0
+    fi
+    return 1
+}
 
 # Require, validate, and populate value.
 chapter Dump variable.
@@ -369,6 +434,7 @@ if [ -z "$php_fpm_user" ];then
     error "Argument --php-fpm-user required."; x
 fi
 code 'php_fpm_user="'$php_fpm_user'"'
+rcm_nginx_reload=
 ____
 
 chapter Prepare arguments.
@@ -506,6 +572,7 @@ ____
 INDENT+="    " \
 rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
     --with-certbot-obtain \
+    --without-nginx-reload \
     --master-root="$master_root" \
     --master-include="$master_include" \
     --master-include-2="$master_include_2" \
@@ -519,6 +586,60 @@ rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
     --slave-fastcgi-pass="$slave_fastcgi_pass" \
     --slave-url-path="$slave_url_path" \
     ; [ ! $? -eq 0 ] && x
+
+chapter Solusi sementara untuk bug Drupal Core.
+url=https://www.drupal.org/project/drupal/issues/2582295
+_ "$url"; _.
+path="${slave_dirname}/${slave_filename}-2582295"
+filename="${slave_filename}-2582295"
+isFileExists "$path"
+slave_url_path_clean=$(echo "$slave_url_path" | sed -E 's|(^/\|/$)+||g')
+code 'slave_url_path_clean="'$slave_url_path_clean'"'
+____
+
+if [ -n "$slave_url_path" ];then
+    create_new=
+    if [ -n "$found" ];then
+        chapter Memeriksa konten.
+        validateContent2582295 "$path"
+        [ ! $? -eq 0 ] && create_new=1;
+        ____
+    else
+        create_new=1
+    fi
+    if [ -n "$create_new" ];then
+        path="${slave_dirname}/${slave_filename}-2582295"
+        filename="${slave_filename}-2582295"
+        chapter Membuat nginx config file: '`'$filename'`'.
+        code 'path="'$path'"'
+        if [ -f "$path" ];then
+            __ Backup file: '`'"$filename"'`'.
+            backupFile move "$path"
+        fi
+        __ Membuat file "$filename".
+        cat <<'EOF' > "$path"
+location ~* /__SLAVE_URL_PATH_CLEAN__/__SLAVE_URL_PATH_CLEAN__/(.*) {
+    return 302 $scheme://$host:$server_port/__SLAVE_URL_PATH_CLEAN__/$1;
+}
+EOF
+        fileMustExists "$path"
+        sed -i "s|__SLAVE_URL_PATH_CLEAN__|${slave_url_path_clean}|g" "$path"
+        ____
+
+        chapter Memeriksa ulang konten.
+        validateContent2582295 "$path"
+        [ ! $? -eq 0 ] && x
+        ____
+
+        rcm_nginx_reload=1
+    fi
+fi
+
+if [ -n "$rcm_nginx_reload" ];then
+    INDENT+="    " \
+    rcm-nginx-reload \
+        ; [ ! $? -eq 0 ] && x
+fi
 
 chapter Mengecek HTTP Response Code.
 if [ "$url_scheme" == https ];then
