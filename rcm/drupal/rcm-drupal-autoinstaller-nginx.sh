@@ -611,7 +611,6 @@ code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
 code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
 code 'MARIADB_PREFIX="'$MARIADB_PREFIX'"'
 code 'MARIADB_USERS_DIRNAME="'$MARIADB_USERS_DIRNAME'"'
-mktemp=
 ____
 
 chapter Mengecek PHP-FPM User.
@@ -835,7 +834,33 @@ cat << 'EOF' > "${root}/.well-known/__getuser.php"
 echo $_SERVER['USER'];
 EOF
 __ Eksekusi file script.
-__; magenta curl http://127.0.0.1/.well-known/__getuser.php -H '"'Host: $drupal_fqdn_localhost'"'; _.
+__ Get HTTP response code.
+i=0
+code=
+if [ -z "$tempfile" ];then
+    tempfile=$(mktemp -p /dev/shm -t rcm-drupal-autoinstaller-nginx.XXXXXX)
+fi
+until [ $i -eq 10 ];do
+    __; magenta curl -o /dev/null -s -w '"'%{http_code}\\n'"' http://127.0.0.1/.well-known/__getuser.php -H '"'Host: $drupal_fqdn_localhost'"'; _.
+    curl -o /dev/null -s -w "%{http_code}\n" http://127.0.0.1/.well-known/__getuser.php -H "Host: ${drupal_fqdn_localhost}" > $tempfile
+    while read line; do e "$line"; _.; done < $tempfile
+    code=$(head -1 $tempfile)
+    if [[ "$code" =~ ^[2,3] ]];then
+        break
+    else
+        __ Retry.
+        __; magenta sleep .5; _.
+        sleep .5
+    fi
+    let i++
+done
+if [[ "$code" =~ ^[2,3] ]];then
+    __ HTTP Response code '`'$code'`' '('Required')'.
+else
+    __; red Terjadi kesalahan. HTTP Response code '`'$code'`'.; x
+fi
+__ Get HTTP response body.
+__; magenta curl -Ss http://127.0.0.1/.well-known/__getuser.php -H '"'Host: $drupal_fqdn_localhost'"'; _.
 _php_fpm_user=$(curl -Ss http://127.0.0.1/.well-known/__getuser.php -H "Host: ${drupal_fqdn_localhost}")
 __; magenta _php_fpm_user="$_php_fpm_user"; _.
 if [[ ! "$_php_fpm_user" == "$php_fpm_user" ]];then
@@ -997,14 +1022,14 @@ if [ -n "$url" ];then
 fi
 
 multisite_installed=
-if [ -z "$mktemp" ];then
-    mktemp=$(mktemp -p /dev/shm)
+if [ -z "$tempfile" ];then
+    tempfile=$(mktemp -p /dev/shm -t rcm-drupal-autoinstaller-nginx.XXXXXX)
 fi
 for uri in "${list_url[@]}" ;do
     chapter Mengecek apakah Drupal sudah terinstall sebagai multisite '`'$uri'`'.
     code drush status --uri=$uri --field=site
-    drush status --uri=$uri --field=site > $mktemp
-    _site=$(< $mktemp)
+    drush status --uri=$uri --field=site > $tempfile
+    _site=$(< $tempfile)
     if [ `echo "$_site" | wc -l` -eq 1 ];then e "$_site"; _.; else while read line; do e "$line"; _.; done <<< "$_site"; fi
     code "sites/${sites_subdir}"
     if [[ "sites/${sites_subdir}" == "$_site" ]];then
@@ -1232,24 +1257,34 @@ EOF
 fi
 
 chapter Mengecek HTTP Response Code.
-code curl http://127.0.0.1 -H '"'Host: ${drupal_fqdn_localhost}'"'
-code=$(curl -L \
-    -o /dev/null -s -w "%{http_code}\n" \
-    http://127.0.0.1 -H "Host: ${drupal_fqdn_localhost}")
-[[ $code =~ ^[2,3] ]] && {
+i=0
+code=
+if [ -z "$tempfile" ];then
+    tempfile=$(mktemp -p /dev/shm -t rcm-drupal-autoinstaller-nginx.XXXXXX)
+fi
+until [ $i -eq 10 ];do
+    __; magenta curl -o /dev/null -s -w '"'%{http_code}\\n'"' '"'http://127.0.0.1'"' -H '"'Host: $drupal_fqdn_localhost'"'; _.
+    curl -o /dev/null -s -w "%{http_code}\n" "http://127.0.0.1" -H "Host: ${drupal_fqdn_localhost}" > $tempfile
+    while read line; do e "$line"; _.; done < $tempfile
+    code=$(head -1 $tempfile)
+    if [[ "$code" =~ ^[2,3] ]];then
+        break
+    else
+        __ Retry.
+        __; magenta sleep .5; _.
+        sleep .5
+    fi
+    let i++
+done
+if [[ "$code" =~ ^[2,3] ]];then
     __ HTTP Response code '`'$code'`' '('Required')'.
-} || {
+else
     __; red Terjadi kesalahan. HTTP Response code '`'$code'`'.; x
-}
-code curl http://${drupal_fqdn_localhost}
-code=$(curl -L \
-    -o /dev/null -s -w "%{http_code}\n" \
-    http://127.0.0.1 -H "Host: ${drupal_fqdn_localhost}")
-__ HTTP Response code '`'$code'`'.
+fi
 ____
 
-if [ -n "$mktemp" ];then
-    rm "$mktemp"
+if [ -n "$tempfile" ];then
+    rm "$tempfile"
 fi
 
 exit 0

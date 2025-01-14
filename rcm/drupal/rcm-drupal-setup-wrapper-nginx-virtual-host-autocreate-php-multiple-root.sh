@@ -569,7 +569,9 @@ code 'slave_fastcgi_pass="'$slave_fastcgi_pass'"'
 code 'slave_url_path="'$slave_url_path'"'
 ____
 
-tempfile=$(mktemp -p /dev/shm -t rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root.XXXXXX)
+if [ -z "$tempfile" ];then
+    tempfile=$(mktemp -p /dev/shm -t rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root.XXXXXX)
+fi
 
 INDENT+="    " \
 rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
@@ -641,7 +643,6 @@ fi
 if [ -s "$tempfile" ];then
     rcm_nginx_reload=1
 fi
-rm "$tempfile"
 
 if [ -n "$rcm_nginx_reload" ];then
     INDENT+="    " \
@@ -655,16 +656,35 @@ if [ "$url_scheme" == https ];then
 else
     _k=''
 fi
-code curl${_k} ${url_scheme}://127.0.0.1:${url_port}${url_path} -H '"'Host: ${url_host}'"'
-code=$(curl${_k} \
-    -o /dev/null -s -w "%{http_code}\n" \
-    ${url_scheme}://127.0.0.1:${url_port}${url_path} -H "Host: ${url_host}")
-[[ $code =~ ^[2,3] ]] && {
+i=0
+code=
+if [ -z "$tempfile" ];then
+    tempfile=$(mktemp -p /dev/shm -t rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root.XXXXXX)
+fi
+until [ $i -eq 10 ];do
+    __; magenta curl"$_k" -o /dev/null -s -w '"'%{http_code}\\n'"' '"'"${url_scheme}://127.0.0.1:${url_port}${url_path}"'"' -H '"'Host: $url_host'"'; _.
+    curl"$_k" -o /dev/null -s -w "%{http_code}\n" "${url_scheme}://127.0.0.1:${url_port}${url_path}" -H "Host: ${url_host}" > $tempfile
+    while read line; do e "$line"; _.; done < $tempfile
+    code=$(head -1 $tempfile)
+    if [[ "$code" =~ ^[2,3] ]];then
+        break
+    else
+        __ Retry.
+        __; magenta sleep .5; _.
+        sleep .5
+    fi
+    let i++
+done
+if [[ "$code" =~ ^[2,3] ]];then
     __ HTTP Response code '`'$code'`' '('Required')'.
-} || {
+else
     __; red Terjadi kesalahan. HTTP Response code '`'$code'`'.; x
-}
+fi
 ____
+
+if [ -n "$tempfile" ];then
+    rm "$tempfile"
+fi
 
 exit 0
 
