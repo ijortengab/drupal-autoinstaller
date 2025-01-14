@@ -153,7 +153,7 @@ ArraySearch() {
 
 # Functions.
 mode-available() {
-    command_required=(nginx mysql php)
+    command_required=(nginx mysql)
     command_notfound=
     for each in "${command_required[@]}"; do
         if ! command -v $each >/dev/null;then
