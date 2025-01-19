@@ -150,6 +150,325 @@ ArraySearch() {
     done
     return 1
 }
+explodeParagraphs() {
+    # Explode kalimat by space, tanpa menghilangkan space itu sendiri.
+    # Karena space diperlukan untuk menghitung panjang karakter sehingga
+    # tidak bisa dihapuskan.
+    # Space berada pada prefix each word.
+    # Trailing space pada kalimat menjadi milik last word.
+    #
+    # global words_array
+    byTab() {
+        # Explode lagi berdasarkan karakter TAB.
+        # global words_array
+        local words_array_clone each tab left_tab right_tab string
+        words_array_clone=("${words_array[@]}")
+        words_array=()
+        for each in "${words_array_clone[@]}"; do
+            string="$each"
+            if [[ "$string" =~ $'\t' ]];then
+                while IFS= read line; do
+                    tab="$line"
+                    left_tab="${string%%${tab}*}"
+                    [ -n "$left_tab" ] && words_array+=("$left_tab")
+                    words_array+=("$tab")
+                    right_tab="${string#${left_tab}}"
+                    right_tab=${right_tab:1}
+                    string="$right_tab"
+                done <<< `echo "$string" | grep -E -o $'\t'`
+                [ -n "$string" ] && words_array+=("$string")
+            else
+                words_array+=("$string")
+            fi
+        done
+    }
+    byTag() {
+        # Explode lagi berdasarkan tag <string>.
+        # global words_array
+        local words_array_clone each tag left_tag right_tag string
+        words_array_clone=("${words_array[@]}")
+        words_array=()
+        for each in "${words_array_clone[@]}"; do
+            string="$each"
+            # if grep -q -E '</?[^</>]+>' <<< "$string";then
+            if [[ "$string" =~ \</?[^\</\>]+\> ]];then
+                while IFS= read line; do
+                    tag="$line"
+                    left_tag="${string%%${tag}*}"
+                    words_array+=("$left_tag")
+                    words_array+=("$tag")
+                    right_tag="${string#${left_tag}}"
+                    right_tag=${right_tag:${#tag}}
+                    string="$right_tag"
+                done <<< `echo "$string" | grep -E -o '</?[^</>]+>'`
+                [ -n "$string" ] && words_array+=("$string")
+            else
+                words_array+=("$string")
+            fi
+        done
+    }
+    local string="$1"; shift
+    local by_tab by_tag
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            +byTab) by_tab=1; shift ;;
+            +byTag) by_tag=1; shift ;;
+            *) shift ;;
+        esac
+    done
+    local line leading_space trailing_space
+    words_array=()
+    leading_space=$(echo "$string" | grep -E -o '^[\ ]+')
+    trailing_space=$(echo "$string" | grep -E -o '[\ ]+$')
+    if [ -n "$leading_space" ];then
+        string=$(echo "$string" | sed -E 's|^[\ ]+(.*)|\1|')
+    fi
+    if [ -n "$trailing_space" ];then
+        string=$(echo "$string" | sed -E 's|(.*)[\ ]+$|\1|')
+    fi
+    words_array[0]=$(echo "$string" | grep -E -o '^[^\ ]+')
+    words_array[0]="$leading_space""${words_array[0]}"
+    local i=1
+    while IFS= read line; do
+        words_array[$i]="$line"
+        let i++
+    done <<< `echo "$string" | grep -E -o '[\ ]+[^\ ]+'`
+    let i--
+    words_array[$i]="${words_array[$i]}""$trailing_space"
+    [ -n "$by_tab" ] && byTab
+    [ -n "$by_tag" ] && byTag
+}
+wordWrapParagraph() {
+    cleaningTag() {
+        # Menghilangkan tag warna, open tag maupun close tag.
+        # global each
+        # global color
+        local string="$1"
+        opentag=$(echo "$string" | grep -E -o '<[^</>]+>')
+        if [ -n "$opentag" ];then
+            # color=$(echo "$opentag" | grep -E -o '[^<>]+')
+            color="${opentag:1:-1}"
+            string=${string//"$opentag"/}
+            closetag="</${color}>"
+            # if grep -q -F "$closetag" <<< "$string";then
+            if [[ "$string" =~ "$closetag" ]];then
+                color_stop=1
+                string=${string//"$closetag"/}
+            fi
+        fi
+        each="$string"
+    }
+    cleaningCloseTag() {
+        # global each
+        # global color
+        local string="$1"
+        closetag="</${color}>"
+        # if grep -q -F "$closetag" <<< "$string";then
+        if [[ "$string" =~ "$closetag" ]];then
+            color_stop=1
+            string=${string//"$closetag"/}
+        fi
+        each="$string"
+    }
+    colorStop() {
+        # global color_stop
+        # global default_color
+        if [ -n "$color_stop" ];then
+            color=$default_color
+            color_stop=
+        fi
+    }
+    strip_tags() {
+        # global _return
+        local string="$1" each
+        local words_array
+        explodeParagraphs "$string"
+        _return=
+        for each in "${words_array[@]}"; do
+            cleaningTag "$each"
+            cleaningCloseTag "$each"
+            _return+="$each"
+        done
+    }
+    calculateTabStopPosition() {
+        # global tab_stop_position
+        local string="$1" words_array each left_tab tab _return
+        tab=$'\t'
+        left_tab="${string%%${tab}*}"
+        local i=0
+        until [[ ! "${#left_tab}" -lt "${#string}" ]];do
+            right_tab="${string#${left_tab}}"
+            right_tab=${right_tab:1}
+            # Execute strip_tags() and the result is in variable
+            # $_return.
+            strip_tags "$left_tab"
+            _current="${tab_stop_position[$i]}"
+            if [ -n "$_current" ];then
+                if [ "${#_return}" -gt "$_current" ];then
+                    tab_stop_position[$i]="${#_return}"
+                fi
+            else
+                tab_stop_position[$i]="${#_return}"
+            fi
+            string="$right_tab"
+            left_tab="${string%%${tab}*}"
+            let i++
+        done
+    }
+    wordWrapSentence() {
+        populateHangingIndent() {
+            # global each
+            # global hanging_indent_additional
+            # global indent_hanging
+            # global tab_stop_position
+            local tab_index
+            hanging_indent_additional=0
+            if [[ "$indent_hanging" -gt 0 && "${#tab_stop_position[@]}" -gt 0 ]];then
+                for ((tab_index = 0 ; tab_index < $indent_hanging ; tab_index++)); do
+                    hanging_indent_additional=$((hanging_indent_additional + ${tab_stop_position[$tab_index]}))
+                done
+            fi
+            hanging_indent_additional=$(printf %"${hanging_indent_additional}"s)
+            # Trim leading space.
+            each=$(echo "$each" | sed -E 's|^[\ ]+(.*)|\1|')
+            if [[ "$each" =~ ^[\ ]+$ ]];then
+                each=
+            fi
+        }
+
+        # global cols
+        # global indent_first_line
+        # global indent_hanging
+        # global tab_stop_position
+        local paragraph="$1" words_array default_color="$2"
+        local each color
+        [ -z $default_color ] && default_color=_,
+        color="$default_color"
+        local current_line _current_line first_line last hanging_indent_additional
+        local tab_index=0
+        local max=0
+        local min=0
+        max=$cols
+        local  _indent_first_line
+        _indent_first_line=$((indent_first_line + 2))
+        # Angka 2 adalah tambahan dari '# '.
+        _max=$((100 + ${#INDENT} + $_indent_first_line))
+        if [ $max -gt $_max ];then
+            max=100
+            min=80
+        else
+            max=$((max - ${#INDENT} - $_indent_first_line))
+            min="$max"
+        fi
+        local i=0
+        explodeParagraphs "$paragraph" +byTab +byTag
+        local count="${#words_array[@]}"
+        current_line=
+        first_line=1
+        for each in "${words_array[@]}"; do
+            if [[ "$each" == $'\t' ]];then
+                each=
+                local x
+                next_tab=0
+                for ((x = 0 ; x <= $tab_index ; x++)); do
+                    next_tab=$((next_tab + ${tab_stop_position[$x]}))
+                done
+                if [[ "$next_tab" -gt "${#current_line}" ]];then
+                    additional_space=$((next_tab - "${#current_line}" ))
+                    each=$(printf %"${additional_space}"s)
+                fi
+                let tab_index++
+            else
+                cleaningTag "$each"
+                cleaningCloseTag "$each"
+            fi
+            # Jika word berikutnya adalah close tag, dan karakter berikutnya lagi
+            # adalah tanda baca (titik atau koma), maka buat rapih.
+            j=$i; let j++; k=$j; let k++
+            next="${words_array[$j]}"; next_next="${words_array[$k]}"
+            additonal_string=
+            if [[ "$next" =~ ^\<.*\>$ && "$next_next" =~ ^[\.,]$ ]];then
+                additonal_string=' '
+            fi
+
+            let i++
+            [ "$i" == "$count" ] && last=1 || last=
+            if [ -z "$current_line" ]; then
+                if [ -n "$first_line" ];then
+                    first_line=
+                    current_line="$each"
+                    _; printf %"${indent_first_line}"s >&2; $color "$each"
+                else
+                    # Trim leading space.
+                    each=$(echo "$each" | sed -E 's|^[\ ]+(.*)|\1|')
+                    current_line="$each"
+                    _; printf %"${indent_first_line}"s >&2;
+                    populateHangingIndent
+                    current_line="${hanging_indent_additional}${each}"
+                    _, "$hanging_indent_additional"; $color "$each"
+                fi
+                if [ -n "$last" ];then
+                    _.
+                fi
+            else
+                _current_line="${current_line}${each}${additonal_string}"
+                if [ "${#_current_line}" -le $min ];then
+                    current_line+="$each"
+                    $color "$each"
+                    if [ -n "$last" ];then
+                        _.
+                    fi
+                elif [ "${#_current_line}" -le $max ];then
+                    $color "$each"; _.
+                    current_line=
+                else
+                    _.;
+                    _; printf %"${indent_first_line}"s >&2;
+                    populateHangingIndent
+                    current_line="${hanging_indent_additional}${each}"
+                    _, "$hanging_indent_additional"; $color "$each"
+                    if [ -n "$last" ];then
+                        _.
+                    fi
+                fi
+            fi
+            colorStop
+        done
+    }
+    local lines=("${!1}"); shift
+    local line
+    local output indent_first_line indent_hanging tempfile
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --indent=*) indent_first_line="${1#*=}"; shift ;;
+            --indent-hanging=*) indent_hanging="${1#*=}"; shift ;;
+            --output=*) output="${1#*=}"; shift ;;
+            *) shift ;;
+        esac
+    done
+    local cols=$(tput cols)
+    indent_first_line=$((indent_first_line*4))
+    local tab_stop_position
+    [ -z "$indent_hanging" ] && indent_hanging=0
+    # Hitung karakter [tab] di setiap baris.
+    for line in "${lines[@]}"; do
+        calculateTabStopPosition "$line"
+    done
+
+    # Start drawing.
+    if [ -n "$output" ];then
+        tempfile="$output"
+        for line in "${lines[@]}"; do
+            wordWrapSentence "$line" 2>> "$tempfile"
+        done
+    else
+        temp=
+        for line in "${lines[@]}"; do
+            temp=$(wordWrapSentence "$line" 2>&1)
+            echo "$temp" >&2
+        done
+    fi
+}
 
 # Functions.
 mode-available() {
@@ -177,16 +496,39 @@ mode-available() {
         fi
     fi
     _; _.
+    lines=()
     if ArraySearch init mode_available[@] ]];then color=green; else color=red; fi
-    ___; _, 'Mode '; $color init; _, '       ' LEMP Stack Setup + Create a new project '(bundle)'. ; _.
-    ___; _, '                 '; _, 'Linux, (e)Nginx, MySQL/MariaDB, PHP'.; _.;
+    lines+=("Mode <${color}>init</${color}> ------->Initialization. LEMP Stack Setup. PHP Composer.")
+    lines+=("-------------------------------------->LEMP: Linux, (e)Nginx, MySQL/MariaDB, PHP.")
     if ArraySearch new mode_available[@] ]];then color=green; else color=red; fi
-    ___; _, 'Mode '; $color new; _, '        ' Create a new project '(bundle)'. ; _.
+    lines+=("Mode <${color}>new</${color}> -------->Create a new project (bundle)")
     if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
-    ___; _, 'Mode '; $color custom; _, '     ' Create a new project '(custom)'. ; _.
+    lines+=("Mode <${color}>custom</${color}> ----->Create a new project (custom)")
+    lines+=("-------------------------------------->Beware. There are potential incompatibility between Drupal and it's requirements.")
     if ArraySearch multisite mode_available[@] ]];then color=green; else color=red; fi
-    ___; _, 'Mode '; $color multisite; _, '  ' Add sub project from exisiting project. ; _.
-    ___; _, '                 '; _, Drupal Multisite.; _.;
+    lines+=("Mode <${color}>multisite</${color}> -->Add sub project from exisiting project.")
+    lines+=("-------------------------------------->Drupal Multisite.")
+    sentences=();
+    for line in "${lines[@]}"; do
+        sentences+=("$(echo "$line" | sed -E s,-+\>,$'\t',g)")
+    done
+
+    wordWrapParagraph sentences[@] --indent=2 --indent-hanging=1
+
+    # tempfile=$(mktemp -p /dev/shm -t rcm-drupal.XXXXXX)
+    # wordWrapParagraph sentences[@] --indent=2 --indent-hanging=1 --output="$tempfile" &
+    # pid=$!
+    # spin='-\|/'
+    # i=0
+    # while kill -0 $pid 2>/dev/null
+    # do
+      # i=$(( (i+1) %4 ))
+      # printf "\r" >&2; __; _, "Waiting...${spin:$i:1}"
+      # sleep .1
+    # done
+    # printf "\r\033[K" >&2;
+    # cat "$tempfile" >&2
+
     for each in init new custom multisite; do
         if ArraySearch $each mode_available[@] ]];then echo $each; fi
     done
