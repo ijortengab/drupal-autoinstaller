@@ -46,7 +46,7 @@ RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 
 # Functions.
 printVersion() {
-    echo '0.11.21'
+    echo '0.11.22'
 }
 printHelp() {
     title RCM Nginx Setup

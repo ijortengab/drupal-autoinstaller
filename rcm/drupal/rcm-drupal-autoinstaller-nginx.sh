@@ -69,7 +69,7 @@ MARIADB_USERS_DIRNAME=${MARIADB_USERS_DIRNAME:=users}
 
 # Functions.
 printVersion() {
-    echo '0.11.21'
+    echo '0.11.22'
 }
 printHelp() {
     title RCM Drupal Auto-Installer
