@@ -178,7 +178,7 @@ explodeParagraphs() {
                 done <<< `echo "$string" | grep -E -o $'\t'`
                 [ -n "$string" ] && words_array+=("$string")
             else
-                words_array+=("$string")
+                [ -n "$string" ] && words_array+=("$string")
             fi
         done
     }
@@ -195,7 +195,7 @@ explodeParagraphs() {
                 while IFS= read line; do
                     tag="$line"
                     left_tag="${string%%${tag}*}"
-                    words_array+=("$left_tag")
+                    [ -n "$left_tag" ] && words_array+=("$left_tag")
                     words_array+=("$tag")
                     right_tag="${string#${left_tag}}"
                     right_tag=${right_tag:${#tag}}
@@ -203,16 +203,46 @@ explodeParagraphs() {
                 done <<< `echo "$string" | grep -E -o '</?[^</>]+>'`
                 [ -n "$string" ] && words_array+=("$string")
             else
-                words_array+=("$string")
+                [ -n "$string" ] && words_array+=("$string")
+            fi
+        done
+    }
+    bySpace() {
+        # Explode lagi berdasarkan space.
+        # global words_array
+        local words_array_clone each tag left_tag right_tag string
+        words_array_clone=("${words_array[@]}")
+        words_array=()
+        for each in "${words_array_clone[@]}"; do
+            string="$each"
+            if [[ "$string" =~ ' ' ]];then
+                while IFS= read line; do
+                    tag="$line"
+                    left_tag="${string%%${tag}*}"
+                    [ -n "$left_tag" ] && words_array+=("$left_tag")
+                    words_array+=("$tag")
+                    right_tag="${string#${left_tag}}"
+                    right_tag=${right_tag:${#tag}}
+                    string="$right_tag"
+                done <<< `echo "$string" | grep -E -o ' +'`
+                [ -n "$string" ] && words_array+=("$string")
+            else
+                [ -n "$string" ] && words_array+=("$string")
             fi
         done
     }
     local string="$1"; shift
-    local by_tab by_tag
+    # Jika karakter spasi semuanya, maka:
+    if [[ "$string" =~ ^[\ ]+$ ]];then
+        words_array=("$string")
+        return
+    fi
+    local by_tab by_tag by_space
     while [[ $# -gt 0 ]]; do
         case "$1" in
             +byTab) by_tab=1; shift ;;
             +byTag) by_tag=1; shift ;;
+            +bySpace) by_space=1; shift ;;
             *) shift ;;
         esac
     done
@@ -230,13 +260,19 @@ explodeParagraphs() {
     words_array[0]="$leading_space""${words_array[0]}"
     local i=1
     while IFS= read line; do
-        words_array[$i]="$line"
-        let i++
+        if [ -n "$line" ];then
+            # VarDump line
+            words_array[$i]="$line"
+            let i++
+        fi
     done <<< `echo "$string" | grep -E -o '[\ ]+[^\ ]+'`
-    let i--
-    words_array[$i]="${words_array[$i]}""$trailing_space"
+    if [ $i -gt 0 ];then
+        let i--
+        words_array[$i]="${words_array[$i]}""$trailing_space"
+    fi
     [ -n "$by_tab" ] && byTab
     [ -n "$by_tag" ] && byTag
+    [ -n "$by_space" ] && bySpace
 }
 wordWrapParagraph() {
     cleaningTag() {
@@ -281,14 +317,20 @@ wordWrapParagraph() {
     strip_tags() {
         # global _return
         local string="$1" each
-        local words_array
-        explodeParagraphs "$string"
         _return=
-        for each in "${words_array[@]}"; do
-            cleaningTag "$each"
-            cleaningCloseTag "$each"
-            _return+="$each"
-        done
+        if [[ "$string" =~ \</?[^\</\>]+\> ]];then
+            while IFS= read line; do
+                tag="$line"
+                left_tag="${string%%${tag}*}"
+                [ -n "$left_tag" ] && _return+="$left_tag"
+                right_tag="${string#${left_tag}}"
+                right_tag=${right_tag:${#tag}}
+                string="$right_tag"
+            done <<< `echo "$string" | grep -E -o '</?[^</>]+>'`
+            [ -n "$string" ] && _return+="$string"
+        else
+            [ -n "$string" ] && _return+="$string"
+        fi
     }
     calculateTabStopPosition() {
         # global tab_stop_position
@@ -335,15 +377,26 @@ wordWrapParagraph() {
                 each=
             fi
         }
-
+        colorize() {
+            local string="$1" words_array color each
+            [ -z $default_color ] && default_color=_,
+            color="$default_color"
+            explodeParagraphs "$string" +byTag
+            for each in "${words_array[@]}"; do
+                cleaningTag "$each"
+                cleaningCloseTag "$each"
+                $color "$each"
+                colorStop
+            done
+        }
         # global cols
         # global indent_first_line
         # global indent_hanging
         # global tab_stop_position
         local paragraph="$1" words_array default_color="$2"
         local each color
-        [ -z $default_color ] && default_color=_,
-        color="$default_color"
+        # [ -z $default_color ] && default_color=_,
+        # color="$default_color"
         local current_line _current_line first_line last hanging_indent_additional
         local tab_index=0
         local max=0
@@ -360,10 +413,27 @@ wordWrapParagraph() {
             max=$((max - ${#INDENT} - $_indent_first_line))
             min="$max"
         fi
-        local i=0
-        explodeParagraphs "$paragraph" +byTab +byTag
+        local i j k
+        explodeParagraphs "$paragraph" +byTab +byTag +bySpace
         local count="${#words_array[@]}"
         current_line=
+        merged=
+        local words_array_clone=("${words_array[@]}")
+        words_array=()
+        for each in "${words_array_clone[@]}"; do
+            if [[ ! "$each" =~ ^[\ $'\t']+$ ]];then
+                merged+="$each"
+            else
+                if [ -n "$merged" ];then
+                    words_array+=("$merged")
+                    merged=
+                fi
+                words_array+=("$each")
+            fi
+        done
+        if [ -n "$merged" ];then
+            words_array+=("$merged")
+        fi
         first_line=1
         for each in "${words_array[@]}"; do
             if [[ "$each" == $'\t' ]];then
@@ -378,61 +448,48 @@ wordWrapParagraph() {
                     each=$(printf %"${additional_space}"s)
                 fi
                 let tab_index++
-            else
-                cleaningTag "$each"
-                cleaningCloseTag "$each"
             fi
-            # Jika word berikutnya adalah close tag, dan karakter berikutnya lagi
-            # adalah tanda baca (titik atau koma), maka buat rapih.
-            j=$i; let j++; k=$j; let k++
-            next="${words_array[$j]}"; next_next="${words_array[$k]}"
-            additonal_string=
-            if [[ "$next" =~ ^\<.*\>$ && "$next_next" =~ ^[\.,]$ ]];then
-                additonal_string=' '
-            fi
-
+            strip_tags "$each"
+            each_stripped="$_return"
             let i++
             [ "$i" == "$count" ] && last=1 || last=
             if [ -z "$current_line" ]; then
                 if [ -n "$first_line" ];then
                     first_line=
-                    current_line="$each"
-                    _; printf %"${indent_first_line}"s >&2; $color "$each"
+                    current_line="$each_stripped"
+                    _; printf %"${indent_first_line}"s >&2; colorize "$each"
                 else
-                    # Trim leading space.
-                    each=$(echo "$each" | sed -E 's|^[\ ]+(.*)|\1|')
-                    current_line="$each"
+                    current_line="$each_stripped"
                     _; printf %"${indent_first_line}"s >&2;
                     populateHangingIndent
-                    current_line="${hanging_indent_additional}${each}"
-                    _, "$hanging_indent_additional"; $color "$each"
+                    current_line="${hanging_indent_additional}${each_stripped}"
+                    _, "$hanging_indent_additional"; colorize "$each"
                 fi
                 if [ -n "$last" ];then
                     _.
                 fi
             else
-                _current_line="${current_line}${each}${additonal_string}"
+                _current_line="${current_line}${each_stripped}"
                 if [ "${#_current_line}" -le $min ];then
-                    current_line+="$each"
-                    $color "$each"
+                    current_line+="$each_stripped"
+                    colorize "$each"
                     if [ -n "$last" ];then
                         _.
                     fi
                 elif [ "${#_current_line}" -le $max ];then
-                    $color "$each"; _.
+                    colorize "$each"; _.
                     current_line=
                 else
                     _.;
                     _; printf %"${indent_first_line}"s >&2;
                     populateHangingIndent
-                    current_line="${hanging_indent_additional}${each}"
-                    _, "$hanging_indent_additional"; $color "$each"
+                    current_line="${hanging_indent_additional}${each_stripped}"
+                    _, "$hanging_indent_additional"; colorize "$each"
                     if [ -n "$last" ];then
                         _.
                     fi
                 fi
             fi
-            colorStop
         done
     }
     local lines=("${!1}"); shift
@@ -454,7 +511,6 @@ wordWrapParagraph() {
     for line in "${lines[@]}"; do
         calculateTabStopPosition "$line"
     done
-
     # Start drawing.
     if [ -n "$output" ];then
         tempfile="$output"
