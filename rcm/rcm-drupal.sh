@@ -583,34 +583,59 @@ mode-available() {
         fi
     fi
     _; _.
-    tab_stop_position=(18)
-    lines=()
-    if ArraySearch init mode_available[@] ]];then color=green; else color=red; fi
-    lines+=(     "Mode <${color}>init</${color}> "$'\t'"Create a new project (bundle) + Initialization.")
-    lines+=(                                      $'\t'"LEMP Stack Setup. Linux, (e)Nginx, MySQL/MariaDB, PHP.")
-    lines+=(                                      $'\t'"PHP Composer Setup.")
-    if ArraySearch new mode_available[@] ]];then color=green; else color=red; fi
-    lines+=(      "Mode <${color}>new</${color}> "$'\t'"Create a new project (bundle).")
-    if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
-    lines+=(   "Mode <${color}>custom</${color}> "$'\t'"Create a new project (custom). Beware of potential incompatibility issue between Drupal and it's requirements.")
-    lines+=(                                      $'\t'"PHP Composer Setup.")
-    if ArraySearch multisite mode_available[@] ]];then color=green; else color=red; fi
-    lines+=("Mode <${color}>multisite</${color}> "$'\t'"Drupal Multisite. Add sub project.")
-    lines+=(                                      $'\t'"Using the same codebase with the existing project.")
+    longest_text='#         Mode custom       Create a new project (custom). Beware of potential incompatibility'
+    if [[ $(tput cols) -gt "${#longest_text}" ]];then
+        if ArraySearch init mode_available[@] ]];then color=green; else color=red; fi
+        ___; _, 'Mode '; $color init;  _, '         Create a new project (bundle) + Initialization.'; _.
+        ___; _, '                  ';           _, 'LEMP Stack Setup. Linux, (e)Nginx, MySQL/MariaDB, PHP.'; _.;
+        ___; _, '                  ';           _, 'PHP Composer Setup.'; _.;
+        if ArraySearch new mode_available[@] ]];then color=green; else color=red; fi
+        ___; _, 'Mode '; $color new; _, '         ' Create a new project '(bundle)'. ; _.
+        if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
+        ___; _, 'Mode '; $color custom; _, '      ' Create a new project '(custom)'. Beware of potential incompatibility; _.
+        ___; _, '                  ';            _, issue between Drupal and it\'s requirements.; _.;
+        ___; _, '                  ';            _, PHP Composer Setup.; _.;
+        if ArraySearch multisite mode_available[@] ]];then color=green; else color=red; fi
+        ___; _, 'Mode '; $color multisite; _, '   ' Drupal Multisite. Add sub project. ; _.
+        ___; _, '                  ';            _, Using the same codebase with the existing project.; _.;
+    else
+        tab_stop_position=(18)
 
-    tempfile=$(mktemp -p /dev/shm -t rcm-drupal.XXXXXX)
-    wordWrapParagraph lines[@] --indent=2 --indent-hanging=1 --output="$tempfile" &
-    pid=$!
-    spin='-\|/'
-    i=0
-    while kill -0 $pid 2>/dev/null
-    do
-      i=$(( (i+1) %4 ))
-      printf "\r" >&2; __; _, "Waiting...${spin:$i:1}"
-      sleep .1
-    done
-    printf "\r\033[K" >&2;
-    cat "$tempfile" >&2
+        lines=()
+        if ArraySearch init mode_available[@] ]];then color=green; else color=red; fi
+        lines+=(       "Mode <${color}>init</${color}> -->Create a new project (bundle) + Initialization.")
+        lines+=(                                      "-->LEMP Stack Setup. Linux, (e)Nginx, MySQL/MariaDB, PHP.")
+        lines+=(                                      "-->PHP Composer Setup.")
+        if ArraySearch new mode_available[@] ]];then color=green; else color=red; fi
+        lines+=(        "Mode <${color}>new</${color}> -->Create a new project (bundle).")
+        if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
+        lines+=(     "Mode <${color}>custom</${color}> -->Create a new project (custom). Beware of potential incompatibility issue between Drupal and it's requirements.")
+        lines+=(                                      "-->PHP Composer Setup.")
+        if ArraySearch multisite mode_available[@] ]];then color=green; else color=red; fi
+        lines+=(  "Mode <${color}>multisite</${color}> -->Drupal Multisite. Add sub project.")
+        lines+=(                                      "-->Using the same codebase with the existing project.")
+        lines_cloned=("${lines[@]}")
+        lines=()
+        for line in "${lines_cloned[@]}"; do
+            lines+=("$(echo "$line" | sed -E s,-+\>,$'\t',g)")
+        done
+        unset lines_cloned
+
+        # Output di print semua sekaligus, secara UX cukup cepat.
+        tempfile=$(mktemp -p /dev/shm -t rcm-drupal.XXXXXX)
+        wordWrapParagraph lines[@] --indent=2 --indent-hanging=1 --output="$tempfile" &
+        pid=$!
+        spin='-\|/'
+        i=0
+        while kill -0 $pid 2>/dev/null
+        do
+          i=$(( (i+1) %4 ))
+          printf "\r" >&2; __; _, "Waiting...${spin:$i:1}"
+          sleep .1
+        done
+        printf "\r\033[K" >&2;
+        cat "$tempfile" >&2
+    fi
 
     for each in init new custom multisite; do
         if ArraySearch $each mode_available[@] ]];then echo $each; fi
