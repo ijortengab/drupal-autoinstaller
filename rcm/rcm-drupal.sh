@@ -261,7 +261,6 @@ explodeParagraphs() {
     local i=1
     while IFS= read line; do
         if [ -n "$line" ];then
-            # VarDump line
             words_array[$i]="$line"
             let i++
         fi
@@ -341,8 +340,7 @@ wordWrapParagraph() {
         until [[ ! "${#left_tab}" -lt "${#string}" ]];do
             right_tab="${string#${left_tab}}"
             right_tab=${right_tab:1}
-            # Execute strip_tags() and the result is in variable
-            # $_return.
+            # Populate variable $_return.
             strip_tags "$left_tab"
             _current="${tab_stop_position[$i]}"
             if [ -n "$_current" ];then
@@ -363,7 +361,6 @@ wordWrapParagraph() {
             # global hanging_indent_additional
             # global indent_hanging
             # global tab_stop_position
-            local tab_index
             hanging_indent_additional=0
             if [[ "$indent_hanging" -gt 0 && "${#tab_stop_position[@]}" -gt 0 ]];then
                 for ((tab_index = 0 ; tab_index < $indent_hanging ; tab_index++)); do
@@ -378,31 +375,51 @@ wordWrapParagraph() {
             fi
         }
         colorize() {
-            local string="$1" words_array color each
-            [ -z $default_color ] && default_color=_,
-            color="$default_color"
-            explodeParagraphs "$string" +byTag
-            for each in "${words_array[@]}"; do
-                cleaningTag "$each"
-                cleaningCloseTag "$each"
-                $color "$each"
-                colorStop
-            done
+            local string="$1" words_array color each last opentag closetag
+            if [[ ! "$string" =~ [\<\>] ]];then
+                # Tanpa warna. Contoh: "Variation"
+                _, "$string"
+            elif [[ "$string" =~ ^\<[^\<\>]+\>[^\<\>]+\</[^\<\>]+\>[\.,]?$ ]];then
+                # Hanya satu warna.
+                # Contoh: "<red>debian11a</red>."
+                #         "<hN>11</hN>,"
+                #         "<hN>8.1</hN>,"
+                color="${string#<}"
+                color="${color/%>*}"
+                last="${string/#*>}"
+                opentag="<${color}>"
+                closetag="</${color}>"
+                string=${string//"$opentag"/}
+                string=${string//"${closetag}${last}"/}
+                $color "$string"
+                [ -n "$last" ] && _, "$last"
+            else
+                # Banyak warna.
+                # Contoh: "<green2>debian12apakah76</green2>apakahyaa<red>tempe</red>.."
+                # _, "$string"
+                [ -z $default_color ] && default_color=_,
+                color="$default_color"
+                explodeParagraphs "$string" +byTag
+                for each in "${words_array[@]}"; do
+                    cleaningTag "$each"
+                    cleaningCloseTag "$each"
+                    $color "$each"
+                    colorStop
+                done
+            fi
         }
         # global cols
         # global indent_first_line
         # global indent_hanging
         # global tab_stop_position
-        local paragraph="$1" words_array default_color="$2"
-        local each color
-        # [ -z $default_color ] && default_color=_,
-        # color="$default_color"
+        local paragraph="$1" words_array default_color="$2" color
+        local each each_original each_stripped
         local current_line _current_line first_line last hanging_indent_additional
         local tab_index=0
         local max=0
         local min=0
         max=$cols
-        local  _indent_first_line
+        local _indent_first_line
         _indent_first_line=$((indent_first_line + 2))
         # Angka 2 adalah tambahan dari '# '.
         _max=$((100 + ${#INDENT} + $_indent_first_line))
@@ -413,9 +430,7 @@ wordWrapParagraph() {
             max=$((max - ${#INDENT} - $_indent_first_line))
             min="$max"
         fi
-        local i j k
         explodeParagraphs "$paragraph" +byTab +byTag +bySpace
-        local count="${#words_array[@]}"
         current_line=
         merged=
         local words_array_clone=("${words_array[@]}")
@@ -434,8 +449,12 @@ wordWrapParagraph() {
         if [ -n "$merged" ];then
             words_array+=("$merged")
         fi
+        unset words_array_clone
+        local i=0
+        local count="${#words_array[@]}"
         first_line=1
         for each in "${words_array[@]}"; do
+            each_original="$each"
             if [[ "$each" == $'\t' ]];then
                 each=
                 local x
@@ -470,6 +489,13 @@ wordWrapParagraph() {
                 fi
             else
                 _current_line="${current_line}${each_stripped}"
+                if [ "${#_current_line}" -gt $max ];then
+                    if [[ "$each_original" == $'\t' &&  "$each_stripped" =~ ^[\ ]+$ ]];then
+                        each_stripped=
+                        each=
+                        _current_line="${current_line}${each_stripped}"
+                    fi
+                fi
                 if [ "${#_current_line}" -le $min ];then
                     current_line+="$each_stripped"
                     colorize "$each"
@@ -492,6 +518,7 @@ wordWrapParagraph() {
             fi
         done
     }
+    # global tab_stop_position
     local lines=("${!1}"); shift
     local line
     local output indent_first_line indent_hanging tempfile
@@ -505,12 +532,16 @@ wordWrapParagraph() {
     done
     local cols=$(tput cols)
     indent_first_line=$((indent_first_line*4))
-    local tab_stop_position
     [ -z "$indent_hanging" ] && indent_hanging=0
     # Hitung karakter [tab] di setiap baris.
-    for line in "${lines[@]}"; do
-        calculateTabStopPosition "$line"
-    done
+    # Boleh predefined untuk mempercepat karena variable tab_stop_position
+    # adalah variable global.
+    if [[ "${#tab_stop_position[@]}" -eq 0 ]];then
+        for line in "${lines[@]}"; do
+            calculateTabStopPosition "$line"
+        done
+    fi
+    # echo '"${tab_stop_position[@]}"' "${tab_stop_position[@]}" >&2
     # Start drawing.
     if [ -n "$output" ];then
         tempfile="$output"
@@ -528,7 +559,7 @@ wordWrapParagraph() {
 
 # Functions.
 mode-available() {
-    command_required=(nginx mysql)
+    command_required=(nginx mysql php composer)
     command_notfound=
     for each in "${command_required[@]}"; do
         if ! command -v $each >/dev/null;then
@@ -552,38 +583,34 @@ mode-available() {
         fi
     fi
     _; _.
+    tab_stop_position=(18)
     lines=()
     if ArraySearch init mode_available[@] ]];then color=green; else color=red; fi
-    lines+=("Mode <${color}>init</${color}> ------->Initialization. LEMP Stack Setup. PHP Composer.")
-    lines+=("-------------------------------------->LEMP: Linux, (e)Nginx, MySQL/MariaDB, PHP.")
+    lines+=(     "Mode <${color}>init</${color}> "$'\t'"Create a new project (bundle) + Initialization.")
+    lines+=(                                      $'\t'"LEMP Stack Setup. Linux, (e)Nginx, MySQL/MariaDB, PHP.")
+    lines+=(                                      $'\t'"PHP Composer Setup.")
     if ArraySearch new mode_available[@] ]];then color=green; else color=red; fi
-    lines+=("Mode <${color}>new</${color}> -------->Create a new project (bundle)")
+    lines+=(      "Mode <${color}>new</${color}> "$'\t'"Create a new project (bundle).")
     if ArraySearch custom mode_available[@] ]];then color=green; else color=red; fi
-    lines+=("Mode <${color}>custom</${color}> ----->Create a new project (custom)")
-    lines+=("-------------------------------------->Beware. There are potential incompatibility between Drupal and it's requirements.")
+    lines+=(   "Mode <${color}>custom</${color}> "$'\t'"Create a new project (custom). Beware of potential incompatibility issue between Drupal and it's requirements.")
+    lines+=(                                      $'\t'"PHP Composer Setup.")
     if ArraySearch multisite mode_available[@] ]];then color=green; else color=red; fi
-    lines+=("Mode <${color}>multisite</${color}> -->Add sub project from exisiting project.")
-    lines+=("-------------------------------------->Drupal Multisite.")
-    sentences=();
-    for line in "${lines[@]}"; do
-        sentences+=("$(echo "$line" | sed -E s,-+\>,$'\t',g)")
+    lines+=("Mode <${color}>multisite</${color}> "$'\t'"Drupal Multisite. Add sub project.")
+    lines+=(                                      $'\t'"Using the same codebase with the existing project.")
+
+    tempfile=$(mktemp -p /dev/shm -t rcm-drupal.XXXXXX)
+    wordWrapParagraph lines[@] --indent=2 --indent-hanging=1 --output="$tempfile" &
+    pid=$!
+    spin='-\|/'
+    i=0
+    while kill -0 $pid 2>/dev/null
+    do
+      i=$(( (i+1) %4 ))
+      printf "\r" >&2; __; _, "Waiting...${spin:$i:1}"
+      sleep .1
     done
-
-    wordWrapParagraph sentences[@] --indent=2 --indent-hanging=1
-
-    # tempfile=$(mktemp -p /dev/shm -t rcm-drupal.XXXXXX)
-    # wordWrapParagraph sentences[@] --indent=2 --indent-hanging=1 --output="$tempfile" &
-    # pid=$!
-    # spin='-\|/'
-    # i=0
-    # while kill -0 $pid 2>/dev/null
-    # do
-      # i=$(( (i+1) %4 ))
-      # printf "\r" >&2; __; _, "Waiting...${spin:$i:1}"
-      # sleep .1
-    # done
-    # printf "\r\033[K" >&2;
-    # cat "$tempfile" >&2
+    printf "\r\033[K" >&2;
+    cat "$tempfile" >&2
 
     for each in init new custom multisite; do
         if ArraySearch $each mode_available[@] ]];then echo $each; fi
