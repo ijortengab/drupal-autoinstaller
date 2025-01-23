@@ -168,19 +168,108 @@ eligible() {
         . /etc/os-release
     fi
     _; _.
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11a; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("debian11a;debian;11")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11b; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian11b;debian;11")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11c; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian11c;debian;11")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22a; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("ubuntu22a;ubuntu;22.04")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22b; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("ubuntu22b;ubuntu;22.04")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22c; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("ubuntu22c;ubuntu;22.04")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22d; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("ubuntu22d;ubuntu;22.04")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12a; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("debian12a;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12b; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian12b;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12c; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian12c;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12d; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("debian12d;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12e; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal CMS' '; hN rc1.; _.; eligible+=("debian12e;debian;12")
-    ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; $color ubuntu24a; _, . Ubuntu' '; hN 24.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("ubuntu24a;ubuntu;24.04")
+    longest_text='        #         Variation debian12e. Debian 12,    PHP 8.3, Drupal CMS 1.0.'
+    if [[ $(tput cols) -gt "${#longest_text}" ]];then
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11a; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("debian11a;debian;11")
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11b; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian11b;debian;11")
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11c; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian11c;debian;11")
+        ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22a; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("ubuntu22a;ubuntu;22.04")
+        ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22b; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("ubuntu22b;ubuntu;22.04")
+        ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22c; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("ubuntu22c;ubuntu;22.04")
+        ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22d; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("ubuntu22d;ubuntu;22.04")
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12a; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("debian12a;debian;12")
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12b; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian12b;debian;12")
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12c; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian12c;debian;12")
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12d; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("debian12d;debian;12")
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12e; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal CMS' '; hN 1.0.; _.; eligible+=("debian12e;debian;12")
+        ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; $color ubuntu24a; _, . Ubuntu' '; hN 24.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("ubuntu24a;ubuntu;24.04")
+    else
+        tab_stop_position=( '21' '14' '9' )
+        lines=()
+        [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; eligible+=("debian11a;debian;11")
+        lines+=("Variation <${color}>debian11a</${color}>. -->Debian <hN>11</hN>, -->PHP <hN>8.1</hN>, -->Drupal <hN>9</hN>.")
+        [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; eligible+=("debian11b;debian;11")
+        lines+=("Variation <${color}>debian11b</${color}>. -->Debian <hN>11</hN>, -->PHP <hN>8.2</hN>, -->Drupal <hN>10</hN>.")
+        [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; eligible+=("debian11c;debian;11")
+        lines+=("Variation <${color}>debian11c</${color}>. -->Debian <hN>11</hN>, -->PHP <hN>8.3</hN>, -->Drupal <hN>10</hN>.")
+        [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; eligible+=("ubuntu22a;ubuntu;22.04")
+        lines+=("Variation <${color}>ubuntu22a</${color}>. -->Ubuntu <hN>22.04</hN>, -->PHP <hN>8.1</hN>, -->Drupal <hN>9</hN>.")
+        [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; eligible+=("ubuntu22b;ubuntu;22.04")
+        lines+=("Variation <${color}>ubuntu22b</${color}>. -->Ubuntu <hN>22.04</hN>, -->PHP <hN>8.2</hN>, -->Drupal <hN>10</hN>.")
+        [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; eligible+=("ubuntu22c;ubuntu;22.04")
+        lines+=("Variation <${color}>ubuntu22c</${color}>. -->Ubuntu <hN>22.04</hN>, -->PHP <hN>8.3</hN>, -->Drupal <hN>10</hN>.")
+        [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; eligible+=("ubuntu22d;ubuntu;22.04")
+        lines+=("Variation <${color}>ubuntu22d</${color}>. -->Ubuntu <hN>22.04</hN>, -->PHP <hN>8.3</hN>, -->Drupal <hN>11</hN>.")
+        [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12a;debian;12")
+        lines+=("Variation <${color}>debian12a</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.1</hN>, -->Drupal <hN>9</hN>.")
+        [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12b;debian;12")
+        lines+=("Variation <${color}>debian12b</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.2</hN>, -->Drupal <hN>10</hN>.")
+        [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12c;debian;12")
+        lines+=("Variation <${color}>debian12c</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.3</hN>, -->Drupal <hN>10</hN>.")
+        [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12d;debian;12")
+        lines+=("Variation <${color}>debian12d</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.3</hN>, -->Drupal <hN>11</hN>.")
+        [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12e;debian;12")
+        lines+=("Variation <${color}>debian12e</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.3</hN>, -->Drupal CMS <hN>1.0</hN>.")
+        [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; eligible+=("ubuntu24a;ubuntu;24.04")
+        lines+=("Variation <${color}>ubuntu24a</${color}>. -->Ubuntu <hN>24.04, -->PHP <hN>8.3</hN>, -->Drupal <hN>11</hN>.")
+        lines_cloned=("${lines[@]}")
+        lines=()
+        for line in "${lines_cloned[@]}"; do
+            lines+=("$(echo "$line" | sed -E s,-+\>,$'\t',g)")
+        done
+        unset lines_cloned
+
+        # Output di print per baris, secara UX kelamaan.
+        # wordWrapParagraph lines[@] --indent=2 --indent-hanging=1
+
+        # Output di print semua sekaligus, secara UX kelamaan juga.
+        # tempfile=$(mktemp -p /dev/shm -t rcm-drupal.XXXXXX)
+        # wordWrapParagraph lines[@] --indent=2 --indent-hanging=1 --output="$tempfile" &
+        # pid=$!
+        # spin='-\|/'
+        # i=0
+        # while kill -0 $pid 2>/dev/null
+        # do
+          # i=$(( (i+1) %4 ))
+          # printf "\r" >&2; __; _, "Waiting...${spin:$i:1}"
+          # sleep .1
+        # done
+        # printf "\r\033[K" >&2;
+        # cat "$tempfile" >&2
+
+        # Output di print per 2 baris, secara UX mendingan.
+        # Syaratnya diwajibakan set global variable tab_stop_position
+        lines_count=${#lines[@]}
+        lines_cloned=("${lines[@]}")
+        lines=()
+        lines_last_index=$((lines_count-1))
+        for ((x = 0 ; x < $lines_count ; x++)); do
+            let y++
+            lines+=("${lines_cloned[$x]}")
+            test=$(( ${#lines[@]}%2))
+            if [[ $test -eq 0  || $x -eq $lines_last_index ]];then
+                [ -n "$tempfile" ] || tempfile=$(mktemp -p /dev/shm -t rcm-drupal.XXXXXX)
+
+                wordWrapParagraph lines[@] --indent=2 --indent-hanging=1 --output="$tempfile" &
+                pid=$!
+                spin='-\|/'
+                while kill -0 $pid 2>/dev/null
+                do
+                  i=$(( (i+1) %4 ))
+                  printf "\r" >&2; __; _, "Waiting...${spin:$i:1}"
+                  sleep .1
+                done
+                printf "\r\033[K" >&2;
+                cat "$tempfile" >&2
+
+                :> "$tempfile"
+                unset lines
+                lines=()
+            fi
+        done
+        [ -n "$tempfile" ] && rm "$tempfile"
+    fi
+
     for each in "${eligible[@]}";do
         variation=$(cut -d';' -f1 <<< "$each")
         _id=$(cut -d';' -f2 <<< "$each")
@@ -196,7 +285,7 @@ green2() {
 }
 hN() {
     # hightlightNumber
-    local other=$2
+    local other=$2 i
     [ -z "$other" ] && other=_,
     local number=yellow
     local word=$1 segment
@@ -215,6 +304,412 @@ hN() {
         segment+=${word:$i:1}
     done
     ${!last} $segment
+}
+explodeParagraphs() {
+    # Explode kalimat by space, tanpa menghilangkan space itu sendiri.
+    # Karena space diperlukan untuk menghitung panjang karakter sehingga
+    # tidak bisa dihapuskan.
+    # Space berada pada prefix each word.
+    # Trailing space pada kalimat menjadi milik last word.
+    #
+    # global words_array
+    byTab() {
+        # Explode lagi berdasarkan karakter TAB.
+        # global words_array
+        local words_array_clone each tab left_tab right_tab string
+        words_array_clone=("${words_array[@]}")
+        words_array=()
+        for each in "${words_array_clone[@]}"; do
+            string="$each"
+            if [[ "$string" =~ $'\t' ]];then
+                while IFS= read line; do
+                    tab="$line"
+                    left_tab="${string%%${tab}*}"
+                    [ -n "$left_tab" ] && words_array+=("$left_tab")
+                    words_array+=("$tab")
+                    right_tab="${string#${left_tab}}"
+                    right_tab=${right_tab:1}
+                    string="$right_tab"
+                done <<< `echo "$string" | grep -E -o $'\t'`
+                [ -n "$string" ] && words_array+=("$string")
+            else
+                [ -n "$string" ] && words_array+=("$string")
+            fi
+        done
+    }
+    byTag() {
+        # Explode lagi berdasarkan tag <string>.
+        # global words_array
+        local words_array_clone each tag left_tag right_tag string
+        words_array_clone=("${words_array[@]}")
+        words_array=()
+        for each in "${words_array_clone[@]}"; do
+            string="$each"
+            # if grep -q -E '</?[^</>]+>' <<< "$string";then
+            if [[ "$string" =~ \</?[^\</\>]+\> ]];then
+                while IFS= read line; do
+                    tag="$line"
+                    left_tag="${string%%${tag}*}"
+                    [ -n "$left_tag" ] && words_array+=("$left_tag")
+                    words_array+=("$tag")
+                    right_tag="${string#${left_tag}}"
+                    right_tag=${right_tag:${#tag}}
+                    string="$right_tag"
+                done <<< `echo "$string" | grep -E -o '</?[^</>]+>'`
+                [ -n "$string" ] && words_array+=("$string")
+            else
+                [ -n "$string" ] && words_array+=("$string")
+            fi
+        done
+    }
+    bySpace() {
+        # Explode lagi berdasarkan space.
+        # global words_array
+        local words_array_clone each tag left_tag right_tag string
+        words_array_clone=("${words_array[@]}")
+        words_array=()
+        for each in "${words_array_clone[@]}"; do
+            string="$each"
+            if [[ "$string" =~ ' ' ]];then
+                while IFS= read line; do
+                    tag="$line"
+                    left_tag="${string%%${tag}*}"
+                    [ -n "$left_tag" ] && words_array+=("$left_tag")
+                    words_array+=("$tag")
+                    right_tag="${string#${left_tag}}"
+                    right_tag=${right_tag:${#tag}}
+                    string="$right_tag"
+                done <<< `echo "$string" | grep -E -o ' +'`
+                [ -n "$string" ] && words_array+=("$string")
+            else
+                [ -n "$string" ] && words_array+=("$string")
+            fi
+        done
+    }
+    local string="$1"; shift
+    # Jika karakter spasi semuanya, maka:
+    if [[ "$string" =~ ^[\ ]+$ ]];then
+        words_array=("$string")
+        return
+    fi
+    local by_tab by_tag by_space
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            +byTab) by_tab=1; shift ;;
+            +byTag) by_tag=1; shift ;;
+            +bySpace) by_space=1; shift ;;
+            *) shift ;;
+        esac
+    done
+    local line leading_space trailing_space
+    words_array=()
+    leading_space=$(echo "$string" | grep -E -o '^[\ ]+')
+    trailing_space=$(echo "$string" | grep -E -o '[\ ]+$')
+    if [ -n "$leading_space" ];then
+        string=$(echo "$string" | sed -E 's|^[\ ]+(.*)|\1|')
+    fi
+    if [ -n "$trailing_space" ];then
+        string=$(echo "$string" | sed -E 's|(.*)[\ ]+$|\1|')
+    fi
+    words_array[0]=$(echo "$string" | grep -E -o '^[^\ ]+')
+    words_array[0]="$leading_space""${words_array[0]}"
+    local i=1
+    while IFS= read line; do
+        if [ -n "$line" ];then
+            words_array[$i]="$line"
+            let i++
+        fi
+    done <<< `echo "$string" | grep -E -o '[\ ]+[^\ ]+'`
+    if [ $i -gt 0 ];then
+        let i--
+        words_array[$i]="${words_array[$i]}""$trailing_space"
+    fi
+    [ -n "$by_tab" ] && byTab
+    [ -n "$by_tag" ] && byTag
+    [ -n "$by_space" ] && bySpace
+}
+wordWrapParagraph() {
+    cleaningTag() {
+        # Menghilangkan tag warna, open tag maupun close tag.
+        # global each
+        # global color
+        local string="$1"
+        opentag=$(echo "$string" | grep -E -o '<[^</>]+>')
+        if [ -n "$opentag" ];then
+            # color=$(echo "$opentag" | grep -E -o '[^<>]+')
+            color="${opentag:1:-1}"
+            string=${string//"$opentag"/}
+            closetag="</${color}>"
+            # if grep -q -F "$closetag" <<< "$string";then
+            if [[ "$string" =~ "$closetag" ]];then
+                color_stop=1
+                string=${string//"$closetag"/}
+            fi
+        fi
+        each="$string"
+    }
+    cleaningCloseTag() {
+        # global each
+        # global color
+        local string="$1"
+        closetag="</${color}>"
+        # if grep -q -F "$closetag" <<< "$string";then
+        if [[ "$string" =~ "$closetag" ]];then
+            color_stop=1
+            string=${string//"$closetag"/}
+        fi
+        each="$string"
+    }
+    colorStop() {
+        # global color_stop
+        # global default_color
+        if [ -n "$color_stop" ];then
+            color=$default_color
+            color_stop=
+        fi
+    }
+    strip_tags() {
+        # global _return
+        local string="$1" each
+        _return=
+        if [[ "$string" =~ \</?[^\</\>]+\> ]];then
+            while IFS= read line; do
+                tag="$line"
+                left_tag="${string%%${tag}*}"
+                [ -n "$left_tag" ] && _return+="$left_tag"
+                right_tag="${string#${left_tag}}"
+                right_tag=${right_tag:${#tag}}
+                string="$right_tag"
+            done <<< `echo "$string" | grep -E -o '</?[^</>]+>'`
+            [ -n "$string" ] && _return+="$string"
+        else
+            [ -n "$string" ] && _return+="$string"
+        fi
+    }
+    calculateTabStopPosition() {
+        # global tab_stop_position
+        local string="$1" words_array each left_tab tab _return
+        tab=$'\t'
+        left_tab="${string%%${tab}*}"
+        local i=0
+        until [[ ! "${#left_tab}" -lt "${#string}" ]];do
+            right_tab="${string#${left_tab}}"
+            right_tab=${right_tab:1}
+            # Populate variable $_return.
+            strip_tags "$left_tab"
+            _current="${tab_stop_position[$i]}"
+            if [ -n "$_current" ];then
+                if [ "${#_return}" -gt "$_current" ];then
+                    tab_stop_position[$i]="${#_return}"
+                fi
+            else
+                tab_stop_position[$i]="${#_return}"
+            fi
+            string="$right_tab"
+            left_tab="${string%%${tab}*}"
+            let i++
+        done
+    }
+    wordWrapSentence() {
+        populateHangingIndent() {
+            # global each
+            # global hanging_indent_additional
+            # global indent_hanging
+            # global tab_stop_position
+            hanging_indent_additional=0
+            if [[ "$indent_hanging" -gt 0 && "${#tab_stop_position[@]}" -gt 0 ]];then
+                for ((tab_index = 0 ; tab_index < $indent_hanging ; tab_index++)); do
+                    hanging_indent_additional=$((hanging_indent_additional + ${tab_stop_position[$tab_index]}))
+                done
+            fi
+            hanging_indent_additional=$(printf %"${hanging_indent_additional}"s)
+            # Trim leading space.
+            each=$(echo "$each" | sed -E 's|^[\ ]+(.*)|\1|')
+            if [[ "$each" =~ ^[\ ]+$ ]];then
+                each=
+            fi
+        }
+        colorize() {
+            local string="$1" words_array color each last opentag closetag
+            if [[ ! "$string" =~ [\<\>] ]];then
+                # Tanpa warna. Contoh: "Variation"
+                _, "$string"
+            elif [[ "$string" =~ ^\<[^\<\>]+\>[^\<\>]+\</[^\<\>]+\>[\.,]?$ ]];then
+                # Hanya satu warna.
+                # Contoh: "<red>debian11a</red>."
+                #         "<hN>11</hN>,"
+                #         "<hN>8.1</hN>,"
+                color="${string#<}"
+                color="${color/%>*}"
+                last="${string/#*>}"
+                opentag="<${color}>"
+                closetag="</${color}>"
+                string=${string//"$opentag"/}
+                string=${string//"${closetag}${last}"/}
+                $color "$string"
+                [ -n "$last" ] && _, "$last"
+            else
+                # Banyak warna.
+                # Contoh: "<green2>debian12apakah76</green2>apakahyaa<red>tempe</red>.."
+                # _, "$string"
+                [ -z $default_color ] && default_color=_,
+                color="$default_color"
+                explodeParagraphs "$string" +byTag
+                for each in "${words_array[@]}"; do
+                    cleaningTag "$each"
+                    cleaningCloseTag "$each"
+                    $color "$each"
+                    colorStop
+                done
+            fi
+        }
+        # global cols
+        # global indent_first_line
+        # global indent_hanging
+        # global tab_stop_position
+        local paragraph="$1" words_array default_color="$2" color
+        local each each_original each_stripped
+        local current_line _current_line first_line last hanging_indent_additional
+        local tab_index=0
+        local max=0
+        local min=0
+        max=$cols
+        local _indent_first_line
+        _indent_first_line=$((indent_first_line + 2))
+        # Angka 2 adalah tambahan dari '# '.
+        _max=$((100 + ${#INDENT} + $_indent_first_line))
+        if [ $max -gt $_max ];then
+            max=100
+            min=80
+        else
+            max=$((max - ${#INDENT} - $_indent_first_line))
+            min="$max"
+        fi
+        explodeParagraphs "$paragraph" +byTab +byTag +bySpace
+        current_line=
+        merged=
+        local words_array_clone=("${words_array[@]}")
+        words_array=()
+        for each in "${words_array_clone[@]}"; do
+            if [[ ! "$each" =~ ^[\ $'\t']+$ ]];then
+                merged+="$each"
+            else
+                if [ -n "$merged" ];then
+                    words_array+=("$merged")
+                    merged=
+                fi
+                words_array+=("$each")
+            fi
+        done
+        if [ -n "$merged" ];then
+            words_array+=("$merged")
+        fi
+        unset words_array_clone
+        local i=0
+        local count="${#words_array[@]}"
+        first_line=1
+        for each in "${words_array[@]}"; do
+            each_original="$each"
+            if [[ "$each" == $'\t' ]];then
+                each=
+                local x
+                next_tab=0
+                for ((x = 0 ; x <= $tab_index ; x++)); do
+                    next_tab=$((next_tab + ${tab_stop_position[$x]}))
+                done
+                if [[ "$next_tab" -gt "${#current_line}" ]];then
+                    additional_space=$((next_tab - "${#current_line}" ))
+                    each=$(printf %"${additional_space}"s)
+                fi
+                let tab_index++
+            fi
+            strip_tags "$each"
+            each_stripped="$_return"
+            let i++
+            [ "$i" == "$count" ] && last=1 || last=
+            if [ -z "$current_line" ]; then
+                if [ -n "$first_line" ];then
+                    first_line=
+                    current_line="$each_stripped"
+                    _; printf %"${indent_first_line}"s >&2; colorize "$each"
+                else
+                    current_line="$each_stripped"
+                    _; printf %"${indent_first_line}"s >&2;
+                    populateHangingIndent
+                    current_line="${hanging_indent_additional}${each_stripped}"
+                    _, "$hanging_indent_additional"; colorize "$each"
+                fi
+                if [ -n "$last" ];then
+                    _.
+                fi
+            else
+                _current_line="${current_line}${each_stripped}"
+                if [ "${#_current_line}" -gt $max ];then
+                    if [[ "$each_original" == $'\t' &&  "$each_stripped" =~ ^[\ ]+$ ]];then
+                        each_stripped=
+                        each=
+                        _current_line="${current_line}${each_stripped}"
+                    fi
+                fi
+                if [ "${#_current_line}" -le $min ];then
+                    current_line+="$each_stripped"
+                    colorize "$each"
+                    if [ -n "$last" ];then
+                        _.
+                    fi
+                elif [ "${#_current_line}" -le $max ];then
+                    colorize "$each"; _.
+                    current_line=
+                else
+                    _.;
+                    _; printf %"${indent_first_line}"s >&2;
+                    populateHangingIndent
+                    current_line="${hanging_indent_additional}${each_stripped}"
+                    _, "$hanging_indent_additional"; colorize "$each"
+                    if [ -n "$last" ];then
+                        _.
+                    fi
+                fi
+            fi
+        done
+    }
+    # global tab_stop_position
+    local lines=("${!1}"); shift
+    local line
+    local output indent_first_line indent_hanging tempfile
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --indent=*) indent_first_line="${1#*=}"; shift ;;
+            --indent-hanging=*) indent_hanging="${1#*=}"; shift ;;
+            --output=*) output="${1#*=}"; shift ;;
+            *) shift ;;
+        esac
+    done
+    local cols=$(tput cols)
+    indent_first_line=$((indent_first_line*4))
+    [ -z "$indent_hanging" ] && indent_hanging=0
+    # Hitung karakter [tab] di setiap baris.
+    # Boleh predefined untuk mempercepat karena variable tab_stop_position
+    # adalah variable global.
+    if [[ "${#tab_stop_position[@]}" -eq 0 ]];then
+        for line in "${lines[@]}"; do
+            calculateTabStopPosition "$line"
+        done
+    fi
+    # echo '"${tab_stop_position[@]}"' "${tab_stop_position[@]}" >&2
+    # Start drawing.
+    if [ -n "$output" ];then
+        tempfile="$output"
+        for line in "${lines[@]}"; do
+            wordWrapSentence "$line" 2>> "$tempfile"
+        done
+    else
+        temp=
+        for line in "${lines[@]}"; do
+            temp=$(wordWrapSentence "$line" 2>&1)
+            echo "$temp" >&2
+        done
+    fi
 }
 
 # Execute command.
