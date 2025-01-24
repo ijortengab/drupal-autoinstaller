@@ -687,7 +687,7 @@ wordWrapParagraph() {
         esac
     done
     local cols=$(tput cols)
-    indent_first_line=$((indent_first_line*4))
+    indent_first_line=$((indent_first_line*${#RCM_INDENT}))
     [ -z "$indent_hanging" ] && indent_hanging=0
     # Hitung karakter [tab] di setiap baris.
     # Boleh predefined untuk mempercepat karena variable tab_stop_position
