@@ -532,7 +532,7 @@ wordWrapParagraph() {
         esac
     done
     local cols=$(tput cols)
-    indent_first_line=$((indent_first_line*4))
+    indent_first_line=$((indent_first_line*${#RCM_INDENT}))
     [ -z "$indent_hanging" ] && indent_hanging=0
     # Hitung karakter [tab] di setiap baris.
     # Boleh predefined untuk mempercepat karena variable tab_stop_position
@@ -680,8 +680,8 @@ wordWrapCommand() {
         [ "$i" == "$count" ] && last=1 || last=
         if [ -z "$current_line" ]; then
             if [ -z "$first_line" ];then
-                current_line="    ${each}"
-                e; magenta "    $each";
+                current_line="${RCM_INDENT}${each}"
+                e; magenta "${RCM_INDENT}${each}";
             else
                 first_line=
                 if [ -n "$inline_description" ];then
@@ -712,8 +712,8 @@ wordWrapCommand() {
                 fi
                 current_line=
             else
-                magenta ' \'; _.; e; magenta "    $each"
-                current_line="    ${each}"
+                magenta ' \'; _.; e; magenta "${RCM_INDENT}${each}"
+                current_line="${RCM_INDENT}${each}"
                 if [ -n "$last" ];then
                     _.
                 fi
@@ -776,7 +776,7 @@ case "$rcm_operand" in
         wordWrapCommand
         ____
 
-        INDENT+="    " BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand:$print_version -- "$@"
+        INDENT+="$RCM_INDENT" BINARY_DIRECTORY="$BINARY_DIRECTORY" rcm${isfast}${isnoninteractive}${isverbose} $rcm_operand:$print_version -- "$@"
         ;;
 esac
 ____
