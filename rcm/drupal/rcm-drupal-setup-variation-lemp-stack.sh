@@ -7,8 +7,24 @@ while [[ $# -gt 0 ]]; do
         --help) help=1; shift ;;
         --version) version=1; shift ;;
         --fast) fast=1; shift ;;
+        --no-auto-add-group) no_auto_add_group=1; shift ;;
+        --no-sites-default) no_sites_default=1; shift ;;
+        --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
+        --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
+        --prefix=*) prefix="${1#*=}"; shift ;;
+        --prefix) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then prefix="$2"; shift; fi; shift ;;
+        --project-container=*) project_container="${1#*=}"; shift ;;
+        --project-container) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_container="$2"; shift; fi; shift ;;
+        --project-name=*) project_name="${1#*=}"; shift ;;
+        --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
+        --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
+        --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --timezone=*) timezone="${1#*=}"; shift ;;
         --timezone) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then timezone="$2"; shift; fi; shift ;;
+        --url=*) url="${1#*=}"; shift ;;
+        --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
+        --variation=*) variation="${1#*=}"; shift ;;
+        --variation) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then variation="$2"; shift; fi; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -62,7 +78,37 @@ Usage: rcm-drupal-setup-variation-lemp-stack [options]
 
 Options:
    --timezone
-        Set the timezone of this machine. Available values: Asia/Jakarta, or other.
+        Set the timezone of this machine. Available values: Asia/Gaza, Asia/Ujung_Pandang, Asia/Jakarta, Asia/Makassar, Asia/Pontianak, Asia/Jayapura, or other.
+   --variation *
+        Select the variation setup. Values available from command: rcm-drupal-setup-variation-bundle(eligible).
+   --project-name *
+        Set the project name as identifier.
+        Allowed characters are a-z, 0-9, and underscore (_).
+   --url
+        Add Drupal public domain. The value can be domain or URL.
+        Drupal automatically has address at http://<project>.drupal.localhost/.
+        Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
+   --php-fpm-user
+        Set the Unix user that used by PHP FPM.
+        Default value is the user that used by web server (the common name is www-data).
+        If the user does not exists, it will be autocreate as reguler user.${users}
+   --prefix
+        Set prefix directory for project.
+        Default to home directory of --php-fpm-user or /usr/local/share.
+   --project-container
+        Set the container directory for all projects.
+        Available value: drupal-projects, drupal, public_html, or other.
+        Default to drupal-projects.
+
+Other Options (For expert only):
+   --project-parent-name
+        Set the project parent name. The parent is not have to installed before.
+   --no-sites-default ^
+        Prevent installing drupal inside directory sites/default.
+        Drupal will install inside sites/[<project-parent-name>--]<project-name>.
+   --no-auto-add-group ^
+        By default, if Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
+        Use this flag to omit that default action.
 
 Global Options.
    --fast
@@ -75,6 +121,10 @@ Global Options.
 Dependency:
    rcm-nginx-apt
    rcm-mariadb-apt
+   rcm-drupal-setup-variation-bundle:`printVersion`
+
+Download:
+   [rcm-drupal-setup-variation-bundle](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-bundle.sh)
 EOF
 }
 
@@ -92,6 +142,22 @@ while IFS= read -r line; do
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 [ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
+
+#  Functions.
+validateMachineName() {
+    local value="$1" _value
+    local parameter="$2"
+    if [[ $value = *" "* ]];then
+        [ -n "$parameter" ]  && error "Variable $parameter can not contain space."
+        return 1;
+    fi
+    _value=$(sed -E 's|[^a-zA-Z0-9]|_|g' <<< "$value" | sed -E 's|_+|_|g' )
+    if [[ ! "$value" == "$_value" ]];then
+        error "Variable $parameter can only contain alphanumeric and underscores."
+        _ 'Suggest: '; yellow "$_value"; _.
+        return 1
+    fi
+}
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
@@ -118,6 +184,9 @@ case "$os" in
         esac
         ;;
 esac
+if [ -z "$variation" ];then
+    error "Argument --variation required."; x
+fi
 if [ -z "$operand_setup_basic" ];then
     error "Operating System is not support."; x
 fi
@@ -130,6 +199,20 @@ if [ -f /proc/sys/kernel/osrelease ];then
 fi
 code 'is_wsl="'$is_wsl'"'
 code 'timezone="'$timezone'"'
+if [ -z "$project_name" ];then
+    error "Argument --project-name required."; x
+fi
+code 'project_name="'$project_name'"'
+if ! validateMachineName "$project_name" project_name;then x; fi
+# Advanced user can fill variable $project_parent_name from command line.
+code 'project_parent_name="'$project_parent_name'"'
+if [ -n "$project_parent_name" ];then
+    if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
+fi
+code no_auto_add_group="$no_auto_add_group"
+code 'no_sites_default="'$no_sites_default'"'
+[ -n "$no_auto_add_group" ] && is_no_auto_add_group='' || is_no_auto_add_group=' --auto-add-group'
+[ -n "$no_sites_default" ] && is_no_sites_default=' --no-sites-default' || is_no_sites_default=''
 ____
 
 INDENT+="    " \
@@ -144,6 +227,16 @@ rcm-nginx-apt $isfast \
     && INDENT+="    " \
 rcm-mariadb-apt $isfast \
     && INDENT+="    " \
+rcm-drupal-setup-variation-bundle $isfast \
+    $is_no_auto_add_group \
+    $is_no_sites_default \
+    --variation="$variation" \
+    --project-name="$project_name" \
+    --project-parent-name="$project_parent_name" \
+    --url="$url" \
+    --php-fpm-user="$php_fpm_user" \
+    --prefix="$prefix" \
+    --project-container="$project_container" \
     ; [ ! $? -eq 0 ] && x
 
 chapter Finish
@@ -163,9 +256,18 @@ exit 0
 # --fast
 # --version
 # --help
+# --no-sites-default
+# --no-auto-add-group
 # )
 # VALUE=(
 # --timezone
+# --project-name
+# --project-parent-name
+# --url
+# --php-fpm-user
+# --prefix
+# --project-container
+# --variation
 # )
 # MULTIVALUE=(
 # )
