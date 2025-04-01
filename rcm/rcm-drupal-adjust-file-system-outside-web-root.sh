@@ -45,7 +45,7 @@ DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 
 # Functions.
 printVersion() {
-    echo '0.11.25'
+    echo '0.11.26'
 }
 printHelp() {
     title RCM Drupal Adjust File System
