@@ -502,13 +502,21 @@ if [ -n "$project_parent_name" ];then
     if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
 fi
 code 'no_sites_default="'$no_sites_default'"'
-if [ -z "$drupal_version" ];then
-    error "Argument --drupal-version required."; x
+version=
+[ -n "$drupal_version" ] && version+=1 || version+=0
+[ -n "$drupalcms_version" ] && version+=1 || version+=0
+if [ "$version" == 00 ];then
+    error "Argument --drupal-version or --drupalcms-version is required."; x
+fi
+if [ "$version" == 11 ];then
+    error "Argument --drupal-version or --drupalcms-version cannot both be present."; x
 fi
 code 'drupal_version="'$drupal_version'"'
-vercomp 7 "$drupal_version"
-if [[ $? -lt 2 ]];then
-    red Hanya mendukung Drupal versi '>=' 8.; x
+if [ -n "$drupal_version" ];then
+    vercomp 7 "$drupal_version"
+    if [[ $? -lt 2 ]];then
+        red Hanya mendukung Drupal versi '>=' 8.; x
+    fi
 fi
 code 'drupalcms_version="'$drupalcms_version'"'
 if [ -z "$php_version" ];then
