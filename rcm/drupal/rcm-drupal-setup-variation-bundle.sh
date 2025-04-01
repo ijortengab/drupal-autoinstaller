@@ -169,7 +169,7 @@ eligible() {
         . /etc/os-release
     fi
     _; _.
-    longest_text='        #         Variation debian12e. Debian 12,    PHP 8.3, Drupal CMS 1.x.'
+    longest_text='        #         Variation debian12e. Debian 12,    PHP 8.3, Drupal CMS 1.'
     if [[ $(tput cols) -gt "${#longest_text}" ]];then
         ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11a; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("debian11a;debian;11")
         ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 11 ]]    && color=green2 || color=red; $color debian11b; _, . Debian' '; hN 11; _, , '   'PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian11b;debian;11")
@@ -178,12 +178,14 @@ eligible() {
         ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22b; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("ubuntu22b;ubuntu;22.04")
         ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22c; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("ubuntu22c;ubuntu;22.04")
         ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22d; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("ubuntu22d;ubuntu;22.04")
+        ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; $color ubuntu22e; _, . Ubuntu' '; hN 22.04;   _, , PHP' '; hN 8.3; _, , Drupal CMS' '; hN 1.  ; _.; eligible+=("ubuntu22e;ubuntu;22.04")
         ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12a; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.1; _, , Drupal' '    ; hN 9.  ; _.; eligible+=("debian12a;debian;12")
         ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12b; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.2; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian12b;debian;12")
         ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12c; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 10. ; _.; eligible+=("debian12c;debian;12")
         ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12d; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("debian12d;debian;12")
-        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12e; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal CMS' '; hN 1.x.; _.; eligible+=("debian12e;debian;12")
+        ___; _, 'Variation '; [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; $color debian12e; _, . Debian' '; hN 12; _, , '   'PHP' '; hN 8.3; _, , Drupal CMS' '; hN 1.  ; _.; eligible+=("debian12e;debian;12")
         ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; $color ubuntu24a; _, . Ubuntu' '; hN 24.04;   _, , PHP' '; hN 8.3; _, , Drupal' '    ; hN 11. ; _.; eligible+=("ubuntu24a;ubuntu;24.04")
+        ___; _, 'Variation '; [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; $color ubuntu24b; _, . Ubuntu' '; hN 24.04;   _, , PHP' '; hN 8.3; _, , Drupal CMS' '; hN 1.  ; _.; eligible+=("ubuntu24b;ubuntu;24.04")
     else
         tab_stop_position=( '21' '14' '9' )
         lines=()
@@ -201,6 +203,8 @@ eligible() {
         lines+=("Variation <${color}>ubuntu22c</${color}>. -->Ubuntu <hN>22.04</hN>, -->PHP <hN>8.3</hN>, -->Drupal <hN>10</hN>.")
         [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; eligible+=("ubuntu22d;ubuntu;22.04")
         lines+=("Variation <${color}>ubuntu22d</${color}>. -->Ubuntu <hN>22.04</hN>, -->PHP <hN>8.3</hN>, -->Drupal <hN>11</hN>.")
+        [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] && color=green2 || color=red; eligible+=("ubuntu22e;ubuntu;22.04")
+        lines+=("Variation <${color}>ubuntu22e</${color}>. -->Ubuntu <hN>22.04</hN>, -->PHP <hN>8.3</hN>, -->Drupal CMS <hN>1</hN>.")
         [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12a;debian;12")
         lines+=("Variation <${color}>debian12a</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.1</hN>, -->Drupal <hN>9</hN>.")
         [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12b;debian;12")
@@ -210,9 +214,11 @@ eligible() {
         [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12d;debian;12")
         lines+=("Variation <${color}>debian12d</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.3</hN>, -->Drupal <hN>11</hN>.")
         [[ "$ID" == debian && "$VERSION_ID" == 12 ]]    && color=green2 || color=red; eligible+=("debian12e;debian;12")
-        lines+=("Variation <${color}>debian12e</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.3</hN>, -->Drupal CMS <hN>1.x</hN>.")
+        lines+=("Variation <${color}>debian12e</${color}>. -->Debian <hN>12</hN>, -->PHP <hN>8.3</hN>, -->Drupal CMS <hN>1</hN>.")
         [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; eligible+=("ubuntu24a;ubuntu;24.04")
         lines+=("Variation <${color}>ubuntu24a</${color}>. -->Ubuntu <hN>24.04, -->PHP <hN>8.3</hN>, -->Drupal <hN>11</hN>.")
+        [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]] && color=green2 || color=red; eligible+=("ubuntu24b;ubuntu;24.04")
+        lines+=("Variation <${color}>ubuntu24b</${color}>. -->Ubuntu <hN>24.04, -->PHP <hN>8.3</hN>, -->Drupal CMS <hN>1</hN>.")
         lines_cloned=("${lines[@]}")
         lines=()
         for line in "${lines_cloned[@]}"; do
@@ -822,19 +828,21 @@ if [ -z "$variation" ];then
     error "Argument --variation required."; x
 fi
 case "$variation" in
-    debian11b) os=debian; os_version=11   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    debian11a) os=debian; os_version=11   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    ubuntu22b) os=ubuntu; os_version=22.04; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    ubuntu22a) os=ubuntu; os_version=22.04; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    debian12b) os=debian; os_version=12   ; php_version=8.2; drupal_version=10; drush_version=12 ;;
-    debian12a) os=debian; os_version=12   ; php_version=8.1; drupal_version=9 ; drush_version=11 ;;
-    debian12c) os=debian; os_version=12   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    debian11c) os=debian; os_version=11   ; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    ubuntu22c) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=10; drush_version=12 ;;
-    ubuntu22d) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
-    debian12d) os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13 ;;
-    debian12e) os=debian; os_version=12   ; php_version=8.3; drupal_version=11; drush_version=13; drupalcms_version=1 ;;
-    ubuntu24a) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11; drush_version=13 ;;
+    debian11b) os=debian; os_version=11   ; php_version=8.2; drupal_version=10   ;;
+    debian11a) os=debian; os_version=11   ; php_version=8.1; drupal_version=9    ;;
+    ubuntu22b) os=ubuntu; os_version=22.04; php_version=8.2; drupal_version=10   ;;
+    ubuntu22a) os=ubuntu; os_version=22.04; php_version=8.1; drupal_version=9    ;;
+    debian12b) os=debian; os_version=12   ; php_version=8.2; drupal_version=10   ;;
+    debian12a) os=debian; os_version=12   ; php_version=8.1; drupal_version=9    ;;
+    debian12c) os=debian; os_version=12   ; php_version=8.3; drupal_version=10   ;;
+    debian11c) os=debian; os_version=11   ; php_version=8.3; drupal_version=10   ;;
+    ubuntu22c) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=10   ;;
+    ubuntu22d) os=ubuntu; os_version=22.04; php_version=8.3; drupal_version=11   ;;
+    debian12d) os=debian; os_version=12   ; php_version=8.3; drupal_version=11   ;;
+    debian12e) os=debian; os_version=12   ; php_version=8.3; drupalcms_version=1 ;;
+    ubuntu24a) os=ubuntu; os_version=24.04; php_version=8.3; drupal_version=11   ;;
+    ubuntu22e) os=ubuntu; os_version=22.04; php_version=8.3; drupalcms_version=1 ;;
+    ubuntu24b) os=ubuntu; os_version=24.04; php_version=8.3; drupalcms_version=1 ;;
     *) error "Argument --variation is not valid."; x;;
 esac
 code php_version="$php_version"
