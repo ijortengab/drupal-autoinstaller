@@ -179,6 +179,7 @@ list=("${fqdn_string} cd-drupal-${drupal_fqdn_localhost}")
 
 if [ -f "${url_dirname_website_info}/website" ];then
     . "${url_dirname_website_info}/website"
+	# Variable $URL_DRUPAL populated.
 fi
 
 if [ -n "$URL_DRUPAL" ];then
@@ -217,7 +218,7 @@ __; magenta rcm drupal-setup-dump-variables${isfast} -- --project-name="'${proje
 _; _.
 _ It is recommended for you to level up file system directory outside web root:; _.
 __; magenta rcm install drupal-adjust-file-system-outside-web-root --source drupal; _.
-__; magenta rcm drupal-adjust-file-system-outside-web-root${isfast} -- --project-name="'${project_parent_name:-$project_name}'"; _.
+__; magenta rcm drupal-adjust-file-system-outside-web-root${isfast} -- --project-name="'${project_parent_name:-$project_name}'" --domain="'$drupal_fqdn_localhost'" -- ; _.
 _; _.
 for each in "${list[@]}";do
     url=$(cut -d' ' -f1 <<< "$each")
