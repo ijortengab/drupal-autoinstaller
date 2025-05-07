@@ -100,6 +100,18 @@ Update if necessary.
 rcm update drupal-adjust-file-system-outside-web-root
 ```
 
+Bulk for all project.
+
+```
+while read project_name; do
+    while read domain; do
+        echo -ne "\e[93m"'# Execute:'"\e[39m" "\n"
+        echo -ne "\e[95m"rcm drupal-adjust-file-system-outside-web-root -- --project-name $project_name --domain $domain -- "\e[39m" "\n\n"
+        INDENT='    ' rcm drupal-adjust-file-system-outside-web-root -- --project-name $project_name --domain $domain --
+    done <<< `ls-drupal $project_name`
+done <<< `ls-drupal`
+```
+
 ## Tips 3
 
 There are two additional commands for you.
