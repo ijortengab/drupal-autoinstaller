@@ -186,6 +186,19 @@ validateMachineName() {
         return 1
     fi
 }
+resolve_relative_path() {
+    if [ -d "$1" ];then
+        cd "$1" || return 1
+        pwd
+    elif [ -e "$1" ];then
+        if [ ! "${1%/*}" = "$1" ]; then
+            cd "${1%/*}" || return 1
+        fi
+        echo "$(pwd)/${1##*/}"
+    else
+        return 1
+    fi
+}
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
@@ -219,6 +232,17 @@ if [ -f /proc/sys/kernel/osrelease ];then
     fi
 fi
 code 'is_wsl="'$is_wsl'"'
+code 'prefix="'$prefix'"'
+if [ -n "$prefix" ];then
+    if [ -d "$prefix" ];then
+        if [ ! "${prefix:0:1}" == / ];then
+            prefix=$(resolve_relative_path "$prefix")
+        fi
+    else
+        error Directory prefix is not exists; x
+    fi
+fi
+code 'prefix="'$prefix'"'
 ____
 
 if [ -n "$domain" ];then

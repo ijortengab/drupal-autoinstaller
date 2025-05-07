@@ -812,6 +812,19 @@ fileMustExists() {
         __; red File '`'$(basename "$1")'`' tidak ditemukan.; x
     fi
 }
+resolve_relative_path() {
+    if [ -d "$1" ];then
+        cd "$1" || return 1
+        pwd
+    elif [ -e "$1" ];then
+        if [ ! "${1%/*}" = "$1" ]; then
+            cd "${1%/*}" || return 1
+        fi
+        echo "$(pwd)/${1##*/}"
+    else
+        return 1
+    fi
+}
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
@@ -906,6 +919,17 @@ else
     url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}"
 fi
 code 'url_dirname_website_info="'$url_dirname_website_info'"'
+code 'prefix="'$prefix'"'
+if [ -n "$prefix" ];then
+    if [ -d "$prefix" ];then
+        if [ ! "${prefix:0:1}" == / ];then
+            prefix=$(resolve_relative_path "$prefix")
+        fi
+    else
+        error Directory prefix is not exists; x
+    fi
+fi
+code 'prefix="'$prefix'"'
 ____
 
 INDENT+="    " \
