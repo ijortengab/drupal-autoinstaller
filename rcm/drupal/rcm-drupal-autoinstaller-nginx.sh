@@ -7,10 +7,11 @@ while [[ $# -gt 0 ]]; do
         --help) help=1; shift ;;
         --version) version=1; shift ;;
         --auto-add-group) auto_add_group=1; shift ;;
-        --drupal-version=*) drupal_version="${1#*=}"; shift ;;
-        --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
         --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
         --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
+        --drupal-version=*) drupal_version="${1#*=}"; shift ;;
+        --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
+        --drush-install) drush_install=1; shift ;;
         --fast) fast=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
@@ -487,6 +488,406 @@ link_symbolic_dir() {
     fi
     ____
 }
+isFileExists() {
+    # global used:
+    # global modified: found, notfound
+    # function used: __
+    found=
+    notfound=
+    if [ -f "$1" ];then
+        __ File '`'$(basename "$1")'`' ditemukan.
+        found=1
+    else
+        __ File '`'$(basename "$1")'`' tidak ditemukan.
+        notfound=1
+    fi
+}
+
+# Global variable used:
+# $project_dir
+# $sites_subdir
+# $list_url_key
+#
+# Function used:
+# chapter(), red(), green()
+# backupFile()
+modifySitesPhp() {
+    local php path filename reference is_different
+    php=$(cat <<'EOF'
+$mode = $_SERVER['argv'][1];
+switch ($mode) {
+    case 'is_different':
+    case 'save':
+        # Populate variable $is_different.
+        $file = $_SERVER['argv'][2];
+        $reference = unserialize($_SERVER['argv'][3]);
+        include($file);
+        $sites = isset($sites) ? $sites : [];
+        // Tidak menggunakan array_map serialize seperti rcm-roundcube-autoinstaller-nginx karena dipastikan seluruh value non array.
+        $is_different = !empty(array_diff_assoc($reference, $sites));
+        break;
+}
+switch ($mode) {
+    case 'build_reference':
+        $sites_subdir = $_SERVER['argv'][2];
+        $stdin = '';
+        while (FALSE !== ($line = fgets(STDIN))) {
+           $stdin .= $line;
+        }
+        $result = explode("\n", $stdin);
+        $result = array_filter($result);
+        $reference = array_map(function () use ($sites_subdir) {
+            return $sites_subdir;
+        }, array_flip($result));
+        echo serialize($reference);
+        break;
+    case 'is_different':
+        $is_different ? exit(0) : exit(1);
+        break;
+    case 'save':
+        if (!$is_different) {
+            exit(0);
+        }
+        $contents = file_get_contents($file);
+        $need_edit = array_diff_assoc($reference, $sites);
+        $new_lines = [];
+        foreach ($need_edit as $key => $value) {
+            $new_line = "__PARAMETER__[__KEY__] = __VALUE__; # managed by RCM";
+            // Jika indexed array dan hanya satu , maka buat one line.
+            if (is_array($value) && array_key_exists(0, $value) && count($value) === 1) {
+                $new_line = str_replace(['__PARAMETER__','__KEY__','__VALUE__'],['$sites', var_export($key, true), "['".$value[0]."']"], $new_line);
+            }
+            else {
+                $new_line = str_replace(['__PARAMETER__','__KEY__','__VALUE__'],['$sites', var_export($key, true), var_export($value, true)], $new_line);
+            }
+            $is_one_line = preg_match('/\n/', $new_line) ? false : true;
+            $find_existing = "__PARAMETER__[__KEY__] = __VALUE__; # managed by RCM";
+            $find_existing = str_replace(['__PARAMETER__','__KEY__'],['$sites', var_export($key, true)], $find_existing);
+            $find_existing = preg_quote($find_existing);
+            $find_existing = str_replace('__VALUE__', '.*', $find_existing);
+            $find_existing = '/\s*'.$find_existing.'/';
+            if ($is_one_line && preg_match_all($find_existing, $contents, $matches, PREG_PATTERN_ORDER)) {
+                $contents = str_replace($matches[0], '', $contents);
+            }
+            $new_lines[] = $new_line;
+        }
+        if (substr($contents, -1) != "\n") {
+            $contents .= "\n";
+        }
+        $contents .= implode("\n", $new_lines);
+        $contents .= "\n";
+        file_put_contents($file, $contents);
+        break;
+}
+EOF
+    )
+    chapter Mengecek informasi file konfigurasi MultiSite.
+    path="${project_dir}/drupal/web/sites/sites.php"
+    [ -f "$path" ] || fileMustExists "$path"
+    code path='"'$path'"'
+    filename=sites.php
+    reference="$(php -r "$php" build_reference "$sites_subdir" <<< "$list_url_key")"
+    is_different=
+    if php -r "$php" is_different "$path" "$reference";then
+        is_different=1
+        __ Diperlukan modifikasi file '`'$filename'`'.
+    else
+        __ File '`'$filename'`' tidak ada perubahan.
+    fi
+    ____
+
+    if [ -n "$is_different" ];then
+        chapter Memodifikasi file '`'$filename'`'.
+        __ Backup file "$path"
+        backupFile copy "$path"
+        php -r "$php" save "$path" "$reference"
+        if php -r "$php" is_different "$path" "$reference";then
+            __; red Modifikasi file '`'$filename'`' gagal.; x
+        else
+            __; green Modifikasi file '`'$filename'`' berhasil.; _.
+        fi
+        ____
+    fi
+}
+
+# Global variable used:
+# $project_dir
+# $drupal_root
+# $site_dir
+# $settings
+# $owner
+# $drupal_db_name
+# $db_user
+# $db_user_password
+# $DRUPAL_DB_USER_HOST
+#
+# Function used:
+# isDirExists()
+# dirMustExists()
+# chapter(), __(), red(), green()
+modifySettingsPhp() {
+    # ["Set up database" screen is displayed even when credentials are properly defined][1]
+    # 1: https://www.drupal.org/project/drupal/issues/3356381
+    # [Installer does not pick up password value from settings.php when hash_salt is not pre-populated][2]
+    # 2: https://www.drupal.org/project/drupal/issues/3195562#comment-15631673
+    # > I encountered this problem as well, but for me even with the hash_salt
+    # > value included in settings.php I was still receiving a prompt to put
+    # > in the password.
+    # > If I added $settings['config_sync_directory'] with a path to the
+    # > settings.php, I no longer received the screen with the database
+    # > connection prompt and the installation happened automatically.
+    local php reference edit_mode expected_config origin_config verify number
+    local makesure_directory_exist current_config create dirname origin_value
+    local hash_value current_value reference2
+    php=$(cat << 'EOF'
+function &drupal_array_get_nested_value(array &$array, array $parents, &$key_exists = NULL) {
+    $ref =& $array;
+    foreach ($parents as $parent) {
+        if (is_array($ref) && (isset($ref[$parent]) || array_key_exists($parent, $ref))) {
+            $ref =& $ref[$parent];
+        }
+        else {
+            $key_exists = FALSE;
+            $null = NULL;
+            return $null;
+        }
+    }
+    $key_exists = TRUE;
+    return $ref;
+}
+$file = $_SERVER['argv'][1];
+$array = unserialize($_SERVER['argv'][2]);
+extract($array);
+if (isset($app_root) && !defined('DRUPAL_ROOT')) {
+    define('DRUPAL_ROOT', $app_root);
+}
+include($file);
+$mode = $_SERVER['argv'][3];
+
+switch ($mode) {
+    case 'array_key_exists':
+        $key = $_SERVER['argv'][4];
+        $array = explode('][', $key);
+        drupal_array_get_nested_value($settings, $array, $key_exists);
+        return ($key_exists) ? exit(0) : exit(1);
+        break;
+
+    case 'get_settings':
+        $key = $_SERVER['argv'][4];
+        $array = explode('][', $key);
+        echo drupal_array_get_nested_value($settings, $array);
+        break;
+
+    case 'array_key_exists_2':
+        $key = $_SERVER['argv'][4];
+        $array = explode('][', $key);
+        drupal_array_get_nested_value($databases, $array, $key_exists);
+        return ($key_exists) ? exit(0) : exit(1);
+        break;
+
+    case 'is_different':
+        $key = $_SERVER['argv'][4];
+        $array = explode('][', $key);
+        $database_info = drupal_array_get_nested_value($databases, $array);
+        $reference = unserialize($_SERVER['argv'][5]);
+        $tempe =
+        $is_different = !empty(array_diff_assoc($reference, $database_info));
+        $is_different ? exit(0) : exit(1);
+        break;
+
+    default:
+        // Do something.
+        break;
+}
+
+EOF
+)
+    reference="$(php -r "echo serialize([
+        'app_root' => '$drupal_root',
+        'site_path' => '$site_dir',
+    ]);")"
+
+    chapter Memeriksa variable '`'"\$settings['config_sync_directory']"'`' pada file '`'settings.php'`'.
+    edit_mode=
+    expected_config="${project_dir}/drupal/config/${site_dir}/sync"
+    origin_config=
+    if php -r "$php" "$settings" "$reference" array_key_exists config_sync_directory;then
+        origin_config=$(php -r "$php" "$settings" "$reference" get_settings config_sync_directory)
+        if [[ ! "$expected_config" == "$origin_config" ]];then
+            edit_mode=modify
+        fi
+    else
+        edit_mode=append
+    fi
+    if [ -n "$edit_mode" ];then
+        __ Memerlukan edit file '`'settings.php'`'.
+    else
+        __ Tidak memerlukan edit file '`'settings.php'`'.
+        __ Nilai saat ini: "$expected_config"
+    fi
+
+    verify=
+    case "$edit_mode" in
+        append)
+            sudo -u "$owner" chmod u+w "$settings"
+            cat << EOF >> "$settings"
+\$settings['config_sync_directory'] = '$expected_config';
+EOF
+            verify=1
+            ;;
+        modify)
+            number=$(grep -n "^\$settings\['config_sync_directory'\] = " "$settings" | head -1 | cut -d: -f1)
+            sed -i "$number"'s|.*|'"\$settings\['config_sync_directory'\] = '$expected_config';"'|' "$settings"
+            verify=1
+            ;;
+    esac
+    makesure_directory_exist=
+    if [ -n "$verify" ];then
+        current_config=$(php -r "$php" "$settings" "$reference" get_settings config_sync_directory)
+        if [[ ! "$expected_config" == "$current_config" ]];then
+            __; red Gagal mengedit file '`'settings.php'`'.; x
+        else
+            __; green Berhasil mengedit file '`'settings.php'`'.; _.
+            __ Nilai sebelumnya: "$origin_config"
+            __ Nilai saat ini: "$current_config"
+            makesure_directory_exist=1
+        fi
+    fi
+    if [ -n "$makesure_directory_exist" ];then
+        __ Mengecek direktori: "$expected_config"
+        isDirExists "$expected_config"
+        create=
+        if [ -n "$notfound" ];then
+            if [ -n "$origin_config" ];then
+                if [ ! "${origin_config:0:1}" == '/' ];then
+                    origin_config="${DRUPAL_ROOT}/${origin_config}"
+                fi
+                __ Mengecek direktori: "$origin_config"
+                isDirExists "$origin_config"
+                if [ -n "$found" ];then
+                    __ Memindahkan direktori.
+                    dirname=$(dirname "$expected_config")
+                    code sudo -u '"'$owner'"' mkdir -p '"'$dirname'"'
+                    code mv -T '"'$origin_config'"' '"'$expected_config'"'
+                    sudo -u "$owner" mkdir -p "$dirname"
+                    mv -T "$origin_config" "$expected_config"
+                    dirname=$(dirname "$origin_config")
+                    code rmdir --ignore-fail-on-non-empty '"'$dirname'"'
+                    rmdir --ignore-fail-on-non-empty "$dirname"
+                    dirMustExists "$expected_config"
+                else
+                    create=1
+                fi
+            else
+                create=1
+            fi
+        fi
+        if [ -n "$create" ];then
+            code sudo -u '"'$owner'"' mkdir -p '"'$expected_config'"'
+            sudo -u "$owner" mkdir -p "$expected_config"
+            dirMustExists "$expected_config"
+        fi
+    fi
+    ____
+
+    # Credit: Google query "drupal hash salt generator"
+    # https://www.hashbangcode.com/snippets/drupal-10-generate-new-hash-salt-string-using-drush
+    chapter Memeriksa variable '`'"\$settings['hash_salt']"'`' pada file '`'settings.php'`'.
+    edit_mode=
+    if php -r "$php" "$settings" "$reference" array_key_exists hash_salt;then
+        origin_value=$(php -r "$php" "$settings" "$reference" get_settings hash_salt)
+        if [ -z "$origin_value" ];then
+            edit_mode=modify
+        fi
+    else
+        edit_mode=append
+    fi
+    if [ -n "$edit_mode" ];then
+        __ Memerlukan edit file '`'settings.php'`'.
+        sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin:${PATH}" $env -s \
+        drush eval "echo Drupal\Component\Utility\Crypt::randomBytesBase64(55) . PHP_EOL" > "$tempfile"
+        hash_value=$(<"$tempfile")
+    else
+        __ Tidak memerlukan edit file '`'settings.php'`'.
+        __ Nilai saat ini: "$origin_value"
+    fi
+    verify=
+    case "$edit_mode" in
+        append)
+            sudo -u "$owner" chmod u+w "$settings"
+            cat << EOF >> "$settings"
+\$settings['hash_salt'] = '$hash_value';
+EOF
+            verify=1
+            ;;
+        modify)
+            number=$(grep -n "^\$settings\['hash_salt'\] = " "$settings" | head -1 | cut -d: -f1)
+            sed -i "$number"'s|.*|'"\$settings\['hash_salt'\] = '$hash_value';"'|' "$settings"
+            verify=1
+            ;;
+    esac
+    if [ -n "$verify" ];then
+        current_value=$(php -r "$php" "$settings" "$reference" get_settings hash_salt)
+        if [[ ! "$hash_value" == "$current_value" ]];then
+            __; red Gagal mengedit file '`'settings.php'`'.; x
+        else
+            __; green Berhasil mengedit file '`'settings.php'`'.; _.
+            __ Nilai sebelumnya: "$origin_value"
+            __ Nilai saat ini: "$hash_value"
+        fi
+    fi
+    ____
+
+    chapter Memeriksa variable '`'"\$databases['default']['default']"'`' pada file '`'settings.php'`'.
+    edit_mode=
+    reference2="$(php -r "echo serialize([
+        'database' => '$drupal_db_name',
+        'username' => '$db_user',
+        'password' => '$db_user_password',
+        'host' => '$DRUPAL_DB_USER_HOST',
+    ]);")"
+    if php -r "$php" "$settings" "$reference" array_key_exists_2 'default][default';then
+        if php -r "$php" "$settings" "$reference" is_different 'default][default' "$reference2";then
+            edit_mode=append
+        fi
+        # Hanya mendukung appeend karena dump array njelimet.
+    else
+        edit_mode=append
+    fi
+    if [ -n "$edit_mode" ];then
+        __ Memerlukan edit file '`'settings.php'`'.
+    else
+        __ Tidak memerlukan edit file '`'settings.php'`'.
+    fi
+    verify=
+    case "$edit_mode" in
+        append)
+            sudo -u "$owner" chmod u+w "$settings"
+            cat << EOF >> "$settings"
+\$databases['default']['default'] = array (
+  'database' => '$drupal_db_name',
+  'username' => '$db_user',
+  'password' => '$db_user_password',
+  'prefix' => '',
+  'host' => '$DRUPAL_DB_USER_HOST',
+  'port' => '3306',
+  'isolation_level' => 'READ COMMITTED',
+  'driver' => 'mysql',
+  'namespace' => 'Drupal\\mysql\\Driver\\Database\\mysql',
+  'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
+);
+EOF
+            verify=1
+            ;;
+    esac
+    if [ -n "$verify" ];then
+        if php -r "$php" "$settings" "$reference" is_different 'default][default' "$reference2";then
+            __; red Gagal mengedit file '`'settings.php'`'.; x
+        else
+            __; green Berhasil mengedit file '`'settings.php'`'.; _.
+        fi
+    fi
+}
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
@@ -620,6 +1021,7 @@ code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
 code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
 code 'MARIADB_PREFIX="'$MARIADB_PREFIX'"'
 code 'MARIADB_USERS_DIRNAME="'$MARIADB_USERS_DIRNAME'"'
+code 'drush_install="'$drush_install'"'
 ____
 
 chapter Mengecek PHP-FPM User.
@@ -804,8 +1206,7 @@ code server_name="$server_name"
 ____
 
 INDENT+="    " \
-rcm-nginx-setup-drupal \
-    \
+rcm-nginx-setup-drupal $isfast \
     --root="$root" \
     --filename="$filename" \
     --server-name="$server_name" \
@@ -1092,18 +1493,19 @@ rcm-mariadb-setup-project-database $isfast \
     ; [ ! $? -eq 0 ] && x
 
 databaseCredentialDrupal
-
-chapter Mengecek website credentials.
-path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
-code path='"'$path'"'
-websiteCredentialDrupal
-if [[ -z "$account_name" || -z "$account_pass" ]];then
-    __; red Informasi credentials tidak lengkap: '`'$project_dir/credential/drupal/$drupal_fqdn_localhost'`'.; x
-else
-    code account_name="$account_name"
-    code account_pass="$account_pass"
+if [ -n "$drush_install" ];then
+    chapter Mengecek website credentials.
+    path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/credential/drupal/${drupal_fqdn_localhost}"
+    code path='"'$path'"'
+    websiteCredentialDrupal
+    if [[ -z "$account_name" || -z "$account_pass" ]];then
+        __; red Informasi credentials tidak lengkap: '`'$project_dir/credential/drupal/$drupal_fqdn_localhost'`'.; x
+    else
+        code account_name="$account_name"
+        code account_pass="$account_pass"
+    fi
+    ____
 fi
-____
 
 # Hapus cache.
 # https://www.drupal.org/project/drupal_cms/issues/3497786
@@ -1116,152 +1518,138 @@ ____
 # fi
 
 if [[ "$install_type" == 'singlesite' && -z "$default_installed" ]];then
-    chapter Install Drupal site default.
-    code drush site:install --yes --site-name="$site_name" \
-        --account-name="$account_name" --account-pass="$account_pass" \
-        --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}"
-    sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin:${PATH}" $env -s \
-        drush site:install --yes --site-name="$site_name" \
+    if [ -n "$drush_install" ];then
+        chapter Install Drupal site default.
+        code drush site:install --yes --site-name="$site_name" \
             --account-name="$account_name" --account-pass="$account_pass" \
             --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}"
-    [ ! $? -eq 0 ] && x
-    if drush status --field=db-status | grep -q '^Connected$';then
-        __; green Drupal site default installed.
+        sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin:${PATH}" $env -s \
+            drush site:install --yes --site-name="$site_name" \
+                --account-name="$account_name" --account-pass="$account_pass" \
+                --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}"
+        [ ! $? -eq 0 ] && x
+        if drush status --field=db-status | grep -q '^Connected$';then
+            __; green Drupal site default installed.
+        else
+            __; red Drupal site default not installed.; x
+        fi
+        ____
     else
-        __; red Drupal site default not installed.; x
+        chapter Mengecek file '`'settings.php'`'.
+        drupal_root="${project_dir}/drupal/web"
+        site_dir=sites/default
+        default_settings="${drupal_root}/${site_dir}/default.settings.php"
+        settings="${drupal_root}/${site_dir}/settings.php"
+        __ Memerlukan file '`'"$default_settings"'`'
+        [ -f "$default_settings" ] || fileMustExists "$default_settings"
+        code default_settings='"'$default_settings'"'
+        __ Memastikan file settings.php exists.
+        isFileExists "$settings"
+        if [ -n "$notfound" ];then
+            __ File settings.php tidak exists. Create.
+            code sudo -u '"'"$php_fpm_user"'"' cp '"'"$default_settings"'"' '"'"$settings"'"'
+            sudo -u "$php_fpm_user" cp "$default_settings" "$settings"
+            fileMustExists "$settings"
+        fi
+        owner="$php_fpm_user"
+        code owner='"'$owner'"'
+        ____
+
+        modifySettingsPhp
     fi
-    ____
 fi
 
 if [[ "$install_type" == 'multisite' && -z "$multisite_installed" ]];then
-    chapter Install Drupal multisite.
-    code drush site:install --yes --site-name="$site_name" \
-        --account-name="$account_name" --account-pass="$account_pass" \
-        --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}" \
-        --sites-subdir=${sites_subdir}
-    sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin:${PATH}" $env -s \
-        drush site:install --yes --site-name="$site_name" \
+    if [ -n "$drush_install" ];then
+        chapter Install Drupal multisite.
+        code drush site:install --yes --site-name="$site_name" \
             --account-name="$account_name" --account-pass="$account_pass" \
             --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}" \
             --sites-subdir=${sites_subdir}
-    ____
+        sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin:${PATH}" $env -s \
+            drush site:install --yes --site-name="$site_name" \
+                --account-name="$account_name" --account-pass="$account_pass" \
+                --db-url="mysql://${db_user}:${db_user_password}@${DRUPAL_DB_USER_HOST}/${drupal_db_name}" \
+                --sites-subdir=${sites_subdir}
+        ____
 
-    php=$(cat <<'EOF'
-$mode = $_SERVER['argv'][1];
-switch ($mode) {
-    case 'is_different':
-    case 'save':
-        # Populate variable $is_different.
-        $file = $_SERVER['argv'][2];
-        $reference = unserialize($_SERVER['argv'][3]);
-        include($file);
-        $sites = isset($sites) ? $sites : [];
-        // Tidak menggunakan array_map serialize seperti rcm-roundcube-autoinstaller-nginx karena dipastikan seluruh value non array.
-        $is_different = !empty(array_diff_assoc($reference, $sites));
-        break;
-}
-switch ($mode) {
-    case 'build_reference':
-        $sites_subdir = $_SERVER['argv'][2];
-        $stdin = '';
-        while (FALSE !== ($line = fgets(STDIN))) {
-           $stdin .= $line;
-        }
-        $result = explode("\n", $stdin);
-        $result = array_filter($result);
-        $reference = array_map(function () use ($sites_subdir) {
-            return $sites_subdir;
-        }, array_flip($result));
-        echo serialize($reference);
-        break;
-    case 'is_different':
-        $is_different ? exit(0) : exit(1);
-        break;
-    case 'save':
-        if (!$is_different) {
-            exit(0);
-        }
-        $contents = file_get_contents($file);
-        $need_edit = array_diff_assoc($reference, $sites);
-        $new_lines = [];
-        foreach ($need_edit as $key => $value) {
-            $new_line = "__PARAMETER__[__KEY__] = __VALUE__; # managed by RCM";
-            // Jika indexed array dan hanya satu , maka buat one line.
-            if (is_array($value) && array_key_exists(0, $value) && count($value) === 1) {
-                $new_line = str_replace(['__PARAMETER__','__KEY__','__VALUE__'],['$sites', var_export($key, true), "['".$value[0]."']"], $new_line);
-            }
-            else {
-                $new_line = str_replace(['__PARAMETER__','__KEY__','__VALUE__'],['$sites', var_export($key, true), var_export($value, true)], $new_line);
-            }
-            $is_one_line = preg_match('/\n/', $new_line) ? false : true;
-            $find_existing = "__PARAMETER__[__KEY__] = __VALUE__; # managed by RCM";
-            $find_existing = str_replace(['__PARAMETER__','__KEY__'],['$sites', var_export($key, true)], $find_existing);
-            $find_existing = preg_quote($find_existing);
-            $find_existing = str_replace('__VALUE__', '.*', $find_existing);
-            $find_existing = '/\s*'.$find_existing.'/';
-            if ($is_one_line && preg_match_all($find_existing, $contents, $matches, PREG_PATTERN_ORDER)) {
-                $contents = str_replace($matches[0], '', $contents);
-            }
-            $new_lines[] = $new_line;
-        }
-        if (substr($contents, -1) != "\n") {
-            $contents .= "\n";
-        }
-        $contents .= implode("\n", $new_lines);
-        $contents .= "\n";
-        file_put_contents($file, $contents);
-        break;
-}
-EOF
-    )
-    chapter Mengecek informasi file konfigurasi MultiSite.
-    path="${project_dir}/drupal/web/sites/sites.php"
-    [ -f "$path" ] || fileMustExists "$path"
-    code path='"'$path'"'
-    filename=sites.php
-    reference="$(php -r "$php" build_reference "$sites_subdir" <<< "$list_url_key")"
-    is_different=
-    if php -r "$php" is_different "$path" "$reference";then
-        is_different=1
-        __ Diperlukan modifikasi file '`'$filename'`'.
+        modifySitesPhp
+
+        chapter Mengecek ulang informasi file konfigurasi MultiSite.
+        error=
+        for uri in "${list_url[@]}" ;do
+            if [[ "sites/${sites_subdir}" == $(drush status --uri=$uri --field=site) ]];then
+                __; green Site direktori dari domain '`'$uri'`' sesuai, yakni: '`'sites/$sites_subdir'`'.; _.
+            else
+                __; red Site direktori dari domain '`'$uri'`' tidak sesuai.; _.
+                error=1
+            fi
+            if drush status --uri=$uri --field=db-status | grep -q '^Connected$';then
+                __; green Drupal site '`'$uri'`' installed.; _.
+            else
+                __; red Drupal site '`'$uri'`' not installed yet.
+                error=1
+            fi
+        done
+        ____
+
+        if [ -n "$error" ];then
+            x
+        fi
     else
-        __ File '`'$filename'`' tidak ada perubahan.
-    fi
-    ____
+        chapter Mengecek file '`'sites.php'`'.
+        drupal_root="${project_dir}/drupal/web"
+        example_sites="${drupal_root}/sites/example.sites.php"
+        sites="${drupal_root}/sites/sites.php"
+        __ Memerlukan file '`'"$example_sites"'`'
+        [ -f "$example_sites" ] || fileMustExists "$example_sites"
+        code example_sites='"'$example_sites'"'
+        __ Memastikan file sites.php exists.
+        isFileExists "$sites"
+        if [ -n "$notfound" ];then
+            __ File sites.php tidak exists. Create.
+            code sudo -u '"'"$php_fpm_user"'"' cp '"'"$example_sites"'"' '"'"$sites"'"'
+            sudo -u "$php_fpm_user" cp "$example_sites" "$sites"
+            fileMustExists "$sites"
+        fi
+        owner="$php_fpm_user"
+        code owner='"'$owner'"'
+        ____
 
-    if [ -n "$is_different" ];then
-        chapter Memodifikasi file '`'$filename'`'.
-        __ Backup file "$path"
-        backupFile copy "$path"
-        php -r "$php" save "$path" "$reference"
-        if php -r "$php" is_different "$path" "$reference";then
-            __; red Modifikasi file '`'$filename'`' gagal.; x
-        else
-            __; green Modifikasi file '`'$filename'`' berhasil.; _.
+        chapter Mengecek direktori sites subdir '`'"${sites_subdir}"'`'.
+        path="${drupal_root}/sites/${sites_subdir}"
+        isDirExists "$path"
+        if [ -n "$notfound" ];then
+            code sudo -u '"'$owner'"' mkdir -p '"'$path'"'
+            sudo -u "$owner" mkdir -p "$path"
+            dirMustExists "$path"
         fi
         ____
-    fi
 
-    chapter Mengecek ulang informasi file konfigurasi MultiSite.
-    error=
-    for uri in "${list_url[@]}" ;do
-        if [[ "sites/${sites_subdir}" == $(drush status --uri=$uri --field=site) ]];then
-            __; green Site direktori dari domain '`'$uri'`' sesuai, yakni: '`'sites/$sites_subdir'`'.; _.
-        else
-            __; red Site direktori dari domain '`'$uri'`' tidak sesuai.; _.
-            error=1
-        fi
-        if drush status --uri=$uri --field=db-status | grep -q '^Connected$';then
-            __; green Drupal site '`'$uri'`' installed.; _.
-        else
-            __; red Drupal site '`'$uri'`' not installed yet.
-            error=1
-        fi
-    done
-    ____
+        modifySitesPhp
 
-    if [ -n "$error" ];then
-        x
+        chapter Mengecek file '`'settings.php'`'.
+        drupal_root="${project_dir}/drupal/web"
+        site_default_dir=sites/default
+        site_dir="sites/${sites_subdir}"
+        default_settings="${drupal_root}/${site_default_dir}/default.settings.php"
+        settings="${drupal_root}/${site_dir}/settings.php"
+        __ Memerlukan file '`'"$default_settings"'`'
+        [ -f "$default_settings" ] || fileMustExists "$default_settings"
+        code default_settings='"'$default_settings'"'
+        __ Memastikan file settings.php exists.
+        isFileExists "$settings"
+        if [ -n "$notfound" ];then
+            __ File settings.php tidak exists. Create.
+            code sudo -u '"'"$php_fpm_user"'"' cp '"'"$default_settings"'"' '"'"$settings"'"'
+            sudo -u "$php_fpm_user" cp "$default_settings" "$settings"
+            fileMustExists "$settings"
+        fi
+        owner="$php_fpm_user"
+        code owner='"'$owner'"'
+        ____
+
+        modifySettingsPhp
     fi
 fi
 
@@ -1312,6 +1700,7 @@ exit 0
 # --help
 # --no-sites-default
 # --auto-add-group
+# --drush-install
 # )
 # VALUE=(
 # --drupal-version
