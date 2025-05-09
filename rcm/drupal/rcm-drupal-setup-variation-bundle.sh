@@ -8,6 +8,7 @@ while [[ $# -gt 0 ]]; do
         --version) version=1; shift ;;
         --fast) fast=1; shift ;;
         --no-auto-add-group) no_auto_add_group=1; shift ;;
+        --no-drush-install) no_drush_install=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
@@ -89,6 +90,11 @@ Options:
         Set the Unix user that used by PHP FPM.
         Default value is the user that used by web server (the common name is www-data).
         If the user does not exists, it will be autocreate as reguler user.${users}
+   --no-drush-install ^
+        If selected, installation will continue to the browser.
+        If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
+
+Other options (For expert only):
    --prefix
         Set prefix directory for project.
         Default to home directory of --php-fpm-user or /usr/local/share.
@@ -96,8 +102,6 @@ Options:
         Set the container directory for all projects.
         Available value: drupal-projects, drupal, public_html, or other.
         Default to drupal-projects.
-
-Other Options (For expert only):
    --project-parent-name
         Set the project parent name. The parent is not have to installed before.
    --no-sites-default ^
@@ -122,7 +126,6 @@ Dependency:
    rcm-wsl-setup-lemp-stack
    rcm-composer-autoinstaller
    rcm-drupal-autoinstaller-nginx:`printVersion`
-   rcm-drupal-setup-wrapper-nginx-setup-drupal:`printVersion`
    rcm-drupal-setup-drush-alias:`printVersion`
    rcm-drupal-setup-internal-command-cd-drupal:`printVersion`
    rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
@@ -135,7 +138,6 @@ Dependency:
 Download:
    [rcm-php-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/php/rcm-php-setup-drupal.sh)
    [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
-   [rcm-drupal-setup-wrapper-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-setup-drupal.sh)
    [rcm-drupal-setup-drush-alias](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-drush-alias.sh)
    [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
    [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
@@ -835,7 +837,7 @@ PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
 code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
 code no_auto_add_group="$no_auto_add_group"
 code 'no_sites_default="'$no_sites_default'"'
-[ -n "$no_auto_add_group" ] && is_no_auto_add_group='' || is_no_auto_add_group=' --auto-add-group'
+[ -n "$no_auto_add_group" ] && is_auto_add_group='' || is_auto_add_group=' --auto-add-group'
 [ -n "$no_sites_default" ] && is_no_sites_default=' --no-sites-default' || is_no_sites_default=''
 if [ -z "$variation" ];then
     error "Argument --variation required."; x
@@ -860,13 +862,11 @@ case "$variation" in
 esac
 code php_version="$php_version"
 code drupal_version="$drupal_version"
-code drush_version="$drush_version"
 if [ -z "$project_name" ];then
     error "Argument --project-name required."; x
 fi
 code 'project_name="'$project_name'"'
 if ! validateMachineName "$project_name" project_name;then x; fi
-# Advanced user can fill variable $project_parent_name from command line.
 code 'project_parent_name="'$project_parent_name'"'
 if [ -n "$project_parent_name" ];then
     if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
@@ -930,6 +930,8 @@ if [ -n "$prefix" ];then
     fi
 fi
 code 'prefix="'$prefix'"'
+code 'no_drush_install="'$no_drush_install'"'
+[ -n "$no_drush_install" ] && is_drush_install='' || is_drush_install=' --drush-install'
 ____
 
 INDENT+="    " \
@@ -1017,11 +1019,11 @@ INDENT+="    " \
 rcm-composer-autoinstaller $isfast \
     && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast \
-    $is_no_auto_add_group \
+    $is_auto_add_group \
     $is_no_sites_default \
+    $is_drush_install \
     --drupal-version="$drupal_version" \
     --drupalcms-version="$drupalcms_version" \
-    --drush-version="$drush_version" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
     --project-dir="$project_dir" \
@@ -1105,6 +1107,7 @@ exit 0
 # --help
 # --no-sites-default
 # --no-auto-add-group
+# --no-drush-install
 # )
 # VALUE=(
 # --project-name
