@@ -9,6 +9,7 @@ while [[ $# -gt 0 ]]; do
         --existing-project-name=*) project_parent_name="${1#*=}"; shift ;;
         --existing-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
+        --no-drush-install) no_drush_install=1; shift ;;
         --sub-project-name=*) project_name="${1#*=}"; shift ;;
         --sub-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --url=*) url="${1#*=}"; shift ;;
@@ -65,6 +66,9 @@ Options:
         Add Drupal public domain. The value can be domain or URL.
         Drupal automatically has address at http://<subproject>.<project>.drupal.localhost/.
         Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
+   --no-drush-install ^
+        If selected, installation will continue to the browser.
+        If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
 
 Global Options.
    --fast
@@ -84,7 +88,6 @@ Dependency:
    rcm-php-setup-adjust-cli-version
    rcm-wsl-setup-lemp-stack
    rcm-drupal-autoinstaller-nginx:`printVersion`
-   rcm-drupal-setup-wrapper-nginx-setup-drupal:`printVersion`
    rcm-drupal-setup-drush-alias:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
@@ -93,7 +96,6 @@ Dependency:
 
 Download:
    [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
-   [rcm-drupal-setup-wrapper-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-setup-drupal.sh)
    [rcm-drupal-setup-drush-alias](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-drush-alias.sh)
    [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
 EOF
@@ -322,6 +324,8 @@ fi
 code 'url="'$url'"'
 url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_parent_name}/subprojects/${project_name}"
 code 'url_dirname_website_info="'$url_dirname_website_info'"'
+code 'no_drush_install="'$no_drush_install'"'
+[ -n "$no_drush_install" ] && is_drush_install='' || is_drush_install=' --drush-install'
 ____
 
 if [ -n "$url" ];then
@@ -390,6 +394,7 @@ rcm-php-fpm-setup-project-config $isfast \
 INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast \
     $is_auto_add_group \
+    $is_drush_install \
     --drupal-version="$drupal_version" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
@@ -465,6 +470,7 @@ exit 0
 # --fast
 # --version
 # --help
+# --no-drush-install
 # )
 # VALUE=(
 # --url
