@@ -8,6 +8,7 @@ while [[ $# -gt 0 ]]; do
         --version) version=1; shift ;;
         --fast) fast=1; shift ;;
         --no-auto-add-group) no_auto_add_group=1; shift ;;
+        --no-drush-install) no_drush_install=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
@@ -92,6 +93,11 @@ Options:
         Set the Unix user that used by PHP FPM.
         Default value is the user that used by web server (the common name is www-data).
         If the user does not exists, it will be autocreate as reguler user.${users}
+   --no-drush-install ^
+        If selected, installation will continue to the browser.
+        If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
+
+Other Options (For expert only):
    --prefix
         Set prefix directory for project.
         Default to home directory of --php-fpm-user or /usr/local/share.
@@ -99,8 +105,6 @@ Options:
         Set the container directory for all projects.
         Available value: drupal-projects, drupal, public_html, or other.
         Default to drupal-projects.
-
-Other Options (For expert only):
    --project-parent-name
         Set the project parent name. The parent is not have to installed before.
    --no-sites-default ^
@@ -237,6 +241,8 @@ if [ -n "$prefix" ];then
     fi
 fi
 code 'prefix="'$prefix'"'
+code 'no_drush_install="'$no_drush_install'"'
+[ -n "$no_drush_install" ] && is_no_drush_install=' --no-drush-install' || is_no_drush_install=''
 ____
 
 INDENT+="    " \
@@ -254,6 +260,7 @@ rcm-mariadb-apt $isfast \
 rcm-drupal-setup-variation-bundle $isfast \
     $is_no_auto_add_group \
     $is_no_sites_default \
+    $is_no_drush_install \
     --variation="$variation" \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
@@ -282,6 +289,7 @@ exit 0
 # --help
 # --no-sites-default
 # --no-auto-add-group
+# --no-drush-install
 # )
 # VALUE=(
 # --timezone
