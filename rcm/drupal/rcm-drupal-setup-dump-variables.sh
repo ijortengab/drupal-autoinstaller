@@ -187,11 +187,13 @@ if [ -n "$URL_DRUPAL" ];then
     list+=("${URL_DRUPAL} cd-drupal-$(url2Filename "$URL_DRUPAL")" )
 fi
 
-chapter Drupal "${fqdn_string}"
 websiteCredentialDrupal
-_ ' - 'username: $account_name; _.
-_ '   'password: $account_pass; _.
-____
+if [ -n "$account_name" ];then
+    chapter Drupal "${fqdn_string}"
+    _ ' - 'username: $account_name; _.
+    _ '   'password: $account_pass; _.
+    ____
+fi
 
 chapter Alias Hostname
 for each in "${list[@]}";do
