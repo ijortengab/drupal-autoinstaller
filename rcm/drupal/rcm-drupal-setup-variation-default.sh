@@ -6,13 +6,14 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --auto-add-group) auto_add_group=1; shift ;;
-        --domain=*) domain="${1#*=}"; shift ;;
-        --domain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then domain="$2"; shift; fi; shift ;;
-        --domain-strict) domain_strict=1; shift ;;
+        --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
+        --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
+        --no-auto-add-group) no_auto_add_group=1; shift ;;
+        --no-drush-install) no_drush_install=1; shift ;;
+        --no-sites-default) no_sites_default=1; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
@@ -25,12 +26,21 @@ while [[ $# -gt 0 ]]; do
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
+        --url=*) url="${1#*=}"; shift ;;
+        --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
 done
 set -- "${_new_arguments[@]}"
 unset _new_arguments
+
+# Command.
+if [ -n "$1" ];then
+    case "$1" in
+        drupal-version-available|drupalcms-version-available) command="$1"; shift ;;
+    esac
+fi
 
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -61,7 +71,7 @@ printVersion() {
 }
 printHelp() {
     title RCM Drupal Setup
-    _ 'Variation '; yellow Default; _, . Just Drupal without LEMP Stack setup. ; _.
+    _ 'Variation '; yellow Default; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
     # Populate variable $users.
@@ -99,26 +109,45 @@ printHelp() {
 Usage: rcm-drupal-setup-variation-default [options]
 
 Options:
+   --drupal-cms ^
+        Install Drupal CMS instead of Drupal core.
    --drupal-version *
-        Set the version of Drupal. Available values: 10, 11, or other.
+        Set the version of Drupal. Values available from command: rcm-drupal-setup-variation-default(drupal-version-available [--drupal-cms]).
+   --drupalcms-version *
+        Set the version of Drupal. Values available from command: rcm-drupal-setup-variation-default(drupalcms-version-available [--drupal-cms]).
    --php-version *
         Set the version of PHP.${single_line}${multi_line}
    --project-name *
         Set the project name as identifier.
         Allowed characters are a-z, 0-9, and underscore (_).
-   --domain
-        Set the domain.
-   --domain-strict ^
-        Prevent installing drupal inside directory sites/default.
-        Just skip it if you are confused.
+   --url
+        Add Drupal public domain. The value can be domain or URL.
+        Drupal automatically has address at http://<project>.drupal.localhost/.
+        Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
    --php-fpm-user
-        Set the Unix user that used by PHP FPM. Default value is the user that used by web server.${users} If the user does not exists, it will be autocreate as reguler user.
+        Set the Unix user that used by PHP FPM.
+        Default value is the user that used by web server (the common name is www-data).
+        If the user does not exists, it will be autocreate as reguler user.${users}
+   --no-drush-install ^
+        If selected, installation will continue to the browser.
+        If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
+
+Other options (For expert only):
    --prefix
-        Set prefix directory for project. Default to home directory of --php-fpm-user or /usr/local/share.
+        Set prefix directory for project.
+        Default to home directory of --php-fpm-user or /usr/local/share.
    --project-container
-        Set the container directory for all projects. Available value: drupal-projects, drupal, public_html, or other. Default to drupal-projects.
-   --auto-add-group ^
-        If Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
+        Set the container directory for all projects.
+        Available value: drupal-projects, drupal, public_html, or other.
+        Default to drupal-projects.
+   --project-parent-name
+        Set the project parent name. The parent is not have to installed before.
+   --no-sites-default ^
+        Prevent installing drupal inside directory sites/default.
+        Drupal will install inside sites/[<project-parent-name>--]<project-name>.
+   --no-auto-add-group ^
+        By default, if Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
+        Use this flag to omit that default action.
 
 Global Options.
    --fast
@@ -128,37 +157,54 @@ Global Options.
    --help
         Show this help.
 
-Other Options:
-   --project-parent-name
-        Set the project parent name. The parent is not have to installed before. For expert only.
-
 Dependency:
    nginx
    rcm-php-setup-adjust-cli-version
    rcm-wsl-setup-lemp-stack
    rcm-composer-autoinstaller
    rcm-drupal-autoinstaller-nginx:`printVersion`
-   rcm-drupal-setup-wrapper-nginx-setup-drupal:`printVersion`
    rcm-drupal-setup-drush-alias:`printVersion`
    rcm-drupal-setup-internal-command-cd-drupal:`printVersion`
    rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
+   rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root:`printVersion`
    rcm-php-fpm-setup-project-config
+   rcm-certbot-apt
    rcm-dig-watch-domain-exists
 
 Download:
    [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
-   [rcm-drupal-setup-wrapper-nginx-setup-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-setup-drupal.sh)
    [rcm-drupal-setup-drush-alias](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-drush-alias.sh)
    [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
    [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
    [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
+   [rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root.sh)
 EOF
 }
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
+
+command-drupal-version-available() {
+    if [ "$1" == 1 ];then
+        exit 1
+    fi
+    echo 10
+    echo 11
+}
+command-drupalcms-version-available() {
+    if [ "$1" == 0 ];then
+        exit 1
+    fi
+    echo 1
+}
+
+# Execute command.
+if [[ -n "$command" && $(type -t "command-${command}") == function ]];then
+    command-${command} "$@"
+    exit 0
+fi
 
 # Title.
 title rcm-drupal-setup-variation-default
@@ -186,6 +232,67 @@ validateMachineName() {
         return 1
     fi
 }
+Rcm_parse_url() {
+    # Reset
+    PHP_URL_SCHEME=
+    PHP_URL_HOST=
+    PHP_URL_PORT=
+    PHP_URL_USER=
+    PHP_URL_PASS=
+    PHP_URL_PATH=
+    PHP_URL_QUERY=
+    PHP_URL_FRAGMENT=
+    PHP_URL_SCHEME="$(echo "$1" | grep :// | sed -e's,^\(.*\)://.*,\1,g')"
+    _PHP_URL_SCHEME_SLASH="${PHP_URL_SCHEME}://"
+    _PHP_URL_SCHEME_REVERSE="$(echo ${1/${_PHP_URL_SCHEME_SLASH}/})"
+    if grep -q '#' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_FRAGMENT=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f1)
+    fi
+    if grep -q '\?' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_QUERY=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f1)
+    fi
+    _PHP_URL_USER_PASS="$(echo $_PHP_URL_SCHEME_REVERSE | grep @ | cut -d@ -f1)"
+    PHP_URL_PASS=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f2`
+    if [ -n "$PHP_URL_PASS" ]; then
+        PHP_URL_USER=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f1`
+    else
+        PHP_URL_USER=$_PHP_URL_USER_PASS
+    fi
+    _PHP_URL_HOST_PORT="$(echo ${_PHP_URL_SCHEME_REVERSE/$_PHP_URL_USER_PASS@/} | cut -d/ -f1)"
+    PHP_URL_HOST="$(echo $_PHP_URL_HOST_PORT | sed -e 's,:.*,,g')"
+    if grep -q -E ':[0-9]+$' <<< "$_PHP_URL_HOST_PORT";then
+        PHP_URL_PORT="$(echo $_PHP_URL_HOST_PORT | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+    fi
+    _PHP_URL_HOST_PORT_LENGTH=${#_PHP_URL_HOST_PORT}
+    _LENGTH="$_PHP_URL_HOST_PORT_LENGTH"
+    if [ -n "$_PHP_URL_USER_PASS" ];then
+        _PHP_URL_USER_PASS_LENGTH=${#_PHP_URL_USER_PASS}
+        _LENGTH=$((_LENGTH + 1 + _PHP_URL_USER_PASS_LENGTH))
+    fi
+    PHP_URL_PATH="${_PHP_URL_SCHEME_REVERSE:$_LENGTH}"
+
+    # Debug
+    # e '"$PHP_URL_SCHEME"' "$PHP_URL_SCHEME"; _.
+    # e '"$PHP_URL_HOST"' "$PHP_URL_HOST"; _.
+    # e '"$PHP_URL_PORT"' "$PHP_URL_PORT"; _.
+    # e '"$PHP_URL_USER"' "$PHP_URL_USER"; _.
+    # e '"$PHP_URL_PASS"' "$PHP_URL_PASS"; _.
+    # e '"$PHP_URL_PATH"' "$PHP_URL_PATH"; _.
+    # e '"$PHP_URL_QUERY"' "$PHP_URL_QUERY"; _.
+    # e '"$PHP_URL_FRAGMENT"' "$PHP_URL_FRAGMENT"; _.
+}
+fileMustExists() {
+    # global used:
+    # global modified:
+    # function used: __, success, error, x
+    if [ -f "$1" ];then
+        __; green File '`'$(basename "$1")'`' ditemukan.; _.
+    else
+        __; red File '`'$(basename "$1")'`' tidak ditemukan.; x
+    fi
+}
 resolve_relative_path() {
     if [ -d "$1" ];then
         cd "$1" || return 1
@@ -203,14 +310,14 @@ resolve_relative_path() {
 # Requirement, validate, and populate value.
 chapter Dump variable.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
-code auto_add_group="$auto_add_group"
-[ -n "$auto_add_group" ] && is_auto_add_group=' --auto-add-group' || is_auto_add_group=''
-if [ -z "$php_version" ];then
-    error "Argument --php-version required."; x
-fi
-if [ -z "$drupal_version" ];then
-    error "Argument --drupal-version required."; x
-fi
+PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
+code 'PREFIX_MASTER="'$PREFIX_MASTER'"'
+PROJECTS_CONTAINER_MASTER=${PROJECTS_CONTAINER_MASTER:=projects}
+code 'PROJECTS_CONTAINER_MASTER="'$PROJECTS_CONTAINER_MASTER'"'
+code no_auto_add_group="$no_auto_add_group"
+code 'no_sites_default="'$no_sites_default'"'
+[ -n "$no_auto_add_group" ] && is_auto_add_group='' || is_auto_add_group=' --auto-add-group'
+[ -n "$no_sites_default" ] && is_no_sites_default=' --no-sites-default' || is_no_sites_default=''
 code php_version="$php_version"
 code drupal_version="$drupal_version"
 if [ -z "$project_name" ];then
@@ -222,8 +329,6 @@ code 'project_parent_name="'$project_parent_name'"'
 if [ -n "$project_parent_name" ];then
     if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
 fi
-code 'domain_strict="'$domain_strict'"'
-code 'domain="'$domain'"'
 is_wsl=
 if [ -f /proc/sys/kernel/osrelease ];then
     read osrelease </proc/sys/kernel/osrelease
@@ -232,6 +337,46 @@ if [ -f /proc/sys/kernel/osrelease ];then
     fi
 fi
 code 'is_wsl="'$is_wsl'"'
+code 'url="'$url'"'
+if [ -n "$url" ];then
+    Rcm_parse_url "$url"
+	if [ -z "$PHP_URL_HOST" ];then
+        error Argument --url is not valid: '`'"$url"'`'.; x
+    else
+        [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
+        if [ -z "$PHP_URL_PORT" ];then
+            case "$url_scheme" in
+                http) url_port=80;;
+                https) url_port=443;;
+            esac
+        else
+            url_port="$PHP_URL_PORT"
+        fi
+        url_host="$PHP_URL_HOST"
+        url_path="$PHP_URL_PATH"
+        # Modify variable url, auto add scheme.
+        url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+        _url_port=
+        if [ -n "$url_port" ];then
+            if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+                _url_port=
+            elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+                _url_port=
+            else
+                _url_port=":${url_port}"
+            fi
+        fi
+        # Modify variable url, auto trim trailing slash, auto add port.
+        url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
+    fi
+fi
+code 'url="'$url'"'
+if [ -n "$project_parent_name" ];then
+    url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_parent_name}/subprojects/${project_name}"
+else
+    url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_name}"
+fi
+code 'url_dirname_website_info="'$url_dirname_website_info'"'
 code 'prefix="'$prefix'"'
 if [ -n "$prefix" ];then
     if [ -d "$prefix" ];then
@@ -243,12 +388,19 @@ if [ -n "$prefix" ];then
     fi
 fi
 code 'prefix="'$prefix'"'
+code 'no_drush_install="'$no_drush_install'"'
+[ -n "$no_drush_install" ] && is_drush_install='' || is_drush_install=' --drush-install'
 ____
 
-if [ -n "$domain" ];then
+INDENT+="    " \
+rcm-php-setup-adjust-cli-version $isfast \
+    --php-version="$php_version" \
+    ; [ ! $? -eq 0 ] && x
+
+if [ -n "$url" ];then
     INDENT+="    " \
     rcm-dig-watch-domain-exists $isfast \
-        --domain="$domain" \
+        --domain="$url_host" \
         --waiting-time="60" \
         ; [ ! $? -eq 0 ] && x
 fi
@@ -325,64 +477,63 @@ rcm-composer-autoinstaller $isfast \
     && INDENT+="    " \
 rcm-drupal-autoinstaller-nginx $isfast \
     $is_auto_add_group \
-    --domain="$domain" \
+    $is_no_sites_default \
+    $is_drush_install \
     --drupal-version="$drupal_version" \
+    --drupalcms-version="$drupalcms_version" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
     --project-dir="$project_dir" \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
+    --url-scheme="$url_scheme" \
+    --url-host="$url_host" \
+    --url-port="$url_port" \
+    --url-path="$url_path" \
     ; [ ! $? -eq 0 ] && x
 
-if [ -n "$domain" ];then
+if [ -n "$url" ];then
     INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast \
-        --php-version="$php_version" \
-        --project-name="$project_name" \
-        --project-parent-name="$project_parent_name" \
-        --domain="$domain" \
-        --php-fpm-user="$php_fpm_user" \
-        --project-dir="$project_dir" \
+    rcm-certbot-apt $isfast \
         && INDENT+="    " \
-    rcm-drupal-setup-wrapper-nginx-setup-drupal $isfast \
+    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
         --php-version="$php_version" \
-        --project-name="$project_name" \
-        --project-parent-name="$project_parent_name" \
-        --subdomain="$domain" \
-        --domain="localhost" \
         --php-fpm-user="$php_fpm_user" \
         --project-dir="$project_dir" \
+        --project-name="$project_name" \
+        --project-parent-name="$project_parent_name" \
+        --url-scheme="$url_scheme" \
+        --url-host="$url_host" \
+        --url-port="$url_port" \
+        --url-path="$url_path" \
         ; [ ! $? -eq 0 ] && x
 
-    chapter Mengecek '$PATH'.
-    code PATH="$PATH"
-    if grep -q '/snap/bin' <<< "$PATH";then
-      __ '$PATH' sudah lengkap.
-    else
-      __ '$PATH' belum lengkap.
-      __ Memperbaiki '$PATH'
-      PATH=/snap/bin:$PATH
-        if grep -q '/snap/bin' <<< "$PATH";then
-            __; green '$PATH' sudah lengkap.; _.
-            __; magenta PATH="$PATH"; _.
-        else
-            __; red '$PATH' belum lengkap.; x
-        fi
-    fi
+    chapter Flush cache.
+    code drush cache:rebuild --uri="$url"
+    sudo -u "$php_fpm_user" PATH="${project_dir}/drupal/vendor/bin":$PATH $env -s \
+        drush cache:rebuild --uri="$url"
     ____
+fi
 
-    INDENT+="    " \
-    PATH=$PATH \
-    rcm-certbot-deploy-nginx $isfast \
-        --domain="${domain}" \
-        ; [ ! $? -eq 0 ] && x
+if [ -n "$url" ];then
+    chapter Saving URL information.
+    code mkdir -p '"'$url_dirname_website_info'"'
+    mkdir -p "$url_dirname_website_info"
+    cat << EOF >> "${url_dirname_website_info}/website"
+URL_DRUPAL=$url
+EOF
+    fileMustExists "${url_dirname_website_info}/website"
+    ____
 fi
 
 INDENT+="    " \
 rcm-drupal-setup-drush-alias $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
-    --domain="$domain" \
+    --url-scheme="$url_scheme" \
+    --url-host="$url_host" \
+    --url-port="$url_port" \
+    --url-path="$url_path" \
     && INDENT+="    " \
 rcm-drupal-setup-internal-command-cd-drupal $isfast \
     && INDENT+="    " \
@@ -411,15 +562,17 @@ exit 0
 # --fast
 # --version
 # --help
-# --domain-strict
-# --auto-add-group
+# --no-sites-default
+# --no-auto-add-group
+# --no-drush-install
 # )
 # VALUE=(
 # --project-name
 # --project-parent-name
 # --drupal-version
+# --drupalcms-version
 # --php-version
-# --domain
+# --url
 # --php-fpm-user
 # --prefix
 # --project-container
