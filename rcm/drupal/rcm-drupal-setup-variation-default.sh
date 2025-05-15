@@ -6,14 +6,16 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
-        --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
+        --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
+        --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
         --no-auto-add-group) no_auto_add_group=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
+        --php-fpm-config=*) php_fpm_config+=("${1#*=}"); shift ;;
+        --php-fpm-config) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_config+=("$2"); shift; fi; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
@@ -128,6 +130,17 @@ Options:
         Set the Unix user that used by PHP FPM.
         Default value is the user that used by web server (the common name is www-data).
         If the user does not exists, it will be autocreate as reguler user.${users}
+   --php-fpm-config
+        Additional PHP-FPM Configuration inside pool directory.
+        Available value: [1], [2], [3], [4], [5], [6], [7], or other.
+        [1]: pm=ondemand
+        [2]: php_flag[display_errors]=on
+        [3]: php_value[max_execution_time]=300
+        [4]: php_admin_value[memory_limit]=256M
+        [5]: php_admin_value[upload_max_filesize]=25M
+        [6]: php_admin_value[post_max_size]=1024M
+        [7]: php_admin_flag[log_errors]=on
+        Multivalue.
    --no-drush-install ^
         If selected, installation will continue to the browser.
         If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
@@ -390,6 +403,25 @@ fi
 code 'prefix="'$prefix'"'
 code 'no_drush_install="'$no_drush_install'"'
 [ -n "$no_drush_install" ] && is_drush_install='' || is_drush_install=' --drush-install'
+if [ -n "$is_wsl" ];then
+    # Jika mesin menggunakan WSL2, maka tambahkan max_execution_time (waktu proses)
+    php_fpm_config=(pm=ondemand php_value[max_execution_time]=60 "${php_fpm_config[@]}")
+fi
+is_config_line=
+is_config_line_array=()
+# Dump array dengan single quote.
+e; magenta 'php_fpm_config=('
+first=1
+for each in "${php_fpm_config[@]}";do
+    if [ -n "$first" ];then
+        magenta "'""$each""'"; first=
+    else
+        magenta " '""$each""'";
+    fi
+    [[ "$each" =~ ' ' ]] && is_config_line+=" --config-line='${each}'" || is_config_line+=" --config-line=${each}"
+    is_config_line_array+=("--config-line=${each}")
+done
+magenta ')'; _.
 ____
 
 INDENT+="    " \
@@ -434,8 +466,16 @@ if [ -n "$is_wsl" ];then
         ; [ ! $? -eq 0 ] && x
 fi
 
+# Contoh jika terdapat kasus sbb:
+# --config-line='php_flag[display_errors] = on'
+# Tidak bisa pakai cara dibawah ini jika terdapat karakter spasi.
+# INDENT+="    " \
+# rcm-php-fpm-setup-project-config $isfast \
+#   $is_config_line \
+# Namun bisa jika menggunakan array yang diwrap dengan double quote.
 INDENT+="    " \
 rcm-php-fpm-setup-project-config $isfast \
+    "${is_config_line_array[@]}" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
     --project-name="$project_name" \
@@ -578,6 +618,7 @@ exit 0
 # --project-container
 # )
 # MULTIVALUE=(
+# --php-fpm-config
 # )
 # FLAG_VALUE=(
 # )
