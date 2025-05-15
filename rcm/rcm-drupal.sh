@@ -127,7 +127,7 @@ Global Options.
         Every arguments after double dash will pass to rcm-drupal-setup-variation-* command.
 
 Dependency:
-   rcm:0.16.2
+   rcm:0.16.25
 
 Download:
    [rcm-drupal-setup-variation-default](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-variation-default.sh)
