@@ -10,6 +10,8 @@ while [[ $# -gt 0 ]]; do
         --existing-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
+        --php-fpm-config=*) php_fpm_config+=("${1#*=}"); shift ;;
+        --php-fpm-config) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_config+=("$2"); shift; fi; shift ;;
         --sub-project-name=*) project_name="${1#*=}"; shift ;;
         --sub-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --url=*) url="${1#*=}"; shift ;;
@@ -66,6 +68,17 @@ Options:
         Add Drupal public domain. The value can be domain or URL.
         Drupal automatically has address at http://<subproject>.<project>.drupal.localhost/.
         Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
+   --php-fpm-config
+        Additional PHP-FPM Configuration inside pool directory.
+        Available value: [1], [2], [3], [4], [5], [6], [7], or other.
+        [1]: pm=ondemand
+        [2]: php_flag[display_errors]=on
+        [3]: php_value[max_execution_time]=300
+        [4]: php_admin_value[memory_limit]=256M
+        [5]: php_admin_value[upload_max_filesize]=25M
+        [6]: php_admin_value[post_max_size]=1024M
+        [7]: php_admin_flag[log_errors]=on
+        Multivalue.
    --no-drush-install ^
         If selected, installation will continue to the browser.
         If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
@@ -326,6 +339,25 @@ url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${projec
 code 'url_dirname_website_info="'$url_dirname_website_info'"'
 code 'no_drush_install="'$no_drush_install'"'
 [ -n "$no_drush_install" ] && is_drush_install='' || is_drush_install=' --drush-install'
+if [ -n "$is_wsl" ];then
+    # Jika mesin menggunakan WSL2, maka tambahkan max_execution_time (waktu proses)
+    php_fpm_config=(pm=ondemand php_value[max_execution_time]=60 "${php_fpm_config[@]}")
+fi
+is_config_line=
+is_config_line_array=()
+# Dump array dengan single quote.
+e; magenta 'php_fpm_config=('
+first=1
+for each in "${php_fpm_config[@]}";do
+    if [ -n "$first" ];then
+        magenta "'""$each""'"; first=
+    else
+        magenta " '""$each""'";
+    fi
+    [[ "$each" =~ ' ' ]] && is_config_line+=" --config-line='${each}'" || is_config_line+=" --config-line=${each}"
+    is_config_line_array+=("--config-line=${each}")
+done
+magenta ')'; _.
 ____
 
 if [ -n "$url" ];then
@@ -382,8 +414,16 @@ if [ -n "$is_wsl" ];then
         ; [ ! $? -eq 0 ] && x
 fi
 
+# Contoh jika terdapat kasus sbb:
+# --config-line='php_flag[display_errors] = on'
+# Tidak bisa pakai cara dibawah ini jika terdapat karakter spasi.
+# INDENT+="    " \
+# rcm-php-fpm-setup-project-config $isfast \
+#   $is_config_line \
+# Namun bisa jika menggunakan array yang diwrap dengan double quote.
 INDENT+="    " \
 rcm-php-fpm-setup-project-config $isfast \
+    "${is_config_line_array[@]}" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
     --project-name="$project_name" \
@@ -476,6 +516,7 @@ exit 0
 # --url
 # )
 # MULTIVALUE=(
+# --php-fpm-config
 # )
 # FLAG_VALUE=(
 # )
