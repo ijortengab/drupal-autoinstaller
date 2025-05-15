@@ -10,6 +10,8 @@ while [[ $# -gt 0 ]]; do
         --no-auto-add-group) no_auto_add_group=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
+        --php-fpm-config=*) php_fpm_config+=("${1#*=}"); shift ;;
+        --php-fpm-config) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_config+=("$2"); shift; fi; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --prefix=*) prefix="${1#*=}"; shift ;;
@@ -93,6 +95,17 @@ Options:
         Set the Unix user that used by PHP FPM.
         Default value is the user that used by web server (the common name is www-data).
         If the user does not exists, it will be autocreate as reguler user.${users}
+   --php-fpm-config
+        Additional PHP-FPM Configuration inside pool directory.
+        Available value: [1], [2], [3], [4], [5], [6], [7], or other.
+        [1]: pm=ondemand
+        [2]: php_flag[display_errors]=on
+        [3]: php_value[max_execution_time]=300
+        [4]: php_admin_value[memory_limit]=256M
+        [5]: php_admin_value[upload_max_filesize]=25M
+        [6]: php_admin_value[post_max_size]=1024M
+        [7]: php_admin_flag[log_errors]=on
+        Multivalue.
    --no-drush-install ^
         If selected, installation will continue to the browser.
         If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
@@ -243,6 +256,21 @@ fi
 code 'prefix="'$prefix'"'
 code 'no_drush_install="'$no_drush_install'"'
 [ -n "$no_drush_install" ] && is_no_drush_install=' --no-drush-install' || is_no_drush_install=''
+is_php_fpm_config=
+is_php_fpm_config_array=()
+# Dump array dengan single quote.
+e; magenta 'php_fpm_config=('
+first=1
+for each in "${php_fpm_config[@]}";do
+    if [ -n "$first" ];then
+        magenta "'""$each""'"; first=
+    else
+        magenta " '""$each""'";
+    fi
+    [[ "$each" =~ ' ' ]] && is_php_fpm_config+=" --php-fpm-config='${each}'" || is_php_fpm_config+=" --php-fpm-config=${each}"
+    is_php_fpm_config_array+=("--php-fpm-config=${each}")
+done
+magenta ')'; _.
 ____
 
 INDENT+="    " \
@@ -266,6 +294,7 @@ rcm-drupal-setup-variation-bundle $isfast \
     --project-parent-name="$project_parent_name" \
     --url="$url" \
     --php-fpm-user="$php_fpm_user" \
+    "${is_php_fpm_config_array[@]}" \
     --prefix="$prefix" \
     --project-container="$project_container" \
     ; [ ! $? -eq 0 ] && x
@@ -302,6 +331,7 @@ exit 0
 # --variation
 # )
 # MULTIVALUE=(
+# --php-fpm-config
 # )
 # FLAG_VALUE=(
 # )
