@@ -7,6 +7,7 @@ while [[ $# -gt 0 ]]; do
         --help) help=1; shift ;;
         --version) version=1; shift ;;
         --auto-add-group) auto_add_group=1; shift ;;
+        --composer-offline) composer_offline=1; shift ;;
         --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
         --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
@@ -1042,6 +1043,7 @@ code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
 code 'MARIADB_PREFIX="'$MARIADB_PREFIX'"'
 code 'MARIADB_USERS_DIRNAME="'$MARIADB_USERS_DIRNAME'"'
 code 'drush_install="'$drush_install'"'
+code 'composer_offline="'$composer_offline'"'
 ____
 
 chapter Mengecek PHP-FPM User.
@@ -1315,7 +1317,14 @@ fi
 # sehingga kita ubah $HOME menjadi di /tmp
 env=
 if [[ "$nginx_user" == "$php_fpm_user" ]];then
-    env='HOME=/tmp -E'
+    env+=' HOME=/tmp'
+fi
+if [ -n "$env" ];then
+    env+=' -E'
+fi
+composer_env=
+if [ -n "$composer_offline" ];then
+    composer_env+='COMPOSER_DISABLE_NETWORK=1 '
 fi
 ____
 
@@ -1345,8 +1354,8 @@ if [ -n "$notfound" ];then
     # sudo -u $user_nginx HOME='/tmp' -s composer create-project --no-install $package drupal $drupal_version
     # Alternative menggunakan code dibawah ini.
     # Credit: https://stackoverflow.com/a/8633575
-    code sudo -u $php_fpm_user $env bash -c '"'composer create-project${composer_options} ${package}:${package_version_normalized} drupal'"'
-    sudo -u "$php_fpm_user" $env bash -c "composer create-project${composer_options} ${package}:${package_version_normalized} drupal"
+    code sudo -u $php_fpm_user $env bash -c '"'${composer_env}composer create-project${composer_options} ${package}:${package_version_normalized} drupal'"'
+    sudo -u "$php_fpm_user" $env bash -c "${composer_env}composer create-project${composer_options} ${package}:${package_version_normalized} drupal"
     cd - >/dev/null
     fileMustExists "${project_dir}/drupal/composer.json"
     ____
@@ -1368,8 +1377,8 @@ ____
 if [ -n "$notfound" ];then
     chapter Mendownload dependencies menggunakan Composer.
     cd "${project_dir}/drupal"
-    code sudo -u $php_fpm_user $env bash -c '"'composer -v install'"'
-    sudo -u "$php_fpm_user" $env bash -c "composer -v install"
+    code sudo -u $php_fpm_user $env bash -c '"'${composer_env}composer -v install'"'
+    sudo -u "$php_fpm_user" $env bash -c "${composer_env}composer -v install"
     cd - >/dev/null
     ____
 fi
@@ -1390,8 +1399,8 @@ if [ -n "$notfound" ];then
     chapter Memasang '`'Drush'`' menggunakan Composer.
     cd "${project_dir}/drupal"
     # sudo -u "$php_fpm_user" HOME='/tmp' -s composer -v require drush/drush
-    code sudo -u $php_fpm_user $env bash -c '"'composer -v require drush/drush'"'
-    sudo -u "$php_fpm_user" $env bash -c "composer -v require drush/drush"
+    code sudo -u $php_fpm_user $env bash -c '"'${composer_env}composer -v require drush/drush'"'
+    sudo -u "$php_fpm_user" $env bash -c "${composer_env}composer -v require drush/drush"
     if [ -f "${project_dir}/drupal/vendor/bin/drush" ];then
         __; green Binary Drush is exists.
     else
@@ -1721,6 +1730,7 @@ exit 0
 # --no-sites-default
 # --auto-add-group
 # --drush-install
+# --composer-offline
 # )
 # VALUE=(
 # --drupal-version
