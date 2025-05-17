@@ -84,6 +84,28 @@ printHelp() {
         nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
     fi
     [ -n "$nginx_user" ] && { nginx_user=" ${nginx_user},"; }
+    # Populate variable $single_line and $multi_line.
+    unset count
+    declare -i count
+    count=0
+    single_line=
+    multi_line=
+    while read line;do
+        if [ -d /etc/php/$line/fpm ];then
+            if [ $count -gt 0 ];then
+                single_line+=", "
+            fi
+            count+=1
+            single_line+="[${count}]"
+            multi_line+=$'\n''        '"[${count}]: "${line}
+        fi
+    done <<< `ls /etc/php/`
+    if [ -n "$single_line" ];then
+        single_line=" Available values: ${single_line}, or other."
+    fi
+    if [ -n "$multi_line" ];then
+        multi_line="$multi_line"
+    fi
     cat << EOF
 Usage: rcm-drupal-autoinstaller-nginx [options]
 
@@ -95,9 +117,7 @@ Options:
   --project-dir *
         Set the project directory. Absolute path.
    --php-version *
-        Set the version of PHP. Available values: [a], [b], or other.
-        [a]: 8.2
-        [b]: 8.3
+        Set the version of PHP.${single_line}${multi_line}
    --drupal-version *
         Set the version of Drupal.
    --php-fpm-user
