@@ -117,6 +117,7 @@ Other options (For expert only):
         Default to drupal-projects.
    --project-parent-name
         Set the project parent name. The parent is not have to installed before.
+        Value available from command: ls-drupal(), or other.
    --no-sites-default ^
         Prevent installing drupal inside directory sites/default.
         Drupal will install inside sites/[<project-parent-name>--]<project-name>.
