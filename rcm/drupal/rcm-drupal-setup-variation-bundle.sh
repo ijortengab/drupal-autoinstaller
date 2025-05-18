@@ -10,6 +10,7 @@ while [[ $# -gt 0 ]]; do
         --no-auto-add-group) no_auto_add_group=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
+        --offline) offline=1; shift ;;
         --php-fpm-config=*) php_fpm_config+=("${1#*=}"); shift ;;
         --php-fpm-config) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_config+=("$2"); shift; fi; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
@@ -124,6 +125,9 @@ Other options (For expert only):
    --no-auto-add-group ^
         By default, if Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
         Use this flag to omit that default action.
+   --offline ^
+        Set COMPOSER_DISABLE_NETWORK=1 to composer.
+        Use this if you want to repeat the installation of a project with different name that has been successfully installed before.
 
 Global Options.
    --fast
@@ -946,6 +950,8 @@ fi
 code 'prefix="'$prefix'"'
 code 'no_drush_install="'$no_drush_install'"'
 [ -n "$no_drush_install" ] && is_drush_install='' || is_drush_install=' --drush-install'
+code 'offline="'$offline'"'
+[ -n "$offline" ] && is_composer_offline=' --composer-offline' || is_composer_offline=''
 if [ -n "$is_wsl" ];then
     # Jika mesin menggunakan WSL2, maka tambahkan max_execution_time (waktu proses)
     php_fpm_config=(pm=ondemand php_value[max_execution_time]=60 "${php_fpm_config[@]}")
@@ -1063,6 +1069,7 @@ rcm-drupal-autoinstaller-nginx $isfast \
     $is_auto_add_group \
     $is_no_sites_default \
     $is_drush_install \
+    $is_composer_offline \
     --drupal-version="$drupal_version" \
     --drupalcms-version="$drupalcms_version" \
     --php-version="$php_version" \
@@ -1149,6 +1156,7 @@ exit 0
 # --no-sites-default
 # --no-auto-add-group
 # --no-drush-install
+# --offline
 # )
 # VALUE=(
 # --project-name
