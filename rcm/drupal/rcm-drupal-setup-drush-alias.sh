@@ -457,6 +457,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --version) version=1; shift ;;
         --url) url=1; shift ;;
+        --export) export=1; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -470,19 +471,35 @@ printVersion() {
 printUrl() {
     echo '__URI__'
 }
-[ -n "$version" ] && { printVersion; exit 1; }
-[ -n "$url" ] && { printUrl; exit 1; }
-
-[[ -f "$0" && ! "$0" == $(command -v bash) ]] && { echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m"; exit 1; }
+# global PROJECT_ROOT SITE
+printExport() {
+    local root config php_version drupal_version
+    root=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=root)
+    config=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=config)
+    if [[ ! "${config:0:1}" == / ]];then
+        config="${root}/${config}"
+    fi
+    drupal_version=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=drupal-version)
+    php_version=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=php-version)
+    echo "drupal_config=${config}"
+    echo "drupal_version=${drupal_version}"
+    echo "php_version=${php_version}"
+}
 DRUPAL_PREFIX=__DRUPAL_PREFIX__
 DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
 PROJECT_ROOT=__PROJECT_ROOT__
+SITE=__URI__
 _target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${PROJECT_ROOT}/drupal"
 _dereference=$(stat "$_target" -c %N)
 PROJECT_ROOT=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
+[ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$url" ] && { printUrl; exit 1; }
+[ -n "$export" ] && { printExport; exit 1; }
+
+[[ -f "$0" && ! "$0" == $(command -v bash) ]] && { echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m"; exit 1; }
 echo
 echo -n Waiting...
-export SITE=__URI__
+export SITE="$SITE"
 export PROJECT_ROOT="$PROJECT_ROOT"
 export SITE_DIR=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=site)
 export WEB_ROOT=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=root)
