@@ -357,7 +357,7 @@ printVersion() {
 }
 printHelp() {
     cat << 'EOL'
-Usage: . cd-drupal
+Usage: . cd-drupal [filter1]... [ -- [filter2]...]
 
        Change the shell working directory to Drupal Project, set and export some
        environment variable about Drupal, and set drush alias.
@@ -367,6 +367,18 @@ Options:
         Print version of this script.
    --help
         Show this help.
+
+Operands:
+   filter1
+        Filter project by word. Prefix filter with dash, means negate.
+   filter2
+        Filter sites by word. Prefix filter with dash, means negate.
+
+Example:
+  . cd-drupal org -jak -- localhost
+        Filter project that contains word org, then filter project that not
+        contains word jak, then filter sites that contains word localhost
+
 EOL
 }
 # Help and Version.
@@ -385,7 +397,34 @@ source=()
 [ ! -d "$path" ] && {
     echo -e "\e[91m""There's no Drupal Directory Project: ${path}" "\e[39m";
 } || {
-    source=(`ls "$path"`)
+    if [ $# -eq 0 ];then
+        source=(`ls "$path"`)
+    else
+        command="ls \"$path\""
+        _new_arguments=()
+        while [[ $# -gt 0 ]]; do
+            case  "$1" in
+                -[^-]*)
+                    command+=" | grep -F -v \"${1:1}\""
+                    shift
+                    ;;
+                --) shift
+                    while [[ $# -gt 0 ]]; do
+                        case "$1" in
+                            *) _new_arguments+=("$1"); shift ;;
+                        esac
+                    done
+                    ;;
+                *)
+                    command+=" | grep -F \"$1\""
+                    shift
+                    ;;
+            esac
+        done
+        set -- "${_new_arguments[@]}"
+        unset _new_arguments
+        source=(`bash -c "$command"`)
+    fi
 }
 [ "${#source[@]}" -eq 0 ] && echo -e There are no Drupal project available. || {
     echo -e There are Drupal project available. Press the "\e[93m"yellow"\e[39m" number key to select.
@@ -435,20 +474,47 @@ source=()
     unset count
     declare -i count
     count=0
-    source=()
-    while read line; do
-        if [ "${#source[@]}" -eq 0 ];then
-            echo -e There are Site available. Press the "\e[93m"yellow"\e[39m" number key to select.
-        fi
-        count+=1
-        line_url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${line}" --url)
-        if [ $count -lt 10 ];then
-            echo -ne '['"\e[93m"$count"\e[39m"']' "$line_url" "\n"
-        else
-            echo '['$count']' "$line_url"
-        fi
-        source+=("$line")
-    done <<< `ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"`
+    path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
+    if [ $# -eq 0 ];then
+        source=(`ls "$path"`)
+    else
+        command="ls \"$path\""
+        _new_arguments=()
+        while [[ $# -gt 0 ]]; do
+            case  "$1" in
+                -[^-]*)
+                    command+=" | grep -F -v \"${1:1}\""
+                    shift
+                    ;;
+                --) shift
+                    while [[ $# -gt 0 ]]; do
+                        case "$1" in
+                            *) _new_arguments+=("$1"); shift ;;
+                        esac
+                    done
+                    ;;
+                *)
+                    command+=" | grep -F \"$1\""
+                    shift
+                    ;;
+            esac
+        done
+        set -- "${_new_arguments[@]}"
+        unset _new_arguments
+        source=(`bash -c "$command"`)
+    fi
+    if [ "${#source[@]}" -gt 0 ];then
+        echo -e There are Site available. Press the "\e[93m"yellow"\e[39m" number key to select.
+        for line in "${source[@]}"; do
+            count+=1
+            line_url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${line}" --url)
+            if [ $count -lt 10 ];then
+                echo -ne '['"\e[93m"$count"\e[39m"']' "$line_url" "\n"
+            else
+                echo '['$count']' "$line_url"
+            fi
+        done
+    fi
     count_max="${#source[@]}"
     if [ $count_max -gt 9 ];then
         count_max=9
@@ -485,29 +551,29 @@ source=()
         done
         value_url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${value}" --url)
         echo -e Site "\e[93m""$value_url""\e[39m" selected.
-    fi
-    echo
-    echo -e We will execute: "\e[95m". cd-drupal-${value}"\e[39m"
-    echo -ne '['"\e[93m"Esc"\e[39m"']' "\e[93m"Q"\e[39m"uit. "\n"
-    echo -ne '['"\e[93m"Enter"\e[39m"']' Continue. "\n"
-    exe=
-    while true; do
-        read -rsn 1 -p "Select: " char;
-        if [ -z "$char" ];then
-            printf "\r\033[K" >&2
-            exe=1
-            break
-        fi
-        case $char in
-            $'\33') echo "q"; break ;;
-            q|Q) echo "$char"; break ;;
-            *) echo
-        esac
-    done
-    if [ -n "$exe" ];then
         echo
-        echo -e "\e[95m". cd-drupal-${value}"\e[39m"
-        . cd-drupal-${value}
+        echo -e We will execute: "\e[95m". cd-drupal-${value}"\e[39m"
+        echo -ne '['"\e[93m"Esc"\e[39m"']' "\e[93m"Q"\e[39m"uit. "\n"
+        echo -ne '['"\e[93m"Enter"\e[39m"']' Continue. "\n"
+        exe=
+        while true; do
+            read -rsn 1 -p "Select: " char;
+            if [ -z "$char" ];then
+                printf "\r\033[K" >&2
+                exe=1
+                break
+            fi
+            case $char in
+                $'\33') echo "q"; break ;;
+                q|Q) echo "$char"; break ;;
+                *) echo
+            esac
+        done
+        if [ -n "$exe" ];then
+            echo
+            echo -e "\e[95m". cd-drupal-${value}"\e[39m"
+            . cd-drupal-${value}
+        fi
     fi
 }
 EOF
