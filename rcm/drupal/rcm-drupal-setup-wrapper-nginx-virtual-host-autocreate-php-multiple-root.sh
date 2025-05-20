@@ -452,7 +452,7 @@ nginx_user_home=$(getent passwd "$nginx_user" | cut -d: -f6 )
 prefix="${project_dir}"
 code 'prefix="'$prefix'"'
 root="${prefix}/drupal/web"
-____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name"  --project-parent-name="$project_parent_name" get listen)
+____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name"  --project-parent-name="$project_parent_name" --config-suffix-name="drupal" get listen)
 if [ -z "$socket_filename" ];then
     __; red Socket Filename of PHP-FPM not found.; x
 fi
