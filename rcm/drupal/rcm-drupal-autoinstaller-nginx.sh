@@ -40,6 +40,13 @@ done
 set -- "${_new_arguments[@]}"
 unset _new_arguments
 
+# Command.
+if [ -n "$1" ];then
+    case "$1" in
+        drupal-version-available|drupalcms-version-available) command="$1"; shift ;;
+    esac
+fi
+
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -79,12 +86,15 @@ printHelp() {
     _ 'Variation '; yellow Nginx PHP-FPM; _.
     _ 'Version '; yellow `printVersion`; _.
     _.
+    # Populate variable $users.
+    users=`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','`
     nginx_user=
-    conf_nginx=`command -v nginx > /dev/null && command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
+    conf_nginx=`command -v nginx > /dev/null && nginx -V 2>&1 | grep -o -P -- '--conf-path=\K(\S+)'`
     if [ -f "$conf_nginx" ];then
         nginx_user=`grep -o -P '^user\s+\K([^;]+)' "$conf_nginx"`
     fi
     [ -n "$nginx_user" ] && { nginx_user=" ${nginx_user},"; }
+    [ -n "$users" ] && users=" Available values:${nginx_user}${users} or other."
     # Populate variable $single_line and $multi_line.
     unset count
     declare -i count
@@ -111,20 +121,46 @@ printHelp() {
 Usage: rcm-drupal-autoinstaller-nginx [options]
 
 Options:
+   --drupal-cms ^
+        Install Drupal CMS instead of Drupal core.
+   --drupal-version *
+        Set the version of Drupal. Values available from command: rcm-drupal-autoinstaller-nginx(drupal-version-available [--drupal-cms]), or other.
+   --drupalcms-version *
+        Set the version of Drupal. Values available from command: rcm-drupal-autoinstaller-nginx(drupalcms-version-available [--drupal-cms]), or other.
    --project-name *
-        Set the project name. This should be in machine name format.
-   --project-parent-name
-        Set the project parent name. The parent is not have to installed before.
+        Set the project name as identifier.
+        Allowed characters are a-z, 0-9, and underscore (_).
   --project-dir *
         Set the project directory. Absolute path.
    --php-version *
         Set the version of PHP.${single_line}${multi_line}
-   --drupal-version *
-        Set the version of Drupal.
    --php-fpm-user
-        Set the Unix user that used by PHP FPM. Default value is the user that used by web server. Available values:${nginx_user}`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','` or other. If the user does not exists, it will be autocreate as reguler user.
+        Set the Unix user that used by PHP FPM.
+        Default value is the user that used by web server (the common name is www-data).
+        If the user does not exists, it will be autocreate as reguler user.${users}
+   --drush-install ^
+        If selected, installation will use drush instead of browser.
+        If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
+
+Other options (For expert only):
+   --project-parent-name
+        Set the project parent name. The parent is not have to installed before.
+        Value available from command: ls-drupal(), or other.
    --auto-add-group ^
         If Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
+   --no-sites-default ^
+        Prevent installing drupal inside directory sites/default.
+        Drupal will install inside sites/[<project-parent-name>--]<project-name>.
+   --composer-offline ^
+        Set COMPOSER_DISABLE_NETWORK=1 to composer.
+   --url-scheme
+        Additional URL, scheme component.
+   --url-host
+        Additional URL, host component.
+   --url-port
+        Additional URL, port component.
+   --url-path
+        Additional URL, path component.
 
 Global Options.
    --fast
@@ -167,6 +203,26 @@ EOF
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
+
+command-drupal-version-available() {
+    if [ "$1" == 1 ];then
+        exit 1
+    fi
+    echo 10
+    echo 11
+}
+command-drupalcms-version-available() {
+    if [ "$1" == 0 ];then
+        exit 1
+    fi
+    echo 1
+}
+
+# Execute command.
+if [[ -n "$command" && $(type -t "command-${command}") == function ]];then
+    command-${command} "$@"
+    exit 0
+fi
 
 # Title.
 title rcm-drupal-autoinstaller-nginx
