@@ -362,19 +362,27 @@ printVersion() {
 printHelp() {
     cat << 'EOL'
 Usage: ls-drupal
-       ls-drupal [options]
-       ls-drupal [project]
+       ls-drupal
+       ls-drupal [project] [[filter]...]
        ls-drupal -
 
-       List the domain by [project].
+       List the sites url by [project].
        If [project] omitted, it will list the project name.
-       Set [project] with - (dash), it will list all domain.
+       Set [project] with - (dash), it will list all site url.
 
 Options:
    --version
         Print version of this script.
    --help
         Show this help.
+
+Operands:
+   filter
+        Filter site url by word. Prefix filter with dash, means negate.
+
+Example:
+   ls-drupal - -localhost
+        List all site url without contains word: localhost.
 EOL
 }
 
@@ -389,19 +397,64 @@ DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
 whoami=`whoami`
 [ "$EUID" -eq 0 ] && path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" || \
     path="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${whoami}/projects"
-project_name="$1"; shift
-if [ -z "$project_name" ];then
+project_dir="$1"; shift
+sites=()
+if [ -z "$project_dir" ];then
     ls "$path"
+elif [ "$project_dir" == '-' ];then
+    while read line; do
+        path2="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${line}/${DRUPAL_SITES_DIRNAME}"
+        if [ -d "$path2" ];then
+            source=(`ls "$path2"`)
+            for line2 in "${source[@]}"; do
+                url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${line}/${DRUPAL_SITES_DIRNAME}/${line2}" --url)
+                sites+=("$url")
+            done
+        fi
+    done <<< `ls "$path"`
+elif [ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}" ];then
+    path2="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
+    source=(`ls "$path2"`)
+    for line in "${source[@]}"; do
+        url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${line}" --url)
+        sites+=("$url")
+    done
+fi
+if [ $# -eq 0 ];then
+    for site in "${sites[@]}"; do
+        echo "$site"
+    done
 else
-    case "$project_name" in
-        -)
-            while read line; do
-                ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${line}/${DRUPAL_SITES_DIRNAME}"
-            done <<< `ls "$path"`
-            ;;
-        *)
-            ls "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_name}/${DRUPAL_SITES_DIRNAME}"
-    esac
+    _new_arguments=()
+    while [[ $# -gt 0 ]]; do
+        case  "$1" in
+            -[^-]*)
+                command+=" | grep -F -v \"${1:1}\""
+                shift
+                ;;
+            --) shift
+                while [[ $# -gt 0 ]]; do
+                    case "$1" in
+                        *) _new_arguments+=("$1"); shift ;;
+                    esac
+                done
+                ;;
+            *)
+                command+=" | grep -F \"$1\""
+                shift
+                ;;
+        esac
+    done
+    string=
+    set -- "${sites[@]}"
+    while [[ $# -gt 0 ]]; do
+        string+="$1"
+        shift
+        if [ $# -gt 0 ];then
+            string+=$'\n'
+        fi
+    done
+    echo "$string" | bash -c "cat - ${command}"
 fi
 EOF
     sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
