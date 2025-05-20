@@ -114,9 +114,9 @@ Options:
    --drupal-cms ^
         Install Drupal CMS instead of Drupal core.
    --drupal-version *
-        Set the version of Drupal. Values available from command: rcm-drupal-setup-variation-default(drupal-version-available [--drupal-cms]).
+        Set the version of Drupal. Values available from command: rcm-drupal-setup-variation-default(drupal-version-available [--drupal-cms]), or other.
    --drupalcms-version *
-        Set the version of Drupal. Values available from command: rcm-drupal-setup-variation-default(drupalcms-version-available [--drupal-cms]).
+        Set the version of Drupal. Values available from command: rcm-drupal-setup-variation-default(drupalcms-version-available [--drupal-cms]), or other.
    --php-version *
         Set the version of PHP.${single_line}${multi_line}
    --project-name *
