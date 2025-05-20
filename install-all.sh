@@ -30,3 +30,7 @@ while read line; do
     echo ln -sf '"''$__DIR__'/"$line"'"' '"'$(basename "$line" | sed s,\.sh$,,)'"'
     ln -sf "$PWD/$line" /usr/local/bin/$(basename "$line" | sed s,\.sh$,,)
 done <<< `find * -mindepth 1 -type f -name '*.sh'`
+
+# Update cd-drupal and ls-drupal
+rcm-drupal-setup-internal-command-cd-drupal
+rcm-drupal-setup-internal-command-ls-drupal
