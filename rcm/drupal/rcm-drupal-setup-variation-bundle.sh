@@ -6,6 +6,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
+        --certificate-name=*) certificate_name="${1#*=}"; shift ;;
+        --certificate-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then certificate_name="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
         --no-auto-add-group) no_auto_add_group=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
@@ -128,6 +130,8 @@ Other options (For expert only):
    --offline ^
         Set COMPOSER_DISABLE_NETWORK=1 to composer.
         Use this if you want to repeat the installation of a project with different name that has been successfully installed before.
+   --certificate-name
+        Use the existing certificate name that issued by Let's encrypt.
 
 Global Options.
    --fast
@@ -971,6 +975,7 @@ for each in "${php_fpm_config[@]}";do
     is_config_line_array+=("--config-line=${each}")
 done
 magenta ')'; _.
+code 'certificate_name="'$certificate_name'"'
 ____
 
 INDENT+="    " \
@@ -1097,6 +1102,7 @@ if [ -n "$url" ];then
         --url-host="$url_host" \
         --url-port="$url_port" \
         --url-path="$url_path" \
+        --certificate-name="$certificate_name" \
         ; [ ! $? -eq 0 ] && x
 
     chapter Flush cache.
@@ -1166,6 +1172,7 @@ exit 0
 # --prefix
 # --project-container
 # --variation
+# --certificate-name
 # )
 # MULTIVALUE=(
 # --php-fpm-config
