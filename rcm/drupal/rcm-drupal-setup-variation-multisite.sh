@@ -6,6 +6,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
+        --certificate-name=*) certificate_name="${1#*=}"; shift ;;
+        --certificate-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then certificate_name="$2"; shift; fi; shift ;;
         --existing-project-name=*) project_parent_name="${1#*=}"; shift ;;
         --existing-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
@@ -82,6 +84,10 @@ Options:
    --no-drush-install ^
         If selected, installation will continue to the browser.
         If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
+
+Other options (For expert only):
+   --certificate-name
+        Use the existing certificate name that issued by Let's encrypt.
 
 Global Options.
    --fast
@@ -339,9 +345,11 @@ url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${projec
 code 'url_dirname_website_info="'$url_dirname_website_info'"'
 code 'no_drush_install="'$no_drush_install'"'
 [ -n "$no_drush_install" ] && is_drush_install='' || is_drush_install=' --drush-install'
+# Multisite secara default pm nya adalah ondemand.
+php_fpm_config=(pm=ondemand "${php_fpm_config[@]}")
 if [ -n "$is_wsl" ];then
     # Jika mesin menggunakan WSL2, maka tambahkan max_execution_time (waktu proses)
-    php_fpm_config=(pm=ondemand php_value[max_execution_time]=60 "${php_fpm_config[@]}")
+    php_fpm_config=(php_value[max_execution_time]=60 "${php_fpm_config[@]}")
 fi
 is_config_line=
 is_config_line_array=()
@@ -358,6 +366,7 @@ for each in "${php_fpm_config[@]}";do
     is_config_line_array+=("--config-line=${each}")
 done
 magenta ')'; _.
+code 'certificate_name="'$certificate_name'"'
 ____
 
 if [ -n "$url" ];then
@@ -459,6 +468,7 @@ if [ -n "$url" ];then
         --url-host="$url_host" \
         --url-port="$url_port" \
         --url-path="$url_path" \
+        --certificate-name="$certificate_name" \
         ; [ ! $? -eq 0 ] && x
 
     chapter Flush cache.
@@ -514,6 +524,7 @@ exit 0
 # )
 # VALUE=(
 # --url
+# --certificate-name
 # )
 # MULTIVALUE=(
 # --php-fpm-config
