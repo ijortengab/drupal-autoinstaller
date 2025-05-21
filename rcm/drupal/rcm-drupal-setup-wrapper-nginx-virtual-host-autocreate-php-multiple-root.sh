@@ -6,6 +6,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
+        --certificate-name=*) certificate_name="${1#*=}"; shift ;;
+        --certificate-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then certificate_name="$2"; shift; fi; shift ;;
         --domain=*) domain="${1#*=}"; shift ;;
         --domain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then domain="$2"; shift; fi; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
@@ -436,6 +438,7 @@ if [ -z "$php_fpm_user" ];then
 fi
 code 'php_fpm_user="'$php_fpm_user'"'
 rcm_nginx_reload=
+code 'certificate_name="'$certificate_name'"'
 ____
 
 chapter Prepare arguments.
@@ -591,6 +594,7 @@ rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
     --slave-dirname="$slave_dirname" \
     --slave-fastcgi-pass="$slave_fastcgi_pass" \
     --slave-url-path="$slave_url_path" \
+    --master-certbot-certificate-name="$certificate_name" \
     ; [ ! $? -eq 0 ] && x
 
 chapter Solusi sementara untuk bug Drupal Core.
@@ -716,6 +720,7 @@ exit 0
 # --project-parent-name
 # --php-version
 # --php-fpm-user
+# --certificate-name
 # )
 # FLAG_VALUE=(
 # )
