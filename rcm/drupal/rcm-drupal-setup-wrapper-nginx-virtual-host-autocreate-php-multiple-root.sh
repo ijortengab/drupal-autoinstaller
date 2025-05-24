@@ -8,25 +8,13 @@ while [[ $# -gt 0 ]]; do
         --version) version=1; shift ;;
         --certificate-name=*) certificate_name="${1#*=}"; shift ;;
         --certificate-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then certificate_name="$2"; shift; fi; shift ;;
-        --domain=*) domain="${1#*=}"; shift ;;
-        --domain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then domain="$2"; shift; fi; shift ;;
-        --drupal-version=*) drupal_version="${1#*=}"; shift ;;
-        --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
-        --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
-        --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
-        --php-version=*) php_version="${1#*=}"; shift ;;
-        --php-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_version="$2"; shift; fi; shift ;;
+        --php-fpm-section=*) php_fpm_section="${1#*=}"; shift ;;
+        --php-fpm-section) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_section="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
         --php-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_version="$2"; shift; fi; shift ;;
         --project-dir=*) project_dir="${1#*=}"; shift ;;
         --project-dir) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_dir="$2"; shift; fi; shift ;;
-        --project-name=*) project_name="${1#*=}"; shift ;;
-        --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
-        --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
-        --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --subdomain=*) subdomain="${1#*=}"; shift ;;
-        --subdomain) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then subdomain="$2"; shift; fi; shift ;;
         --url-host=*) url_host="${1#*=}"; shift ;;
         --url-host) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_host="$2"; shift; fi; shift ;;
         --url-path=*) url_path="${1#*=}"; shift ;;
@@ -78,14 +66,21 @@ printHelp() {
 Usage: rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root [options]
 
 Options:
-   --subdomain
-        Set the subdomain if any.
-   --domain
-        Set the domain.
-   --project
-        Available value: ispconfig, phpmyadmin, roundcube.
-   --php-version
+   --project-dir *
+        The directory of drupal project.
+   --php-fpm-section *
+        Section pada file config di direktori pool PHP-FPM.
+   --php-version *
         Set the version of PHP FPM.
+   --url-scheme *
+        The URL Scheme. Available value: http, https.
+   --url-port *
+        The URL Port. Set the value of listen directive.
+   --url-host *
+        The URL Host. Set the value of server_name directive.
+        Only support one value even the directive may have multivalue.
+   --url-path
+        The URL Path.
 
 Global Options:
    --fast
@@ -276,20 +271,6 @@ backupDir() {
     fi
     mv "$oldpath" "$newpath"
 }
-validateMachineName() {
-    local value="$1" _value
-    local parameter="$2"
-    if [[ $value = *" "* ]];then
-        [ -n "$parameter" ]  && error "Variable $parameter can not contain space."
-        return 1;
-    fi
-    _value=$(sed -E 's|[^a-zA-Z0-9]|_|g' <<< "$value" | sed -E 's|_+|_|g' )
-    if [[ ! "$value" == "$_value" ]];then
-        error "Variable $parameter can only contain alphanumeric and underscores."
-        _ 'Suggest: '; yellow "$_value"; _.
-        return 1
-    fi
-}
 ArrayPop() {
     local index
     local source=("${!1}")
@@ -419,24 +400,18 @@ code 'url_host="'$url_host'"'
 code 'url_port="'$url_port'"'
 code 'url_path="'$url_path'"'
 code 'url_path_clean="'$url_path_clean'"'
+if [ -z "$php_version" ];then
+    error "Argument --php-version required."; x
+fi
 code 'php_version="'$php_version'"'
-if [ -z "$project_name" ];then
-    error "Argument --project-name required."; x
-fi
-code 'project_name="'$project_name'"'
-if ! validateMachineName "$project_name" project_name;then x; fi
-code 'project_parent_name="'$project_parent_name'"'
-if [ -n "$project_parent_name" ];then
-    if ! validateMachineName "$project_parent_name" project_parent_name;then x; fi
-fi
 if [ -z "$project_dir" ];then
     error "Argument --project-dir required."; x
 fi
 code 'project_dir="'$project_dir'"'
-if [ -z "$php_fpm_user" ];then
-    error "Argument --php-fpm-user required."; x
+if [ -z "$php_fpm_section" ];then
+    error "Argument --php-fpm-section required."; x
 fi
-code 'php_fpm_user="'$php_fpm_user'"'
+code 'php_fpm_section="'$php_fpm_section'"'
 rcm_nginx_reload=
 code 'certificate_name="'$certificate_name'"'
 ____
@@ -455,7 +430,7 @@ nginx_user_home=$(getent passwd "$nginx_user" | cut -d: -f6 )
 prefix="${project_dir}"
 code 'prefix="'$prefix'"'
 root="${prefix}/drupal/web"
-____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name"  --project-parent-name="$project_parent_name" --config-suffix-name="drupal" get listen)
+socket_filename=$(rcm-php-fpm-setup-project-config get --php-version="$php_version" --section="$php_fpm_section" --key=listen)
 if [ -z "$socket_filename" ];then
     __; red Socket Filename of PHP-FPM not found.; x
 fi
@@ -577,7 +552,25 @@ if [ -z "$tempfile" ];then
     tempfile=$(mktemp -p /dev/shm -t rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root.XXXXXX)
 fi
 
+chapter Mengecek '$PATH'.
+code PATH="$PATH"
+if grep -q '/snap/bin' <<< "$PATH";then
+    __ '$PATH' sudah lengkap.
+else
+    __ '$PATH' belum lengkap.
+    __ Memperbaiki '$PATH'
+    PATH=/snap/bin:$PATH
+    if grep -q '/snap/bin' <<< "$PATH";then
+        __; green '$PATH' sudah lengkap.; _.
+        __; magenta PATH="$PATH"; _.
+    else
+        __; red '$PATH' belum lengkap.; x
+    fi
+fi
+____
+
 INDENT+="    " \
+PATH=$PATH \
 rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
     --with-certbot-obtain \
     --without-nginx-reload \
@@ -707,19 +700,13 @@ exit 0
 # --help
 # )
 # VALUE=(
-# --domain
-# --subdomain
-# --php-version
 # --url-scheme
 # --url-host
 # --url-port
 # --url-path
-# --drupal-version
 # --project-dir
-# --project-name
-# --project-parent-name
 # --php-version
-# --php-fpm-user
+# --php-fpm-section
 # --certificate-name
 # )
 # FLAG_VALUE=(
