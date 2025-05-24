@@ -8,13 +8,15 @@ while [[ $# -gt 0 ]]; do
         --version) version=1; shift ;;
         --auto-add-group) auto_add_group=1; shift ;;
         --composer-offline) composer_offline=1; shift ;;
-        --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
-        --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
+        --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
+        --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
         --drush-install) drush_install=1; shift ;;
         --fast) fast=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
+        --php-fpm-section=*) php_fpm_section="${1#*=}"; shift ;;
+        --php-fpm-section) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_section="$2"; shift; fi; shift ;;
         --php-fpm-user=*) php_fpm_user="${1#*=}"; shift ;;
         --php-fpm-user) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_user="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
@@ -134,6 +136,8 @@ Options:
         Set the project directory. Absolute path.
    --php-version *
         Set the version of PHP.${single_line}${multi_line}
+   --php-fpm-section *
+        Set the PHP-FPM section name inside pool directory.
    --php-fpm-user
         Set the Unix user that used by PHP FPM.
         Default value is the user that used by web server (the common name is www-data).
@@ -1080,6 +1084,10 @@ if [ -z "$nginx_user" ];then
     error "Variable \$nginx_user failed to populate."; x
 fi
 code 'nginx_user="'$nginx_user'"'
+if [ -z "$php_fpm_section" ];then
+    error "Argument --php-fpm-section required."; x
+fi
+code 'php_fpm_section="'$php_fpm_section'"'
 if [ -z "$php_fpm_user" ];then
     error "Argument --php-fpm-user required."; x
 fi
@@ -1270,7 +1278,7 @@ fi
 ____
 
 chapter Prepare arguments.
-____; socket_filename=$(INDENT+="    " rcm-php-fpm-setup-project-config $isfast --php-version="$php_version" --php-fpm-user="$php_fpm_user" --project-name="$project_name" --project-parent-name="$project_parent_name" --config-suffix-name="drupal" get listen)
+socket_filename=$(rcm-php-fpm-setup-project-config get --php-version="$php_version" --section="$php_fpm_section" --key=listen)
 if [ -z "$socket_filename" ];then
     __; red Socket Filename of PHP-FPM not found.; x
 fi
@@ -1794,6 +1802,7 @@ exit 0
 # --php-version
 # --project-name
 # --project-parent-name
+# --php-fpm-section
 # --php-fpm-user
 # --project-dir
 # --url-scheme
