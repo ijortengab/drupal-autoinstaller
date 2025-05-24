@@ -14,10 +14,18 @@ while [[ $# -gt 0 ]]; do
         --no-drush-install) no_drush_install=1; shift ;;
         --php-fpm-config=*) php_fpm_config+=("${1#*=}"); shift ;;
         --php-fpm-config) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_config+=("$2"); shift; fi; shift ;;
+        --php-fpm-parent) php_fpm_parent=1; shift ;;
         --sub-project-name=*) project_name="${1#*=}"; shift ;;
         --sub-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --url=*) url="${1#*=}"; shift ;;
         --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
+        --) shift
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    *) _new_arguments+=("$1"); shift ;;
+                esac
+            done
+            ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -48,6 +56,15 @@ ____() { echo >&2; [ -n "$RCM_DELAY" ] && sleep "$RCM_DELAY"; }
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 
+# Command.
+command="$1"; shift
+if [ -n "$command" ];then
+    case "$command" in
+        config-line-suggestion) ;;
+        *) echo -e "\e[91m""Command ${command} is unknown.""\e[39m"; exit 1
+    esac
+fi
+
 # Functions.
 printVersion() {
     echo '0.11.31'
@@ -70,16 +87,11 @@ Options:
         Add Drupal public domain. The value can be domain or URL.
         Drupal automatically has address at http://<subproject>.<project>.drupal.localhost/.
         Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
+   --php-fpm-parent ^
+        Follow configuration from project-parent.
    --php-fpm-config
         Additional PHP-FPM Configuration inside pool directory.
-        Available value: [1], [2], [3], [4], [5], [6], [7], or other.
-        [1]: pm=ondemand
-        [2]: php_flag[display_errors]=on
-        [3]: php_value[max_execution_time]=300
-        [4]: php_admin_value[memory_limit]=256M
-        [5]: php_admin_value[upload_max_filesize]=25M
-        [6]: php_admin_value[post_max_size]=1024M
-        [7]: php_admin_flag[log_errors]=on
+        Values available from command: rcm-drupal-setup-variation-multisite(config-line-suggestion [--php-fpm-parent]), or other.
         Multivalue.
    --no-drush-install ^
         If selected, installation will continue to the browser.
@@ -111,7 +123,6 @@ Dependency:
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-php-fpm-setup-project-config
    rcm-dig-watch-domain-exists
-   rcm-certbot-deploy-nginx
 
 Download:
    [rcm-drupal-autoinstaller-nginx](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-autoinstaller-nginx.sh)
@@ -123,6 +134,27 @@ EOF
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
+
+command-config-line-suggestion() {
+    if [ "$1" == 1 ];then
+        exit 1
+    fi
+    cat << EOS
+pm=dynamic
+php_flag[display_errors]=on
+php_value[max_execution_time]=300
+php_admin_value[memory_limit]=256M
+php_admin_value[upload_max_filesize]=25M
+php_admin_value[post_max_size]=1024M
+php_admin_flag[log_errors]=on
+EOS
+}
+
+# Execute command.
+if [[ -n "$command" && $(type -t "command-${command}") == function ]];then
+    command-${command} "$@"
+    exit 0
+fi
 
 # Title.
 title rcm-drupal-setup-variation-multisite
@@ -362,11 +394,26 @@ for each in "${php_fpm_config[@]}";do
     else
         magenta " '""$each""'";
     fi
-    [[ "$each" =~ ' ' ]] && is_config_line+=" --config-line='${each}'" || is_config_line+=" --config-line=${each}"
-    is_config_line_array+=("--config-line=${each}")
+    [[ "$each" =~ ' ' ]] && is_config_line+=" --config-line-suggestion='${each}'" || is_config_line+=" --config-line-suggestion=${each}"
+    is_config_line_array+=("--config-line-suggestion=${each}")
 done
 magenta ')'; _.
 code 'certificate_name="'$certificate_name'"'
+code 'php_fpm_parent="'$php_fpm_parent'"'
+php_fpm_section="${project_parent_name}__${project_name}__drupal"
+if [ -n "$php_fpm_parent" ];then
+    php_fpm_section="${project_parent_name}__drupal"
+fi
+if [ -n "$php_fpm_parent" ];then
+    php_fpm_config=()
+    is_config_line=
+    is_config_line_array=()
+fi
+code 'php_fpm_section="'$php_fpm_section'"'
+code 'php_fpm_config=('"${php_fpm_config[@]}"')'
+code 'project_name_php_fpm="'$project_name_php_fpm'"'
+code 'project_parent_name_php_fpm="'$project_parent_name_php_fpm'"'
+____
 ____
 
 if [ -n "$url" ];then
@@ -424,7 +471,7 @@ if [ -n "$is_wsl" ];then
 fi
 
 # Contoh jika terdapat kasus sbb:
-# --config-line='php_flag[display_errors] = on'
+# --config-line-suggestion='php_flag[display_errors] = on'
 # Tidak bisa pakai cara dibawah ini jika terdapat karakter spasi.
 # INDENT+="    " \
 # rcm-php-fpm-setup-project-config $isfast \
@@ -435,9 +482,7 @@ rcm-php-fpm-setup-project-config $isfast \
     "${is_config_line_array[@]}" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
-    --project-name="$project_name" \
-    --project-parent-name="$project_parent_name" \
-    --config-suffix-name="drupal" \
+    --section="$php_fpm_section" \
     ; [ ! $? -eq 0 ] && x
 
 INDENT+="    " \
@@ -446,6 +491,7 @@ rcm-drupal-autoinstaller-nginx $isfast \
     $is_drush_install \
     --drupal-version="$drupal_version" \
     --php-version="$php_version" \
+    --php-fpm-section="$php_fpm_section" \
     --php-fpm-user="$php_fpm_user" \
     --project-dir="$project_dir" \
     --project-name="$project_name" \
@@ -460,10 +506,8 @@ if [ -n "$url" ];then
     INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
         --php-version="$php_version" \
-        --php-fpm-user="$php_fpm_user" \
+        --php-fpm-section="$php_fpm_section" \
         --project-dir="$project_dir" \
-        --project-name="$project_name" \
-        --project-parent-name="$project_parent_name" \
         --url-scheme="$url_scheme" \
         --url-host="$url_host" \
         --url-port="$url_port" \
@@ -509,7 +553,7 @@ ____
 exit 0
 
 # parse-options.sh \
-# --without-end-options-double-dash \
+# --with-end-options-double-dash \
 # --compact \
 # --clean \
 # --no-hash-bang \
@@ -521,6 +565,7 @@ exit 0
 # --version
 # --help
 # --no-drush-install
+# --php-fpm-parent
 # )
 # VALUE=(
 # --url
