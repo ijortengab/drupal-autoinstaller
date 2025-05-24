@@ -434,6 +434,12 @@ for each in "${php_fpm_config[@]}";do
 done
 magenta ')'; _.
 code 'certificate_name="'$certificate_name
+if [ -n "$project_parent_name" ];then
+    php_fpm_section="${project_parent_name}__${project_name}__drupal"
+else
+    php_fpm_section="${project_name}__drupal"
+fi
+code 'php_fpm_section="'$php_fpm_section'"'
 ____
 
 INDENT+="    " \
@@ -490,9 +496,7 @@ rcm-php-fpm-setup-project-config $isfast \
     "${is_config_line_array[@]}" \
     --php-version="$php_version" \
     --php-fpm-user="$php_fpm_user" \
-    --project-name="$project_name" \
-    --project-parent-name="$project_parent_name" \
-    --config-suffix-name="drupal" \
+    --section="$php_fpm_section" \
     ; [ ! $? -eq 0 ] && x
 
 # Di baris ini seharusnya sudah exists user linux $php_fpm_user.
@@ -535,6 +539,7 @@ rcm-drupal-autoinstaller-nginx $isfast \
     --drupal-version="$drupal_version" \
     --drupalcms-version="$drupalcms_version" \
     --php-version="$php_version" \
+    --php-fpm-section="$php_fpm_section" \
     --php-fpm-user="$php_fpm_user" \
     --project-dir="$project_dir" \
     --project-name="$project_name" \
@@ -551,10 +556,8 @@ if [ -n "$url" ];then
         && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
         --php-version="$php_version" \
-        --php-fpm-user="$php_fpm_user" \
+        --php-fpm-section="$php_fpm_section" \
         --project-dir="$project_dir" \
-        --project-name="$project_name" \
-        --project-parent-name="$project_parent_name" \
         --url-scheme="$url_scheme" \
         --url-host="$url_host" \
         --url-port="$url_port" \
