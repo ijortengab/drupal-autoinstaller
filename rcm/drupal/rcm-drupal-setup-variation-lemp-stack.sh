@@ -6,6 +6,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
+        --certificate-name=*) certificate_name="${1#*=}"; shift ;;
+        --certificate-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then certificate_name="$2"; shift; fi; shift ;;
         --fast) fast=1; shift ;;
         --no-auto-add-group) no_auto_add_group=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
@@ -126,6 +128,8 @@ Other Options (For expert only):
    --no-auto-add-group ^
         By default, if Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
         Use this flag to omit that default action.
+   --certificate-name
+        Use the existing certificate name that issued by Let's encrypt.
 
 Global Options.
    --fast
@@ -271,6 +275,7 @@ for each in "${php_fpm_config[@]}";do
     is_php_fpm_config_array+=("--php-fpm-config=${each}")
 done
 magenta ')'; _.
+code 'certificate_name="'$certificate_name'"'
 ____
 
 INDENT+="    " \
@@ -297,6 +302,7 @@ rcm-drupal-setup-variation-bundle $isfast \
     "${is_php_fpm_config_array[@]}" \
     --prefix="$prefix" \
     --project-container="$project_container" \
+    --certificate-name="$certificate_name" \
     ; [ ! $? -eq 0 ] && x
 
 chapter Finish
@@ -329,6 +335,7 @@ exit 0
 # --prefix
 # --project-container
 # --variation
+# --certificate-name
 # )
 # MULTIVALUE=(
 # --php-fpm-config
