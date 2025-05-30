@@ -23,6 +23,8 @@ while [[ $# -gt 0 ]]; do
         --url-port) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_port="$2"; shift; fi; shift ;;
         --url-scheme=*) url_scheme="${1#*=}"; shift ;;
         --url-scheme) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_scheme="$2"; shift; fi; shift ;;
+        --with-certbot-obtain) certbot_obtain=1; shift ;;
+        --without-certbot-obtain) certbot_obtain=0; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -414,6 +416,9 @@ fi
 code 'php_fpm_section="'$php_fpm_section'"'
 rcm_nginx_reload=
 code 'certificate_name="'$certificate_name'"'
+[ -z "$certbot_obtain" ] && certbot_obtain=1
+[ "$certbot_obtain" == 0 ] && certbot_obtain=
+[ -n "$certbot_obtain" ] && is_certbot_obtain=' --with-certbot-obtain' || is_certbot_obtain=' --without-certbot-obtain'
 ____
 
 chapter Prepare arguments.
@@ -572,7 +577,7 @@ ____
 INDENT+="    " \
 PATH=$PATH \
 rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
-    --with-certbot-obtain \
+    $is_certbot_obtain \
     --without-nginx-reload \
     --tempfile-trigger-reload="$tempfile" \
     --master-root="$master_root" \
@@ -710,6 +715,10 @@ exit 0
 # --certificate-name
 # )
 # FLAG_VALUE=(
+# )
+# CSV=(
+    # 'long:--with-certbot-obtain,parameter:certbot_obtain'
+    # 'long:--without-certbot-obtain,parameter:certbot_obtain,flag_option:reverse'
 # )
 # EOF
 # clear
