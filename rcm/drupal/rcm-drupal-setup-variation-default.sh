@@ -128,9 +128,10 @@ Options:
         Set the project name as identifier.
         Allowed characters are a-z, 0-9, and underscore (_).
    --url
-        Add Drupal public domain. The value can be domain or URL.
+        The value can be public or private domain, or URL.
         Drupal automatically has address at http://<project>.drupal.localhost/.
         Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
+        Special top level domain such us .local, .example, etc will pretend as private domain.
    --php-fpm-user
         Set the Unix user that used by PHP FPM.
         Default value is the user that used by web server (the common name is www-data).
@@ -173,8 +174,8 @@ Other options (For expert only):
    --without-certbot-obtain ^
         The dafault value is \`--with-certbot-obtain\`, it will check the value of
         \`--url\`. The URL that contains https scheme is will automatically obtain.
-        The URL that not contains http or https, it means using https.
-        Use this option to force certbot to use existing certificate if the `--url`
+        The URL that not contains http or https, it means using https excepts special top level domain such us .local, .example, etc.
+        Use this option to force certbot to use existing certificate if the \`--url\`
         contains https.
    --certificate-name
         Use the existing certificate name that issued by Let's encrypt or set a
@@ -337,6 +338,16 @@ resolve_relative_path() {
         return 1
     fi
 }
+ArraySearch() {
+    local index match="$1"
+    local source=("${!2}")
+    for index in "${!source[@]}"; do
+       if [[ "${source[$index]}" == "${match}" ]]; then
+           _return=$index; return 0
+       fi
+    done
+    return 1
+}
 
 # Requirement, validate, and populate value.
 chapter Dump variable.
@@ -369,37 +380,44 @@ if [ -f /proc/sys/kernel/osrelease ];then
 fi
 code 'is_wsl="'$is_wsl'"'
 code 'url="'$url'"'
+tld_special=(example test onion invalid local localhost alt)
+is_tld_special=
 if [ -n "$url" ];then
     Rcm_parse_url "$url"
 	if [ -z "$PHP_URL_HOST" ];then
         error Argument --url is not valid: '`'"$url"'`'.; x
-    else
-        [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
-        if [ -z "$PHP_URL_PORT" ];then
-            case "$url_scheme" in
-                http) url_port=80;;
-                https) url_port=443;;
-            esac
-        else
-            url_port="$PHP_URL_PORT"
-        fi
-        url_host="$PHP_URL_HOST"
-        url_path="$PHP_URL_PATH"
-        # Modify variable url, auto add scheme.
-        url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
-        _url_port=
-        if [ -n "$url_port" ];then
-            if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
-                _url_port=
-            elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
-                _url_port=
-            else
-                _url_port=":${url_port}"
-            fi
-        fi
-        # Modify variable url, auto trim trailing slash, auto add port.
-        url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
     fi
+    [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
+    if [ -z "$PHP_URL_PORT" ];then
+        case "$url_scheme" in
+            http) url_port=80;;
+            https) url_port=443;;
+        esac
+    else
+        url_port="$PHP_URL_PORT"
+    fi
+    url_host="$PHP_URL_HOST"
+    url_path="$PHP_URL_PATH"
+    # Modify variable url, auto add scheme.
+    url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+    # Modify variable url, auto trim trailing slash, auto add port.
+    tld="${url_host##*.}"
+    if ArraySearch "$tld" tld_special[@];then
+        url_scheme=http
+        url_port=80
+        is_tld_special=1
+    fi
+    _url_port=
+    if [ -n "$url_port" ];then
+        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+            _url_port=
+        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+            _url_port=
+        else
+            _url_port=":${url_port}"
+        fi
+    fi
+    url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
 fi
 code 'url="'$url'"'
 if [ -n "$project_parent_name" ];then
@@ -451,8 +469,12 @@ fi
 code 'php_fpm_section="'$php_fpm_section'"'
 [ -z "$certbot_obtain" ] && certbot_obtain=1
 [ "$certbot_obtain" == 0 ] && certbot_obtain=
-[ -n "$certbot_obtain" ] && is_certbot_obtain=' --with-certbot-obtain' || is_certbot_obtain=' --without-certbot-obtain'
 code 'certbot_obtain="'$certbot_obtain'"'
+if [ -n "$is_tld_special" ];then
+    certbot_obtain=
+fi
+code 'certbot_obtain="'$certbot_obtain'"'
+[ -n "$certbot_obtain" ] && is_certbot_obtain=' --with-certbot-obtain' || is_certbot_obtain=' --without-certbot-obtain'
 ____
 
 INDENT+="    " \
@@ -460,7 +482,7 @@ rcm-php-setup-adjust-cli-version $isfast \
     --php-version="$php_version" \
     ; [ ! $? -eq 0 ] && x
 
-if [ -n "$url" ];then
+if [[ -n "$url" && -n "$certbot_obtain" ]];then
     INDENT+="    " \
     rcm-dig-watch-domain-exists $isfast \
         --domain="$url_host" \
@@ -563,10 +585,14 @@ rcm-drupal-autoinstaller-nginx $isfast \
     --url-path="$url_path" \
     ; [ ! $? -eq 0 ] && x
 
-if [ -n "$url" ];then
+if [[ -n "$url" && -n "$certbot_obtain" ]];then
     INDENT+="    " \
     rcm-certbot-apt $isfast \
-        && INDENT+="    " \
+        ; [ ! $? -eq 0 ] && x
+fi
+
+if [ -n "$url" ];then
+    INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
         $is_certbot_obtain \
         --php-version="$php_version" \

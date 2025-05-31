@@ -419,6 +419,7 @@ code 'certificate_name="'$certificate_name'"'
 [ -z "$certbot_obtain" ] && certbot_obtain=1
 [ "$certbot_obtain" == 0 ] && certbot_obtain=
 [ -n "$certbot_obtain" ] && is_certbot_obtain=' --with-certbot-obtain' || is_certbot_obtain=' --without-certbot-obtain'
+code 'certbot_obtain="'$certbot_obtain'"'
 ____
 
 chapter Prepare arguments.
