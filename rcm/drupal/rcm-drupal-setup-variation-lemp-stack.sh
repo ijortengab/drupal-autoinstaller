@@ -30,6 +30,8 @@ while [[ $# -gt 0 ]]; do
         --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
         --variation=*) variation="${1#*=}"; shift ;;
         --variation) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then variation="$2"; shift; fi; shift ;;
+        --with-certbot-obtain) certbot_obtain=1; shift ;;
+        --without-certbot-obtain) certbot_obtain=0; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -128,8 +130,15 @@ Other Options (For expert only):
    --no-auto-add-group ^
         By default, if Nginx User cannot access PHP-FPM's Directory, auto add group of PHP-FPM User to Nginx User.
         Use this flag to omit that default action.
+   --without-certbot-obtain ^
+        The dafault value is \`--with-certbot-obtain\`, it will check the value of
+        \`--url\`. The URL that contains https scheme is will automatically obtain.
+        The URL that not contains http or https, it means using https.
+        Use this option to force certbot to use existing certificate if the `--url`
+        contains https.
    --certificate-name
-        Use the existing certificate name that issued by Let's encrypt.
+        Use the existing certificate name that issued by Let's encrypt or set a
+        new name of certificate that to be obtained.
 
 Global Options.
    --fast
@@ -276,6 +285,10 @@ for each in "${php_fpm_config[@]}";do
 done
 magenta ')'; _.
 code 'certificate_name="'$certificate_name'"'
+[ -z "$certbot_obtain" ] && certbot_obtain=1
+[ "$certbot_obtain" == 0 ] && certbot_obtain=
+[ -n "$certbot_obtain" ] && is_certbot_obtain=' --with-certbot-obtain' || is_certbot_obtain=' --without-certbot-obtain'
+code 'certbot_obtain="'$certbot_obtain'"'
 ____
 
 INDENT+="    " \
@@ -294,6 +307,7 @@ rcm-drupal-setup-variation-bundle $isfast \
     $is_no_auto_add_group \
     $is_no_sites_default \
     $is_no_drush_install \
+    $is_certbot_obtain \
     --variation="$variation" \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
@@ -343,6 +357,8 @@ exit 0
 # FLAG_VALUE=(
 # )
 # CSV=(
+    # 'long:--with-certbot-obtain,parameter:certbot_obtain'
+    # 'long:--without-certbot-obtain,parameter:certbot_obtain,flag_option:reverse'
 # )
 # EOF
 # clear
