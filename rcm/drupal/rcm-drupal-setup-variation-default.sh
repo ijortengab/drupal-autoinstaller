@@ -33,6 +33,8 @@ while [[ $# -gt 0 ]]; do
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
         --url=*) url="${1#*=}"; shift ;;
         --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
+        --with-certbot-obtain) certbot_obtain=1; shift ;;
+        --without-certbot-obtain) certbot_obtain=0; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -168,8 +170,15 @@ Other options (For expert only):
    --offline ^
         Set COMPOSER_DISABLE_NETWORK=1 to composer.
         Use this if you want to repeat the installation of a project with different name that has been successfully installed before.
+   --without-certbot-obtain ^
+        The dafault value is \`--with-certbot-obtain\`, it will check the value of
+        \`--url\`. The URL that contains https scheme is will automatically obtain.
+        The URL that not contains http or https, it means using https.
+        Use this option to force certbot to use existing certificate if the `--url`
+        contains https.
    --certificate-name
-        Use the existing certificate name that issued by Let's encrypt.
+        Use the existing certificate name that issued by Let's encrypt or set a
+        new name of certificate that to be obtained.
 
 Global Options.
    --fast
@@ -440,6 +449,10 @@ else
     php_fpm_section="${project_name}__drupal"
 fi
 code 'php_fpm_section="'$php_fpm_section'"'
+[ -z "$certbot_obtain" ] && certbot_obtain=1
+[ "$certbot_obtain" == 0 ] && certbot_obtain=
+[ -n "$certbot_obtain" ] && is_certbot_obtain=' --with-certbot-obtain' || is_certbot_obtain=' --without-certbot-obtain'
+code 'certbot_obtain="'$certbot_obtain'"'
 ____
 
 INDENT+="    " \
@@ -555,6 +568,7 @@ if [ -n "$url" ];then
     rcm-certbot-apt $isfast \
         && INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
+        $is_certbot_obtain \
         --php-version="$php_version" \
         --php-fpm-section="$php_fpm_section" \
         --project-dir="$project_dir" \
@@ -642,6 +656,8 @@ exit 0
 # FLAG_VALUE=(
 # )
 # CSV=(
+    # 'long:--with-certbot-obtain,parameter:certbot_obtain'
+    # 'long:--without-certbot-obtain,parameter:certbot_obtain,flag_option:reverse'
 # )
 # EOF
 # clear
