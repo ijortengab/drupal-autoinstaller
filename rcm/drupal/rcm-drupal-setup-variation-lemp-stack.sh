@@ -32,6 +32,10 @@ while [[ $# -gt 0 ]]; do
         --variation) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then variation="$2"; shift; fi; shift ;;
         --with-certbot-obtain) certbot_obtain=1; shift ;;
         --without-certbot-obtain) certbot_obtain=0; shift ;;
+        --without-update-system) update_system=0; shift ;;
+        --with-update-system) update_system=1; shift ;;
+        --without-upgrade-system) upgrade_system=0; shift ;;
+        --with-upgrade-system) upgrade_system=1; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -140,6 +144,10 @@ Other Options (For expert only):
    --certificate-name
         Use the existing certificate name that issued by Let's encrypt or set a
         new name of certificate that to be obtained.
+   --without-update-system ^
+        Skip execute update system. Default to --with-update-system.
+   --with-upgrade-system ^
+        Execute upgrade system. Default to --without-upgrade-system.
 
 Global Options.
    --fast
@@ -396,13 +404,18 @@ if [ -n "$is_tld_special" ];then
 fi
 code 'certbot_obtain="'$certbot_obtain'"'
 [ -n "$certbot_obtain" ] && is_certbot_obtain=' --with-certbot-obtain' || is_certbot_obtain=' --without-certbot-obtain'
+[ -z "$update_system" ] && update_system=1
+[ "$update_system" == 0 ] && update_system=
+[ "$upgrade_system" == 0 ] && upgrade_system=
+[ -n "$update_system" ] && is_update_system=' --without-update-system-' || is_update_system=' --without-update-system'
+[ -n "$upgrade_system" ] && is_upgrade_system=' --without-upgrade-system-' || is_upgrade_system=' --without-upgrade-system'
 ____
 
 INDENT+="    " \
 rcm $operand_setup_basic -- \
     $isfast \
-    --without-update-system- \
-    --without-upgrade-system \
+    $is_update_system \
+    $is_upgrade_system \
     --timezone="$timezone" \
     -- \
     && INDENT+="    " \
@@ -466,6 +479,10 @@ exit 0
 # CSV=(
     # 'long:--with-certbot-obtain,parameter:certbot_obtain'
     # 'long:--without-certbot-obtain,parameter:certbot_obtain,flag_option:reverse'
+    # 'long:--with-update-system,parameter:update_system'
+    # 'long:--without-update-system,parameter:update_system,flag_option:reverse'
+    # 'long:--with-upgrade-system,parameter:upgrade_system'
+    # 'long:--without-upgrade-system,parameter:upgrade_system,flag_option:reverse'
 # )
 # EOF
 # clear
