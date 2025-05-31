@@ -19,6 +19,8 @@ while [[ $# -gt 0 ]]; do
         --sub-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --url=*) url="${1#*=}"; shift ;;
         --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
+        --with-certbot-obtain) certbot_obtain=1; shift ;;
+        --without-certbot-obtain) certbot_obtain=0; shift ;;
         --) shift
             while [[ $# -gt 0 ]]; do
                 case "$1" in
@@ -88,7 +90,7 @@ Options:
         Drupal automatically has address at http://<subproject>.<project>.drupal.localhost/.
         Example: \`example.org\`, \`example.org/path/to/drupal/\`, or \`https://sub.example.org:8080/\`.
    --php-fpm-parent ^
-        Follow configuration from project-parent.
+        Follow configuration from project-parent. Use this flag will prevent restarting PHP-FPM daemon.
    --php-fpm-config
         Additional PHP-FPM Configuration inside pool directory.
         Values available from command: rcm-drupal-setup-variation-multisite(config-line-suggestion [--php-fpm-parent]), or other.
@@ -98,8 +100,15 @@ Options:
         If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
 
 Other options (For expert only):
+   --without-certbot-obtain ^
+        The dafault value is \`--with-certbot-obtain\`, it will check the value of
+        \`--url\`. The URL that contains https scheme is will automatically obtain.
+        The URL that not contains http or https, it means using https.
+        Use this option to force certbot to use existing certificate if the `--url`
+        contains https.
    --certificate-name
-        Use the existing certificate name that issued by Let's encrypt.
+        Use the existing certificate name that issued by Let's encrypt or set a
+        new name of certificate that to be obtained.
 
 Global Options.
    --fast
@@ -413,7 +422,10 @@ code 'php_fpm_section="'$php_fpm_section'"'
 code 'php_fpm_config=('"${php_fpm_config[@]}"')'
 code 'project_name_php_fpm="'$project_name_php_fpm'"'
 code 'project_parent_name_php_fpm="'$project_parent_name_php_fpm'"'
-____
+[ -z "$certbot_obtain" ] && certbot_obtain=1
+[ "$certbot_obtain" == 0 ] && certbot_obtain=
+[ -n "$certbot_obtain" ] && is_certbot_obtain=' --with-certbot-obtain' || is_certbot_obtain=' --without-certbot-obtain'
+code 'certbot_obtain="'$certbot_obtain'"'
 ____
 
 if [ -n "$url" ];then
@@ -505,6 +517,7 @@ rcm-drupal-autoinstaller-nginx $isfast \
 if [ -n "$url" ];then
     INDENT+="    " \
     rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root $isfast \
+        $is_certbot_obtain \
         --php-version="$php_version" \
         --php-fpm-section="$php_fpm_section" \
         --project-dir="$project_dir" \
@@ -579,6 +592,8 @@ exit 0
 # CSV=(
     # 'long:--existing-project-name,parameter:project_parent_name,type:value'
     # 'long:--sub-project-name,parameter:project_name,type:value'
+    # 'long:--with-certbot-obtain,parameter:certbot_obtain'
+    # 'long:--without-certbot-obtain,parameter:certbot_obtain,flag_option:reverse'
 # )
 # EOF
 # clear
