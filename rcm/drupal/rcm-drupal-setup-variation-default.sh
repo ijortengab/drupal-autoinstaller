@@ -360,6 +360,9 @@ code no_auto_add_group="$no_auto_add_group"
 code 'no_sites_default="'$no_sites_default'"'
 [ -n "$no_auto_add_group" ] && is_auto_add_group='' || is_auto_add_group=' --auto-add-group'
 [ -n "$no_sites_default" ] && is_no_sites_default=' --no-sites-default' || is_no_sites_default=''
+if [ -z "$php_version" ];then
+    error "Argument --php-version required."; x
+fi
 code php_version="$php_version"
 code drupal_version="$drupal_version"
 if [ -z "$project_name" ];then
@@ -404,7 +407,9 @@ if [ -n "$url" ];then
     tld="${url_host##*.}"
     if ArraySearch "$tld" tld_special[@];then
         url_scheme=http
-        url_port=80
+        if [ -z "$PHP_URL_PORT" ];then
+            url_port=80
+        fi
         is_tld_special=1
     fi
     _url_port=
@@ -506,11 +511,6 @@ if [ -z "$php_fpm_user" ];then
 fi
 code 'php_fpm_user="'$php_fpm_user'"'
 ____
-
-INDENT+="    " \
-rcm-php-setup-adjust-cli-version $isfast \
-    --php-version="$php_version" \
-    ; [ ! $? -eq 0 ] && x
 
 if [ -n "$is_wsl" ];then
     INDENT+="    " \
