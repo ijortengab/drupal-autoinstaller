@@ -946,7 +946,9 @@ if [ -n "$url" ];then
     tld="${url_host##*.}"
     if ArraySearch "$tld" tld_special[@];then
         url_scheme=http
-        url_port=80
+        if [ -z "$PHP_URL_PORT" ];then
+            url_port=80
+        fi
         is_tld_special=1
     fi
     _url_port=
