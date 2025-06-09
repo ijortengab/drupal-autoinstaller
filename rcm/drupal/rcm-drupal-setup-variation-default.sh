@@ -74,7 +74,7 @@ RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 
 # Functions.
 printVersion() {
-    echo '0.11.32'
+    echo '0.11.33'
 }
 printHelp() {
     title RCM Drupal Setup
