@@ -285,8 +285,8 @@ ArrayPop() {
     done
     return="${source[-1]}"
 }
-adjustNginxWebRoot() {
-    # global modified $nginx_web_root
+adjustNginxConfigRoot() {
+    # global modified $nginx_config_root
     local url_path=$1; shift;
     if [ -z "$url_path" ];then
         # not modified.
@@ -304,7 +304,7 @@ adjustNginxWebRoot() {
     # for each in "${array[@]}"; do echo "_${each}_"; done;
     ArrayPop array[@]
     array=("${_return[@]}"); unset _return
-    for each in "${array[@]}"; do nginx_web_root+="/${each}.d"; done;
+    for each in "${array[@]}"; do nginx_config_root+="/${each}.d"; done;
 }
 fileMustExists() {
     # global used:
@@ -460,41 +460,41 @@ ____
 # User yang digunakan sudah pasti adalah user nginx, karena akan dibuat di
 # `/var/www`.
 chapter Populate variable.
-nginx_web_root="${nginx_user_home}/${url_host}${additional_path_custom_port}/web"
-code 'nginx_web_root="'$nginx_web_root'"'
+nginx_config_root="${nginx_user_home}/${url_host}${additional_path_custom_port}/nginx"
+code 'nginx_config_root="'$nginx_config_root'"'
 nginx_config_dir="${nginx_user_home}/${url_host}${additional_path_custom_port}/nginx.conf.d"
 nginx_config_file="${nginx_user_home}/${url_host}${additional_path_custom_port}/nginx.conf"
 code 'nginx_config_dir="'$nginx_config_dir'"'
 code 'nginx_config_file="'$nginx_config_file'"'
-adjustNginxWebRoot "$url_path"
-code 'nginx_web_root="'$nginx_web_root'"'
+adjustNginxConfigRoot "$url_path"
+code 'nginx_config_root="'$nginx_config_root'"'
 ____
 
-chapter Mengecek direktori web root '`'$nginx_web_root'`'.
-isDirExists "$nginx_web_root"
+chapter Mengecek direktori web root '`'$nginx_config_root'`'.
+isDirExists "$nginx_config_root"
 ____
 
 if [ -n "$notfound" ];then
-    chapter Membuat direktori web root '`'$nginx_web_root'`'.
-    code mkdir -p '"'$nginx_web_root'"'
-    mkdir -p "$nginx_web_root"
-    code chown -R $nginx_user:$nginx_user '"'$nginx_web_root'"'
-    chown -R $nginx_user:$nginx_user "$nginx_web_root"
-    dirMustExists "$nginx_web_root"
+    chapter Membuat direktori nginx config root '`'$nginx_config_root'`'.
+    code mkdir -p '"'$nginx_config_root'"'
+    mkdir -p "$nginx_config_root"
+    code chown -R $nginx_user:$nginx_user '"'$nginx_config_root'"'
+    chown -R $nginx_user:$nginx_user "$nginx_config_root"
+    dirMustExists "$nginx_config_root"
     ____
 fi
 
-target="$nginx_web_root"
+target="$nginx_config_root"
 if [ -n "$url_path_clean" ];then
     target+="/${url_path_clean}"
 fi
 code 'target="'$target'"'
 chapter Memeriksa direktori target '`'$target'`'
 create=
-if [[ "$target" == "$nginx_web_root" ]];then
-    __ Target sama dengan web root. Symbolic link tidak diperlukan.
+if [[ "$target" == "$nginx_config_root" ]];then
+    __ Target sama dengan nginx config root. Symbolic link tidak diperlukan.
 else
-    __ Target tidak sama dengan web root. Symbolic link diperlukan.
+    __ Target tidak sama dengan nginx config root. Symbolic link diperlukan.
     create=1
 fi
 ____
@@ -510,7 +510,7 @@ if [ -n "$url_path" ];then
     ____
 
     if [ -n "$notfound" ];then
-        chapter Membuat direktori web root '`'$nginx_config_dir'`'.
+        chapter Membuat direktori nginx config root '`'$nginx_config_dir'`'.
         code mkdir -p '"'$nginx_config_dir'"'
         mkdir -p "$nginx_config_dir"
         code chown -R $nginx_user:$nginx_user '"'$nginx_config_dir'"'
@@ -521,7 +521,7 @@ if [ -n "$url_path" ];then
 fi
 
 chapter Prepare Arguments.
-master_root="$nginx_web_root"
+master_root="$nginx_config_root"
 master_include="${nginx_config_dir}/*"
 master_include_2="$nginx_config_file"
 master_filename="$filename"
