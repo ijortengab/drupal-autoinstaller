@@ -450,14 +450,15 @@ for uri in "${list_uri[@]}";do
         mkdir -p "$dirname"
         touch "$fullpath"
         chmod a+x "$fullpath"
-        cat << 'EOF' > "$fullpath"
+        cat << 'SHELLSCRIPT' > "$fullpath"
 #!/bin/bash
+
 _new_arguments=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --version) version=1; shift ;;
         --url) url=1; shift ;;
-        --export) export=1; shift ;;
+        --drush-status) drush_status=1; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -465,26 +466,6 @@ done
 set -- "${_new_arguments[@]}"
 unset _new_arguments
 
-printVersion() {
-    echo '__CURRENT_VERSION__'
-}
-printUrl() {
-    echo '__URI__'
-}
-# global PROJECT_ROOT SITE
-printExport() {
-    local root config php_version drupal_version
-    root=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=root)
-    config=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=config)
-    if [[ ! "${config:0:1}" == / ]];then
-        config="${root}/${config}"
-    fi
-    drupal_version=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=drupal-version)
-    php_version=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=php-version)
-    echo "drupal_config=${config}"
-    echo "drupal_version=${drupal_version}"
-    echo "php_version=${php_version}"
-}
 DRUPAL_PREFIX=__DRUPAL_PREFIX__
 DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
 PROJECT_ROOT=__PROJECT_ROOT__
@@ -492,30 +473,51 @@ SITE=__URI__
 _target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${PROJECT_ROOT}/drupal"
 _dereference=$(stat "$_target" -c %N)
 PROJECT_ROOT=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
-[ -n "$version" ] && { printVersion; exit 1; }
-[ -n "$url" ] && { printUrl; exit 1; }
-[ -n "$export" ] && { printExport; exit 1; }
 
-[[ -f "$0" && ! "$0" == $(command -v bash) ]] && { echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m"; exit 1; }
-echo
-echo -n Waiting...
-export SITE="$SITE"
+printVersion() {
+    echo '__CURRENT_VERSION__'
+}
+printUrl() {
+    echo '__URI__'
+}
+drushStatus() {
+    "$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status
+}
+unsetvariables() {
+    unalias drush 2>/dev/null
+    unset date
+}
+
+if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+    [ -n "$version" ] && { printVersion; exit 1; }
+    [ -n "$url" ] && { printUrl; exit 1; }
+    [ -n "$drush_status" ] && { drushStatus; exit 1; }
+else
+    [ -n "$version" ] && { printVersion; return; }
+    [ -n "$url" ] && { printUrl; return; }
+    [ -n "$drush_status" ] && { drushStatus; return; }
+    unsetvariables
+fi
+
 export PROJECT_ROOT="$PROJECT_ROOT"
-export SITE_DIR=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=site)
-export WEB_ROOT=$("$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status --field=root)
-printf "\r\033[K"
-echo export PROJECT_ROOT='"'$PROJECT_ROOT'"'
-echo export '    'WEB_ROOT='"'$WEB_ROOT'"'
-echo export '        'SITE='"'"$SITE"'"'
-echo export '    'SITE_DIR='"'$SITE_DIR'"'
-echo -e alias '       '"\e[95m"' 'drush"\e[39m"='"''$PROJECT_ROOT'/vendor/bin/drush --uri='$SITE''"'
-echo
-echo cd '"$PROJECT_ROOT"'' && [ -f .rc ] && . .rc'
-alias drush="$PROJECT_ROOT/vendor/bin/drush --uri=$SITE"
-echo
-# rc means run commands. @see: https://superuser.com/a/173167
-cd "$PROJECT_ROOT" && [ -f .rc ] && . .rc
-EOF
+export SITE="$SITE"
+echo -e "\e[95m"export"\e[39m" PROJECT_ROOT="\e[93m"'"'$PROJECT_ROOT'"'"\e[39m"
+echo -e "\e[95m"export"\e[39m" '        'SITE="\e[93m"'"'"$SITE"'"'"\e[39m"
+echo -e "\e[95m"alias"\e[39m" '       '"\e[92m"' 'drush"\e[39m"="\e[93m"'"''$PROJECT_ROOT'/vendor/bin/drush --uri='$SITE''"'"\e[39m"
+echo -e "\e[95m"cd"\e[39m" "\e[93m"'                 "$PROJECT_ROOT"'"\e[39m"' && [ '"\e[95m"'-f'"\e[39m"' .rc ] && . .rc'
+
+if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+    date=$(date +%Y%m%d-%H%M%S)
+    date+=-$RANDOM-$RANDOM
+    echo 'alias drush="$PROJECT_ROOT/vendor/bin/drush --uri=$SITE" # delete this line '"$date" >> "${HOME}/.bashrc"
+    echo '[ -f "${PROJECT_ROOT}/.rc" ] && . "${PROJECT_ROOT}/.rc"  # delete this line '"$date" >> "${HOME}/.bashrc"
+    echo 'sed "/'"$date"'/d" -i "'"${HOME}"'/.bashrc"              # delete this line '"$date" >> "${HOME}/.bashrc"
+    bash -c 'cd "'"${PROJECT_ROOT}"'"; bash'
+else
+    alias drush="$PROJECT_ROOT/vendor/bin/drush --uri=$SITE"
+    cd "$PROJECT_ROOT" && [ -f .rc ] && . .rc
+fi
+SHELLSCRIPT
         sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
         sed -i "s|__DRUPAL_PROJECTS_DIRNAME__|${DRUPAL_PROJECTS_DIRNAME}|g" "$fullpath"
         sed -i "s|__PROJECT_ROOT__|${project_dir_basename}|g" "$fullpath"
@@ -525,7 +527,8 @@ EOF
     fi
     ____
 
-    link_symbolic "$fullpath" "$BINARY_DIRECTORY/cd-drupal-${filename}"
+    # Dimatikan sejak version 0.11.34 karena bikin penuh.
+    # link_symbolic "$fullpath" "$BINARY_DIRECTORY/cd-drupal-${filename}"
 done
 
 if [ -n "$mktemp" ];then
