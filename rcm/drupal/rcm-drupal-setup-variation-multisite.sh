@@ -69,7 +69,7 @@ fi
 
 # Functions.
 printVersion() {
-    echo '0.11.33'
+    echo '0.11.34'
 }
 printHelp() {
     title RCM Drupal Setup
