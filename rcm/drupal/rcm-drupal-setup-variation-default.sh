@@ -198,6 +198,7 @@ Dependency:
    rcm-drupal-setup-drush-alias:`printVersion`
    rcm-drupal-setup-internal-command-cd-drupal:`printVersion`
    rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
+   rcm-drupal-setup-internal-command-find-drupal:`printVersion`
    rcm-drupal-setup-dump-variables:`printVersion`
    rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root:`printVersion`
    rcm-php-fpm-setup-project-config
@@ -209,6 +210,7 @@ Download:
    [rcm-drupal-setup-drush-alias](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-drush-alias.sh)
    [rcm-drupal-setup-internal-command-cd-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-cd-drupal.sh)
    [rcm-drupal-setup-internal-command-ls-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-ls-drupal.sh)
+   [rcm-drupal-setup-internal-command-find-drupal](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-internal-command-find-drupal.sh)
    [rcm-drupal-setup-dump-variables](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-dump-variables.sh)
    [rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root](https://github.com/ijortengab/drupal-autoinstaller/raw/master/rcm/drupal/rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root.sh)
 EOF
@@ -635,6 +637,8 @@ rcm-drupal-setup-drush-alias $isfast \
 rcm-drupal-setup-internal-command-cd-drupal $isfast \
     && INDENT+="    " \
 rcm-drupal-setup-internal-command-ls-drupal $isfast \
+    && INDENT+="    " \
+rcm-drupal-setup-internal-command-find-drupal $isfast \
     && INDENT+="    " \
 rcm-drupal-setup-dump-variables $isfast \
     --project-name="$project_name" \
