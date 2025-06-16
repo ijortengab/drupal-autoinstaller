@@ -338,8 +338,10 @@ if [ -n "$notfound" ];then
     mkdir -p "$dirname"
     touch "$fullpath"
     chmod a+x "$fullpath"
-    cat << 'EOF' > "$fullpath"
+    cat << 'CDDRUPAL' > "$fullpath"
 #!/bin/bash
+
+# Parse Options.
 _new_arguments=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -352,15 +354,29 @@ done
 set -- "${_new_arguments[@]}"
 unset _new_arguments
 
+# Common Functions.
+red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
+yellow() { echo -ne "\e[93m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
+magenta() { echo -ne "\e[95m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
+error() { echo -n "$INDENT" >&2; red '#' "$@" >&2; echo >&2; }
+_() { echo -n "$INDENT" >&2; echo -n "#"' ' >&2; [ -n "$1" ] && echo -n "$@" >&2; }
+_,() { echo -n "$@" >&2; }
+_.() { echo >&2; }
+__() { echo -n "$INDENT" >&2; echo -n "# ${RCM_INDENT}" >&2; [ -n "$1" ] && echo "$@" >&2; }
+
+# Define variables and constants.
+RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
+
 printVersion() {
     echo '__CURRENT_VERSION__'
 }
 printHelp() {
-    cat << 'EOL'
-Usage: . cd-drupal [filter1]... [ -- [filter2]...]
+    cat << 'HELP'
+Usage: . cd-drupal [project_name] [site_url]
+       cd-drupal [project_name] [site_url]
 
-       Change the shell working directory to Drupal Project, set and export some
-       environment variable about Drupal, and set drush alias.
+       Change the shell working directory to Drupal Project, THEN
+       set drush alias.
 
 Options:
    --version
@@ -368,215 +384,247 @@ Options:
    --help
         Show this help.
 
-Operands:
-   filter1
-        Filter project by word. Prefix filter with dash, means negate.
-   filter2
-        Filter sites by word. Prefix filter with dash, means negate.
-
-Example:
-  . cd-drupal org -jak -- localhost
-        Filter project that contains word org, then filter project that not
-        contains word jak, then filter sites that contains word localhost
-
-EOL
+HELP
 }
-# Help and Version.
-[ -n "$help" ] && { printHelp; exit 1; }
-[ -n "$version" ] && { printVersion; exit 1; }
+unsetvariables() {
+    unset project_dir
+    unset site_file
+    unset value
+    unset count
+}
+printSelectDialog() {
+    _; _.
+    __; _, '['; yellow Enter; _, ']'; _, ' '; _, 'Type the '; yellow N; _, 'umber key.'; _.
+    if [ -z "$is_required" ];then
+        __; _, '['; yellow Esc; _, ']'; _, ' '; yellow C; _, 'ancel.'; _.
+    fi
+    _; _.
+    __ Press the yellow key to select.
+    count_max="${#source[@]}"
+    if [ $count_max -gt 9 ];then
+        count_max=9
+    fi
+    while true; do
+        __; read -rsn 1 -p "Select: " char;
+        if [ -z "$char" ];then
+            char=n
+        fi
+        case $char in
+            n|N) echo "$char"; break ;;
+            [1-$count_max])
+                echo "$char"
+                i=$((char - 1))
+                value="${source[$i]}"
+                break ;;
+            *)
+                if [ -n "$is_required" ];then
+                    echo
+                else
+                    case $char in
+                        $'\33') skip=1; echo "c"; break ;;
+                        c|C) skip=1; echo "$char"; break ;;
+                        *) echo
+                    esac
+                fi
+        esac
+    done
+    if [[ -z "$skip" ]];then
+        if [ -z "$value" ];then
+            _; _.
+        fi
+        until [ -n "$value" ];do
+            __; read -p "Type the number: " value
+            if [[ $value =~ [^0-9] ]];then
+                value=
+                __; red Please type one of available number.;_.
+            fi
+            if [[ $value =~ ^0 ]];then
+                value=
+                __; red Please type one of available number.;_.
+            fi
+            if [ -n "$value" ];then
+                value=$((value - 1))
+                value="${source[$value]}"
+                if [ -z "$value" ];then
+                    __; red Please type one of available number.;_.
+                fi
+            fi
+        done
+        _; _.
+    fi
+}
+url2Filename() {
+    local url=$1 filename
+    # Contoh 1:
+    # uri=juragan.web.id:10001/cintakita/dot/com/sso
+    # filename=juragan.web.id.10001-cintakita.dot.com.sso
+    # Contoh 2:
+    # uri=http://juragan.web.id:10001/cintakita/dot/com/sso/
+    # filename=http.juragan.web.id.10001-cintakita.dot.com.sso
+    # Contoh 3:
+    # uri=https://juragan.web.id:10001/cintakita/dot/com/sso/
+    # filename=juragan.web.id.10001-cintakita.dot.com.sso
+    filename="${url}"
+    filename="${filename/https:\/\//}"
+    filename="${filename/http:\/\//http.}"
+    filename="${filename/:/.}"
+    filename="${filename/\//-}"
+    filename="${filename//\//.}"
+    echo "$filename"
+}
 
-[[ -f "$0" && ! "$0" == $(command -v bash) ]] && { echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m"; exit 1; }
+if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+    # Help and Version.
+    [ -n "$help" ] && { printHelp; exit 1; }
+    [ -n "$version" ] && { printVersion; exit 1; }
+else
+    # Help and Version.
+    [ -n "$help" ] && { printHelp; return; }
+    [ -n "$version" ] && { printVersion; return; }
+    unsetvariables
+fi
+
 DRUPAL_PREFIX=__DRUPAL_PREFIX__
 DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
 DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
 DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
 whoami=`whoami`
 source=()
-[ "$EUID" -eq 0 ] && path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" || \
-    path="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${whoami}/projects"
-[ ! -d "$path" ] && {
-    echo -e "\e[91m""There's no Drupal Directory Project: ${path}" "\e[39m";
-} || {
-    if [ $# -eq 0 ];then
-        source=(`ls "$path"`)
+
+_; _, Change the shell working directory to Drupal Project.; _.
+_;_.
+
+if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+    _; yellow 'It is recommend to execute this command as dot command.'; _.
+    _; yellow 'i.e. '; magenta '. cd-drupal'; _.
+    _; yellow 'Otherwise, it will start new shell as a child process.'; _.
+    _;_.
+fi
+
+if [ "$EUID" -eq 0 ];then
+    prefix="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"
+else
+    prefix="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${whoami}/projects"
+fi
+
+if [ ! -d "$prefix" ];then
+    error "There's no Drupal Directory Project: ${prefix}";
+    if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+        exit 1
     else
-        command="ls \"$path\""
-        _new_arguments=()
-        while [[ $# -gt 0 ]]; do
-            case  "$1" in
-                -[^-]*)
-                    command+=" | grep -F -v \"${1:1}\""
-                    shift
-                    ;;
-                --) shift
-                    while [[ $# -gt 0 ]]; do
-                        case "$1" in
-                            *) _new_arguments+=("$1"); shift ;;
-                        esac
-                    done
-                    ;;
-                *)
-                    command+=" | grep -F \"$1\""
-                    shift
-                    ;;
-            esac
-        done
-        set -- "${_new_arguments[@]}"
-        unset _new_arguments
-        source=(`bash -c "$command"`)
+        return
     fi
-}
-[ "${#source[@]}" -eq 0 ] && echo -e There are no Drupal project available. || {
-    echo -e There are Drupal project available. Press the "\e[93m"yellow"\e[39m" number key to select.
+fi
+
+if [ -n "$1" ];then
+    project_dir="$1"
+    shift
+    path="${prefix}/${project_dir}"
+    if [ ! -d "$path" ];then
+        error The Drupal project is not exists: '`'$project_dir'`'.
+        if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+            exit 1
+        else
+            return
+        fi
+    fi
+fi
+
+if [ -z "$project_dir" ];then
+    # @todo, projects_count >= 100
+    source=(`ls -U "$prefix"`)
+    if [ ${#source[@]} -eq 0 ];then
+        error There are no Drupal project available.
+        if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+            exit 1
+        else
+            return
+        fi
+    fi
+    _ There are Drupal project available.;_.
+    _;_.
+    is_required=
     declare -i count
-    count=0
-    for each in "${source[@]}";do
+    for ((i = 0 ; i < ${#source[@]} ; i++)); do
         count+=1
         if [ $count -lt 10 ];then
-            echo -ne '['"\e[93m"$count"\e[39m"']' "$each" "\n"
+            __; _, '['; yellow $count; _, ']'; _, ' '; _, "${source[$i]}"; _.
         else
-            echo '['$count']' "$each"
+            __; _, '['$count']' "${source[$i]}"; _.
         fi
     done
-    echo -ne '['"\e[93m"Enter"\e[39m"']' "\e[93m"T"\e[39m"ype the number key instead. "\n"
-    count_max="${#source[@]}"
-    if [ $count_max -gt 9 ];then
-        count_max=9
+    printSelectDialog
+    if [ -z "$value" ];then
+        if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+            exit 1
+        else
+            return
+        fi
     fi
-    project_dir=
-    while true; do
-        read -rsn 1 -p "Select: " char;
-        if [ -z "$char" ];then
-            char=t
+    project_dir=$value
+fi
+
+if [ -n "$1" ];then
+    site_url="$1"
+    shift
+    site_file=$(url2Filename "$site_url")
+    path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+    if [ ! -f "$path" ];then
+        error The Drupal site URL is not exists: '`'$site_url'`'.
+        if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+            exit 1
+        else
+            return
         fi
-        case $char in
-            t|T) echo "$char"; break ;;
-            [1-$count_max])
-                echo "$char"
-                i=$((char - 1))
-                project_dir="${source[$i]}"
-                break ;;
-            *) echo
-        esac
-    done
-    until [ -n "$project_dir" ];do
-        read -p "Type the value: " project_dir
-        if [[ $project_dir =~ [^0-9] ]];then
-            project_dir=
+    fi
+fi
+
+if [ -z "$site_file" ];then
+    path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
+    # @todo, projects_count >= 100
+    source=(`ls -U "$path"`)
+    if [ ${#source[@]} -eq 0 ];then
+        error There are no Drupal sites available.
+        if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+            exit 1
+        else
+            return
         fi
-        if [ -n "$project_dir" ];then
-            project_dir=$((project_dir - 1))
-            project_dir="${source[$project_dir]}"
-        fi
-    done
-    echo -e Project "\e[93m""$project_dir""\e[39m" selected.
-    echo
+    fi
+    # Clear same parameter.
+    value=
+    _ There are Drupal sites available.;_.
+    _;_.
+    is_required=
     unset count
     declare -i count
-    count=0
-    path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
-    if [ $# -eq 0 ];then
-        source=(`ls "$path"`)
-    else
-        command="ls \"$path\""
-        _new_arguments=()
-        while [[ $# -gt 0 ]]; do
-            case  "$1" in
-                -[^-]*)
-                    command+=" | grep -F -v \"${1:1}\""
-                    shift
-                    ;;
-                --) shift
-                    while [[ $# -gt 0 ]]; do
-                        case "$1" in
-                            *) _new_arguments+=("$1"); shift ;;
-                        esac
-                    done
-                    ;;
-                *)
-                    command+=" | grep -F \"$1\""
-                    shift
-                    ;;
-            esac
-        done
-        set -- "${_new_arguments[@]}"
-        unset _new_arguments
-        source=(`bash -c "$command"`)
-    fi
-    if [ "${#source[@]}" -gt 0 ];then
-        echo -e There are Site available. Press the "\e[93m"yellow"\e[39m" number key to select.
-        for line in "${source[@]}"; do
-            count+=1
-            line_url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${line}" --url)
-            if [ $count -lt 10 ];then
-                echo -ne '['"\e[93m"$count"\e[39m"']' "$line_url" "\n"
-            else
-                echo '['$count']' "$line_url"
-            fi
-        done
-    fi
-    count_max="${#source[@]}"
-    if [ $count_max -gt 9 ];then
-        count_max=9
-    fi
-    if [ "${#source[@]}" -eq 0 ];then
-        echo -e There are no site available.
-    else
-        echo -ne '['"\e[93m"Enter"\e[39m"']' "\e[93m"T"\e[39m"ype the number key instead. "\n"
-        value=
-        while true; do
-            read -rsn 1 -p "Select: " char;
-            if [ -z "$char" ];then
-                char=t
-            fi
-            case $char in
-                t|T) echo "$char"; break ;;
-                [1-$count_max])
-                    echo "$char"
-                    i=$((char - 1))
-                    value="${source[$i]}"
-                    break ;;
-                *) echo
-            esac
-        done
-        until [ -n "$value" ];do
-            read -p "Type the value: " value
-            if [[ $value =~ [^0-9] ]];then
-                value=
-            fi
-            if [ -n "$value" ];then
-                value=$((value - 1))
-                value="${source[$value]}"
-            fi
-        done
-        value_url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${value}" --url)
-        echo -e Site "\e[93m""$value_url""\e[39m" selected.
-        echo
-        echo -e We will execute: "\e[95m". cd-drupal-${value}"\e[39m"
-        echo -ne '['"\e[93m"Esc"\e[39m"']' "\e[93m"Q"\e[39m"uit. "\n"
-        echo -ne '['"\e[93m"Enter"\e[39m"']' Continue. "\n"
-        exe=
-        while true; do
-            read -rsn 1 -p "Select: " char;
-            if [ -z "$char" ];then
-                printf "\r\033[K" >&2
-                exe=1
-                break
-            fi
-            case $char in
-                $'\33') echo "q"; break ;;
-                q|Q) echo "$char"; break ;;
-                *) echo
-            esac
-        done
-        if [ -n "$exe" ];then
-            echo
-            echo -e "\e[95m". cd-drupal-${value}"\e[39m"
-            . cd-drupal-${value}
+    for ((i = 0 ; i < ${#source[@]} ; i++)); do
+        count+=1
+        label=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${source[$i]}" --url)
+        if [ $count -lt 10 ];then
+            __; _, '['; yellow $count; _, ']'; _, ' '; _, "${label}"; _.
+        else
+            __; _, '['$count']' "${source[$i]}"; _.
+        fi
+    done
+    printSelectDialog
+    if [ -z "$value" ];then
+        if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+            exit 1
+        else
+            return
         fi
     fi
-}
-EOF
+    site_file=$value
+fi
+
+# Execute
+if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+    "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+else
+    . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+fi
+CDDRUPAL
     sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
     sed -i "s|__DRUPAL_PROJECTS_DIRNAME__|${DRUPAL_PROJECTS_DIRNAME}|g" "$fullpath"
     sed -i "s|__DRUPAL_USERS_DIRNAME__|${DRUPAL_USERS_DIRNAME}|g" "$fullpath"
