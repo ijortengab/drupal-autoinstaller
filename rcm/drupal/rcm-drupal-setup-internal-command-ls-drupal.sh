@@ -338,12 +338,13 @@ if [ -n "$notfound" ];then
     mkdir -p "$dirname"
     touch "$fullpath"
     chmod a+x "$fullpath"
-    cat << 'EOF' > "$fullpath"
+    cat << 'LSDRUPAL' > "$fullpath"
 #!/bin/bash
 [[ -f "$0" && ! "$0" == $(command -v bash) ]] || {
     echo -e "\e[91m""Invalid execution: "'`'. ls-drupal'`'"\e[39m". Try this one: '`'ls-drupal'`'.
     return
 }
+# Parse Options.
 _new_arguments=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -356,19 +357,30 @@ done
 set -- "${_new_arguments[@]}"
 unset _new_arguments
 
+# Common Functions.
+red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
+yellow() { echo -ne "\e[93m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
+magenta() { echo -ne "\e[95m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
+error() { echo -n "$INDENT" >&2; red '#' "$@" >&2; echo >&2; }
+_() { echo -n "$INDENT" >&2; echo -n "#"' ' >&2; [ -n "$1" ] && echo -n "$@" >&2; }
+_,() { echo -n "$@" >&2; }
+_.() { echo >&2; }
+__() { echo -n "$INDENT" >&2; echo -n "# ${RCM_INDENT}" >&2; [ -n "$1" ] && echo "$@" >&2; }
+
+# Define variables and constants.
+RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
+
 printVersion() {
     echo '__CURRENT_VERSION__'
 }
 printHelp() {
-    cat << 'EOL'
-Usage: ls-drupal
-       ls-drupal
-       ls-drupal [project] [[filter]...]
-       ls-drupal -
+    cat << 'HELP'
+Usage: ls-drupal [project] [site_url]
 
-       List the sites url by [project].
-       If [project] omitted, it will list the project name.
-       Set [project] with - (dash), it will list all site url.
+       List the Drupal projects or sites.
+       If [project] omitted, it will list all project name.
+       If [site_url] omitted, it will list the site url of [project].
+       If all operand is valid, it will execute drush status.
 
 Options:
    --version
@@ -376,14 +388,26 @@ Options:
    --help
         Show this help.
 
-Operands:
-   filter
-        Filter site url by word. Prefix filter with dash, means negate.
-
-Example:
-   ls-drupal - -localhost
-        List all site url without contains word: localhost.
-EOL
+HELP
+}
+url2Filename() {
+    local url=$1 filename
+    # Contoh 1:
+    # uri=juragan.web.id:10001/cintakita/dot/com/sso
+    # filename=juragan.web.id.10001-cintakita.dot.com.sso
+    # Contoh 2:
+    # uri=http://juragan.web.id:10001/cintakita/dot/com/sso/
+    # filename=http.juragan.web.id.10001-cintakita.dot.com.sso
+    # Contoh 3:
+    # uri=https://juragan.web.id:10001/cintakita/dot/com/sso/
+    # filename=juragan.web.id.10001-cintakita.dot.com.sso
+    filename="${url}"
+    filename="${filename/https:\/\//}"
+    filename="${filename/http:\/\//http.}"
+    filename="${filename/:/.}"
+    filename="${filename/\//-}"
+    filename="${filename//\//.}"
+    echo "$filename"
 }
 
 # Help and Version.
@@ -395,68 +419,60 @@ DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
 DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
 DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
 whoami=`whoami`
-[ "$EUID" -eq 0 ] && path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}" || \
-    path="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${whoami}/projects"
-project_dir="$1"; shift
-sites=()
-if [ -z "$project_dir" ];then
-    ls "$path"
-elif [ "$project_dir" == '-' ];then
-    while read line; do
-        path2="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${line}/${DRUPAL_SITES_DIRNAME}"
-        if [ -d "$path2" ];then
-            source=(`ls "$path2"`)
-            for line2 in "${source[@]}"; do
-                url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${line}/${DRUPAL_SITES_DIRNAME}/${line2}" --url)
-                sites+=("$url")
-            done
-        fi
-    done <<< `ls "$path"`
-elif [ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}" ];then
-    path2="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
-    source=(`ls "$path2"`)
-    for line in "${source[@]}"; do
-        url=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${line}" --url)
-        sites+=("$url")
-    done
-fi
-if [ $# -eq 0 ];then
-    for site in "${sites[@]}"; do
-        echo "$site"
-    done
+
+if [ "$EUID" -eq 0 ];then
+    prefix="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"
 else
-    _new_arguments=()
-    while [[ $# -gt 0 ]]; do
-        case  "$1" in
-            -[^-]*)
-                command+=" | grep -F -v \"${1:1}\""
-                shift
-                ;;
-            --) shift
-                while [[ $# -gt 0 ]]; do
-                    case "$1" in
-                        *) _new_arguments+=("$1"); shift ;;
-                    esac
-                done
-                ;;
-            *)
-                command+=" | grep -F \"$1\""
-                shift
-                ;;
-        esac
-    done
-    string=
-    set -- "${sites[@]}"
-    while [[ $# -gt 0 ]]; do
-        string+="$1"
-        shift
-        if [ $# -gt 0 ];then
-            string+=$'\n'
-        fi
-    done
-    echo "$string" | bash -c "cat - ${command}"
+    prefix="${DRUPAL_PREFIX}/${DRUPAL_USERS_DIRNAME}/${whoami}/projects"
 fi
-EOF
+
+if [ ! -d "$prefix" ];then
+    error "There's no Drupal Directory Project: ${prefix}"; exit 1
+fi
+
+if [ -n "$1" ];then
+    project_dir="$1"
+    shift
+    if [ ! -d "${prefix}/$project_dir" ];then
+        error Project is not exists.; exit 1
+    fi
+fi
+if [ -n "$1" ];then
+    site_url="$1"
+    shift
+    site_file=$(url2Filename "$site_url")
+    path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+    if [ ! -f "$path" ];then
+        error Site URL is not exists.; exit 1
+    fi
+fi
+
+print=status
+if [ -z "$site_url" ];then
+    print=sites
+fi
+if [ -z "$project_dir" ];then
+    print=projects
+fi
+
+case "$print" in
+    projects)
+        ls "${prefix}"
+        ;;
+    sites)
+        path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
+        # column hanya ada pada bsdextrautils
+        # apt-get install bsdmainutils
+        # https://debian.pkgs.org/12/debian-main-amd64/bsdextrautils_2.38.1-5+deb12u3_amd64.deb.html
+        while read site_file; do
+            "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --url
+        done <<< `ls "$path"`
+        ;;
+    status)
+        "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --drush-status
+        ;;
+esac
+LSDRUPAL
     sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
     sed -i "s|__DRUPAL_PROJECTS_DIRNAME__|${DRUPAL_PROJECTS_DIRNAME}|g" "$fullpath"
     sed -i "s|__DRUPAL_USERS_DIRNAME__|${DRUPAL_USERS_DIRNAME}|g" "$fullpath"
