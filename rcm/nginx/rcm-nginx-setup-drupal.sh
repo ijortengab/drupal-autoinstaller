@@ -47,7 +47,7 @@ RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 
 # Functions.
 printVersion() {
-    echo '0.11.34'
+    echo '0.11.35'
 }
 printHelp() {
     title RCM Nginx Setup
