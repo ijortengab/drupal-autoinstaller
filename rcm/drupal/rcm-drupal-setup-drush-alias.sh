@@ -460,6 +460,13 @@ while [[ $# -gt 0 ]]; do
         --url) url=1; shift ;;
         --drush-status) drush_status=1; shift ;;
         --[^-]*) shift ;;
+        --) shift
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    *) _new_arguments+=("$1"); shift ;;
+                esac
+            done
+            ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
 done
@@ -481,7 +488,7 @@ printUrl() {
     echo '__URI__'
 }
 drushStatus() {
-    "$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status
+    "$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status "$@"
 }
 unsetvariables() {
     unalias drush 2>/dev/null
@@ -491,11 +498,11 @@ unsetvariables() {
 if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
     [ -n "$version" ] && { printVersion; exit 1; }
     [ -n "$url" ] && { printUrl; exit 1; }
-    [ -n "$drush_status" ] && { drushStatus; exit 1; }
+    [ -n "$drush_status" ] && { drushStatus "$@"; exit 1; }
 else
     [ -n "$version" ] && { printVersion; return; }
     [ -n "$url" ] && { printUrl; return; }
-    [ -n "$drush_status" ] && { drushStatus; return; }
+    [ -n "$drush_status" ] && { drushStatus "$@"; return; }
     unsetvariables
 fi
 
