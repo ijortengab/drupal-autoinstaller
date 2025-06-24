@@ -8,10 +8,10 @@ while [[ $# -gt 0 ]]; do
         --version) version=1; shift ;;
         --auto-add-group) auto_add_group=1; shift ;;
         --composer-offline) composer_offline=1; shift ;;
-        --drupal-version=*) drupal_version="${1#*=}"; shift ;;
-        --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
         --drupalcms-version=*) drupalcms_version="${1#*=}"; shift ;;
         --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
+        --drupal-version=*) drupal_version="${1#*=}"; shift ;;
+        --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
         --drush-install) drush_install=1; shift ;;
         --fast) fast=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
@@ -27,14 +27,8 @@ while [[ $# -gt 0 ]]; do
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --url-host=*) url_host="${1#*=}"; shift ;;
-        --url-host) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_host="$2"; shift; fi; shift ;;
-        --url-path=*) url_path="${1#*=}"; shift ;;
-        --url-path) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_path="$2"; shift; fi; shift ;;
-        --url-port=*) url_port="${1#*=}"; shift ;;
-        --url-port) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_port="$2"; shift; fi; shift ;;
-        --url-scheme=*) url_scheme="${1#*=}"; shift ;;
-        --url-scheme) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_scheme="$2"; shift; fi; shift ;;
+        --url=*) url="${1#*=}"; shift ;;
+        --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -78,6 +72,7 @@ DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 DRUPAL_USERS_DIRNAME=${DRUPAL_USERS_DIRNAME:=users}
 MARIADB_PREFIX=${MARIADB_PREFIX:=/usr/local/share/mariadb}
 MARIADB_USERS_DIRNAME=${MARIADB_USERS_DIRNAME:=users}
+RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
 # Functions.
 printVersion() {
@@ -145,6 +140,8 @@ Options:
    --drush-install ^
         If selected, installation will use drush instead of browser.
         If you are choose Drupal CMS instead Drupal Core, it is recommended to continue installation in the browser.
+   --url
+        Set the additional URL.
 
 Other options (For expert only):
    --project-parent-name
@@ -157,14 +154,6 @@ Other options (For expert only):
         Drupal will install inside sites/[<project-parent-name>--]<project-name>.
    --composer-offline ^
         Set COMPOSER_DISABLE_NETWORK=1 to composer.
-   --url-scheme
-        Additional URL, scheme component.
-   --url-host
-        Additional URL, host component.
-   --url-port
-        Additional URL, port component.
-   --url-path
-        Additional URL, path component.
 
 Global Options.
    --fast
@@ -240,6 +229,16 @@ while IFS= read -r line; do
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 # Functions.
+ArraySearch() {
+    local index match="$1"
+    local source=("${!2}")
+    for index in "${!source[@]}"; do
+       if [[ "${source[$index]}" == "${match}" ]]; then
+           _return=$index; return 0
+       fi
+    done
+    return 1
+}
 validateMachineName() {
     local value="$1" _value
     local parameter="$2"
@@ -582,6 +581,120 @@ isFileExists() {
         __ File '`'$(basename "$1")'`' tidak ditemukan.
         notfound=1
     fi
+}
+Rcm_parse_url() {
+    # Reset
+    PHP_URL_SCHEME=
+    PHP_URL_HOST=
+    PHP_URL_PORT=
+    PHP_URL_USER=
+    PHP_URL_PASS=
+    PHP_URL_PATH=
+    PHP_URL_QUERY=
+    PHP_URL_FRAGMENT=
+    PHP_URL_SCHEME="$(echo "$1" | grep :// | sed -e's,^\(.*\)://.*,\1,g')"
+    _PHP_URL_SCHEME_SLASH="${PHP_URL_SCHEME}://"
+    _PHP_URL_SCHEME_REVERSE="$(echo ${1/${_PHP_URL_SCHEME_SLASH}/})"
+    if grep -q '#' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_FRAGMENT=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f1)
+    fi
+    if grep -q '\?' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_QUERY=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f1)
+    fi
+    _PHP_URL_USER_PASS="$(echo $_PHP_URL_SCHEME_REVERSE | grep @ | cut -d@ -f1)"
+    PHP_URL_PASS=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f2`
+    if [ -n "$PHP_URL_PASS" ]; then
+        PHP_URL_USER=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f1`
+    else
+        PHP_URL_USER=$_PHP_URL_USER_PASS
+    fi
+    _PHP_URL_HOST_PORT="$(echo ${_PHP_URL_SCHEME_REVERSE/$_PHP_URL_USER_PASS@/} | cut -d/ -f1)"
+    PHP_URL_HOST="$(echo $_PHP_URL_HOST_PORT | sed -e 's,:.*,,g')"
+    if grep -q -E ':[0-9]+$' <<< "$_PHP_URL_HOST_PORT";then
+        PHP_URL_PORT="$(echo $_PHP_URL_HOST_PORT | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+    fi
+    _PHP_URL_HOST_PORT_LENGTH=${#_PHP_URL_HOST_PORT}
+    _LENGTH="$_PHP_URL_HOST_PORT_LENGTH"
+    if [ -n "$_PHP_URL_USER_PASS" ];then
+        _PHP_URL_USER_PASS_LENGTH=${#_PHP_URL_USER_PASS}
+        _LENGTH=$((_LENGTH + 1 + _PHP_URL_USER_PASS_LENGTH))
+    fi
+    PHP_URL_PATH="${_PHP_URL_SCHEME_REVERSE:$_LENGTH}"
+
+    # Debug
+    # e '"$PHP_URL_SCHEME"' "$PHP_URL_SCHEME"; _.
+    # e '"$PHP_URL_HOST"' "$PHP_URL_HOST"; _.
+    # e '"$PHP_URL_PORT"' "$PHP_URL_PORT"; _.
+    # e '"$PHP_URL_USER"' "$PHP_URL_USER"; _.
+    # e '"$PHP_URL_PASS"' "$PHP_URL_PASS"; _.
+    # e '"$PHP_URL_PATH"' "$PHP_URL_PATH"; _.
+    # e '"$PHP_URL_QUERY"' "$PHP_URL_QUERY"; _.
+    # e '"$PHP_URL_FRAGMENT"' "$PHP_URL_FRAGMENT"; _.
+}
+urlCompleteComponent() {
+    local tld_special _url_port _tld _url_path_correct
+    [[ $(type -t Rcm_parse_url) == function ]] || { error Function Rcm_parse_url not found.; x; }
+    [[ $(type -t ArraySearch) == function ]] || { error Function ArraySearch not found.; x; }
+    [[ -n "$url" ]] || { error Global variable url is not found or empty value.; x; }
+    [[ -n "$RCM_TLD_SPECIAL" ]] || { error Global variable RCM_TLD_SPECIAL is not found or empty value.; x; }
+    Rcm_parse_url "$url"
+    if [ -z "$PHP_URL_HOST" ];then
+        error Argument --url is not valid: '`'"$url"'`'.; x
+    fi
+    [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
+    if [ -z "$PHP_URL_PORT" ];then
+        case "$url_scheme" in
+            http) url_port=80;;
+            https) url_port=443;;
+        esac
+    else
+        url_port="$PHP_URL_PORT"
+    fi
+    url_host="$PHP_URL_HOST"
+    url_path="$PHP_URL_PATH"
+    url_path_clean=
+    url_path_clean_trailing=
+    if [[ "$url_path" == '/' ]];then
+        url_path=
+    fi
+    if [ -n "$url_path" ];then
+        # Trim leading and trailing slash.
+        url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
+        url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+        # Must leading with slash.
+        # Karena akan digunakan pada nginx configuration.
+        _url_path_correct="/${url_path_clean}"
+        if [ ! "$url_path_clean_trailing" == "$_url_path_correct" ];then
+            error "Argument --url-path not valid."; x
+        fi
+    fi
+    _tld="${url_host##*.}"
+    # Explode by space.
+    read -ra tld_special -d '' <<< "$RCM_TLD_SPECIAL"
+    is_tld_special=
+    if ArraySearch "$_tld" tld_special[@];then
+        # Paksa menjadi http.
+        url_scheme=http
+        if [ -z "$PHP_URL_PORT" ];then
+            url_port=80
+        fi
+        is_tld_special=1
+    fi
+    _url_port=
+    if [ -n "$url_port" ];then
+        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+            _url_port=
+        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+            _url_port=
+        else
+            _url_port=":${url_port}"
+        fi
+    fi
+    # Modify variable url, auto add scheme.
+    # Modify variable url, auto trim trailing slash, auto add port.
+    url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
 }
 
 # Global variable used:
@@ -1027,52 +1140,38 @@ code 'drupal_fqdn_localhost="'$drupal_fqdn_localhost'"'
 code 'drupal_db_name="'$drupal_db_name'"'
 code 'sites_subdir="'$sites_subdir'"'
 code 'auto_add_group="'$auto_add_group'"'
-code 'url_scheme="'$url_scheme'"'
-code 'url_host="'$url_host'"'
-code 'url_port="'$url_port'"'
-code 'url_path="'$url_path'"'
-url=
-url_minus_scheme=
-url_minus_scheme_key_array=
-url_path_clean=
-url_path_clean_trailing=
-if [ -n "$url_path" ];then
-    url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
-    url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
-fi
-code 'url_path_clean="'$url_path_clean'"'
-code 'url_path_clean_trailing="'$url_path_clean_trailing'"'
-if [ -n "$url_host" ];then
-    if [ -z "$url_scheme" ];then
-        url_scheme=https
-    fi
+code 'url="'$url'"'
+if [ -n "$url" ];then
+    urlCompleteComponent
+    code 'url="'$url'"'
+    code 'url_scheme="'$url_scheme'"'
+    code 'url_host="'$url_host'"'
+    code 'url_port="'$url_port'"'
+    code 'url_path="'$url_path'"'
+    code 'url_path_clean="'$url_path_clean'"'
+    code 'url_path_clean_trailing="'$url_path_clean_trailing'"'
+    url_minus_scheme=
+    url_minus_scheme_key_array=
     _url_port=
     _url_port_2=
-    if [ -n "$url_port" ];then
-        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
-            _url_port=
-        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
-            _url_port=
-        else
-            _url_port=":${url_port}"
-            _url_port_2="${url_port}."
-        fi
+    if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+        _url_port=
+    elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+        _url_port=
+    else
+        _url_port=":${url_port}"
+        _url_port_2="${url_port}."
     fi
-    url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
     url_minus_scheme="${url_host}${_url_port}${url_path_clean_trailing}"
     url_minus_scheme_key_array="${_url_port_2}${url_host}${url_path_clean_trailing}"
     url_minus_scheme_key_array="${url_minus_scheme_key_array//\//.}"
+    code 'url_minus_scheme="'$url_minus_scheme'"'
+    code 'url_minus_scheme_key_array="'$url_minus_scheme_key_array'"'
 fi
-code 'url="'$url'"'
-code 'url_minus_scheme="'$url_minus_scheme'"'
-code 'url_minus_scheme_key_array="'$url_minus_scheme_key_array'"'
-code 'url_scheme="'$url_scheme'"'
-code 'url_host="'$url_host'"'
-code 'url_port="'$url_port'"'
-code 'url_path="'$url_path'"'
-site_name="$drupal_fqdn_localhost"
 if [ -n "$url_minus_scheme" ];then
     site_name="$url_minus_scheme"
+else
+    site_name="$drupal_fqdn_localhost"
 fi
 code 'site_name="'$site_name'"'
 nginx_user=
@@ -1805,10 +1904,7 @@ exit 0
 # --php-fpm-section
 # --php-fpm-user
 # --project-dir
-# --url-scheme
-# --url-host
-# --url-port
-# --url-path
+# --url
 # )
 # FLAG_VALUE=(
 # )
