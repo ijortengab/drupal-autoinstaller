@@ -76,7 +76,7 @@ RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost al
 
 # Functions.
 printVersion() {
-    echo '0.11.35'
+    echo '0.12.0'
 }
 printHelp() {
     title RCM Drupal Auto-Installer

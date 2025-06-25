@@ -46,7 +46,7 @@ DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 
 # Functions.
 printVersion() {
-    echo '0.11.35'
+    echo '0.12.0'
 }
 printHelp() {
     title RCM Drupal Setup Dump Variables
