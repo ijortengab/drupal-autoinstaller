@@ -61,6 +61,7 @@ ____() { echo >&2; [ -n "$RCM_DELAY" ] && sleep "$RCM_DELAY"; }
 # Define variables and constants.
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
+RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
 # Functions.
 printVersion() {
@@ -773,6 +774,16 @@ while IFS= read -r line; do
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 #  Functions.
+ArraySearch() {
+    local index match="$1"
+    local source=("${!2}")
+    for index in "${!source[@]}"; do
+       if [[ "${source[$index]}" == "${match}" ]]; then
+           _return=$index; return 0
+       fi
+    done
+    return 1
+}
 validateMachineName() {
     local value="$1" _value
     local parameter="$2"
@@ -861,15 +872,119 @@ resolve_relative_path() {
         return 1
     fi
 }
-ArraySearch() {
-    local index match="$1"
-    local source=("${!2}")
-    for index in "${!source[@]}"; do
-       if [[ "${source[$index]}" == "${match}" ]]; then
-           _return=$index; return 0
-       fi
-    done
-    return 1
+Rcm_parse_url() {
+    # Reset
+    PHP_URL_SCHEME=
+    PHP_URL_HOST=
+    PHP_URL_PORT=
+    PHP_URL_USER=
+    PHP_URL_PASS=
+    PHP_URL_PATH=
+    PHP_URL_QUERY=
+    PHP_URL_FRAGMENT=
+    PHP_URL_SCHEME="$(echo "$1" | grep :// | sed -e's,^\(.*\)://.*,\1,g')"
+    _PHP_URL_SCHEME_SLASH="${PHP_URL_SCHEME}://"
+    _PHP_URL_SCHEME_REVERSE="$(echo ${1/${_PHP_URL_SCHEME_SLASH}/})"
+    if grep -q '#' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_FRAGMENT=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f1)
+    fi
+    if grep -q '\?' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_QUERY=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f1)
+    fi
+    _PHP_URL_USER_PASS="$(echo $_PHP_URL_SCHEME_REVERSE | grep @ | cut -d@ -f1)"
+    PHP_URL_PASS=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f2`
+    if [ -n "$PHP_URL_PASS" ]; then
+        PHP_URL_USER=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f1`
+    else
+        PHP_URL_USER=$_PHP_URL_USER_PASS
+    fi
+    _PHP_URL_HOST_PORT="$(echo ${_PHP_URL_SCHEME_REVERSE/$_PHP_URL_USER_PASS@/} | cut -d/ -f1)"
+    PHP_URL_HOST="$(echo $_PHP_URL_HOST_PORT | sed -e 's,:.*,,g')"
+    if grep -q -E ':[0-9]+$' <<< "$_PHP_URL_HOST_PORT";then
+        PHP_URL_PORT="$(echo $_PHP_URL_HOST_PORT | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+    fi
+    _PHP_URL_HOST_PORT_LENGTH=${#_PHP_URL_HOST_PORT}
+    _LENGTH="$_PHP_URL_HOST_PORT_LENGTH"
+    if [ -n "$_PHP_URL_USER_PASS" ];then
+        _PHP_URL_USER_PASS_LENGTH=${#_PHP_URL_USER_PASS}
+        _LENGTH=$((_LENGTH + 1 + _PHP_URL_USER_PASS_LENGTH))
+    fi
+    PHP_URL_PATH="${_PHP_URL_SCHEME_REVERSE:$_LENGTH}"
+
+    # Debug
+    # e '"$PHP_URL_SCHEME"' "$PHP_URL_SCHEME"; _.
+    # e '"$PHP_URL_HOST"' "$PHP_URL_HOST"; _.
+    # e '"$PHP_URL_PORT"' "$PHP_URL_PORT"; _.
+    # e '"$PHP_URL_USER"' "$PHP_URL_USER"; _.
+    # e '"$PHP_URL_PASS"' "$PHP_URL_PASS"; _.
+    # e '"$PHP_URL_PATH"' "$PHP_URL_PATH"; _.
+    # e '"$PHP_URL_QUERY"' "$PHP_URL_QUERY"; _.
+    # e '"$PHP_URL_FRAGMENT"' "$PHP_URL_FRAGMENT"; _.
+}
+urlCompleteComponent() {
+    local tld_special _url_port _tld _url_path_correct
+    [[ $(type -t Rcm_parse_url) == function ]] || { error Function Rcm_parse_url not found.; x; }
+    [[ $(type -t ArraySearch) == function ]] || { error Function ArraySearch not found.; x; }
+    [[ -n "$url" ]] || { error Global variable url is not found or empty value.; x; }
+    [[ -n "$RCM_TLD_SPECIAL" ]] || { error Global variable RCM_TLD_SPECIAL is not found or empty value.; x; }
+    Rcm_parse_url "$url"
+    if [ -z "$PHP_URL_HOST" ];then
+        error Argument --url is not valid: '`'"$url"'`'.; x
+    fi
+    [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
+    if [ -z "$PHP_URL_PORT" ];then
+        case "$url_scheme" in
+            http) url_port=80;;
+            https) url_port=443;;
+        esac
+    else
+        url_port="$PHP_URL_PORT"
+    fi
+    url_host="$PHP_URL_HOST"
+    url_path="$PHP_URL_PATH"
+    url_path_clean=
+    url_path_clean_trailing=
+    if [[ "$url_path" == '/' ]];then
+        url_path=
+    fi
+    if [ -n "$url_path" ];then
+        # Trim leading and trailing slash.
+        url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
+        url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+        # Must leading with slash.
+        # Karena akan digunakan pada nginx configuration.
+        _url_path_correct="/${url_path_clean}"
+        if [ ! "$url_path_clean_trailing" == "$_url_path_correct" ];then
+            error "Argument --url-path not valid."; x
+        fi
+    fi
+    _tld="${url_host##*.}"
+    # Explode by space.
+    read -ra tld_special -d '' <<< "$RCM_TLD_SPECIAL"
+    is_tld_special=
+    if ArraySearch "$_tld" tld_special[@];then
+        # Paksa menjadi http.
+        url_scheme=http
+        if [ -z "$PHP_URL_PORT" ];then
+            url_port=80
+        fi
+        is_tld_special=1
+    fi
+    _url_port=
+    if [ -n "$url_port" ];then
+        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+            _url_port=
+        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+            _url_port=
+        else
+            _url_port=":${url_port}"
+        fi
+    fi
+    # Modify variable url, auto add scheme.
+    # Modify variable url, auto trim trailing slash, auto add port.
+    url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
 }
 
 # Requirement, validate, and populate value.
@@ -924,48 +1039,16 @@ if [ -f /proc/sys/kernel/osrelease ];then
 fi
 code 'is_wsl="'$is_wsl'"'
 code 'url="'$url'"'
-tld_special=(example test onion invalid local localhost alt)
-is_tld_special=
 if [ -n "$url" ];then
-    Rcm_parse_url "$url"
-	if [ -z "$PHP_URL_HOST" ];then
-        error Argument --url is not valid: '`'"$url"'`'.; x
-    fi
-    [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
-    if [ -z "$PHP_URL_PORT" ];then
-        case "$url_scheme" in
-            http) url_port=80;;
-            https) url_port=443;;
-        esac
-    else
-        url_port="$PHP_URL_PORT"
-    fi
-    url_host="$PHP_URL_HOST"
-    url_path="$PHP_URL_PATH"
-    # Modify variable url, auto add scheme.
-    url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
-    # Modify variable url, auto trim trailing slash, auto add port.
-    tld="${url_host##*.}"
-    if ArraySearch "$tld" tld_special[@];then
-        url_scheme=http
-        if [ -z "$PHP_URL_PORT" ];then
-            url_port=80
-        fi
-        is_tld_special=1
-    fi
-    _url_port=
-    if [ -n "$url_port" ];then
-        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
-            _url_port=
-        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
-            _url_port=
-        else
-            _url_port=":${url_port}"
-        fi
-    fi
-    url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
+    urlCompleteComponent
+    code 'url="'$url'"'
+    code 'url_scheme="'$url_scheme'"'
+    code 'url_host="'$url_host'"'
+    code 'url_port="'$url_port'"'
+    code 'url_path="'$url_path'"'
+    code 'url_path_clean="'$url_path_clean'"'
+    code 'url_path_clean_trailing="'$url_path_clean_trailing'"'
 fi
-code 'url="'$url'"'
 if [ -n "$project_parent_name" ];then
     url_dirname_website_info="${PREFIX_MASTER}/${PROJECTS_CONTAINER_MASTER}/${project_parent_name}/subprojects/${project_name}"
 else
@@ -1126,10 +1209,7 @@ rcm-drupal-autoinstaller-nginx $isfast \
     --project-dir="$project_dir" \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
-    --url-scheme="$url_scheme" \
-    --url-host="$url_host" \
-    --url-port="$url_port" \
-    --url-path="$url_path" \
+    --url="$url" \
     ; [ ! $? -eq 0 ] && x
 
 if [[ -n "$url" && -n "$certbot_obtain" ]];then
@@ -1145,10 +1225,7 @@ if [ -n "$url" ];then
         --php-version="$php_version" \
         --php-fpm-section="$php_fpm_section" \
         --project-dir="$project_dir" \
-        --url-scheme="$url_scheme" \
-        --url-host="$url_host" \
-        --url-port="$url_port" \
-        --url-path="$url_path" \
+        --url="$url" \
         --certificate-name="$certificate_name" \
         ; [ ! $? -eq 0 ] && x
 
@@ -1174,10 +1251,7 @@ INDENT+="    " \
 rcm-drupal-setup-drush-alias $isfast \
     --project-name="$project_name" \
     --project-parent-name="$project_parent_name" \
-    --url-scheme="$url_scheme" \
-    --url-host="$url_host" \
-    --url-port="$url_port" \
-    --url-path="$url_path" \
+    --url="$url" \
     && INDENT+="    " \
 rcm-drupal-setup-internal-command-cd-drupal $isfast \
     && INDENT+="    " \
