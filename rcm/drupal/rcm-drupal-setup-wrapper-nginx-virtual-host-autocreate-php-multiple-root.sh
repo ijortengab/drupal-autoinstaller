@@ -15,14 +15,8 @@ while [[ $# -gt 0 ]]; do
         --php-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_version="$2"; shift; fi; shift ;;
         --project-dir=*) project_dir="${1#*=}"; shift ;;
         --project-dir) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_dir="$2"; shift; fi; shift ;;
-        --url-host=*) url_host="${1#*=}"; shift ;;
-        --url-host) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_host="$2"; shift; fi; shift ;;
-        --url-path=*) url_path="${1#*=}"; shift ;;
-        --url-path) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_path="$2"; shift; fi; shift ;;
-        --url-port=*) url_port="${1#*=}"; shift ;;
-        --url-port) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_port="$2"; shift; fi; shift ;;
-        --url-scheme=*) url_scheme="${1#*=}"; shift ;;
-        --url-scheme) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_scheme="$2"; shift; fi; shift ;;
+        --url=*) url="${1#*=}"; shift ;;
+        --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
         --with-certbot-obtain) certbot_obtain=1; shift ;;
         --without-certbot-obtain) certbot_obtain=0; shift ;;
         --[^-]*) shift ;;
@@ -54,6 +48,7 @@ ____() { echo >&2; [ -n "$RCM_DELAY" ] && sleep "$RCM_DELAY"; }
 # Define variables and constants.
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
+RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
 # Functions.
 printVersion() {
@@ -68,21 +63,14 @@ printHelp() {
 Usage: rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root [options]
 
 Options:
+   --url *
+        Set the URL.
    --project-dir *
         The directory of drupal project.
    --php-fpm-section *
         Section pada file config di direktori pool PHP-FPM.
    --php-version *
         Set the version of PHP FPM.
-   --url-scheme *
-        The URL Scheme. Available value: http, https.
-   --url-port *
-        The URL Port. Set the value of listen directive.
-   --url-host *
-        The URL Host. Set the value of server_name directive.
-        Only support one value even the directive may have multivalue.
-   --url-path
-        The URL Path.
 
 Global Options:
    --fast
@@ -116,6 +104,16 @@ while IFS= read -r line; do
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 # Functions.
+ArraySearch() {
+    local index match="$1"
+    local source=("${!2}")
+    for index in "${!source[@]}"; do
+       if [[ "${source[$index]}" == "${match}" ]]; then
+           _return=$index; return 0
+       fi
+    done
+    return 1
+}
 backupFile() {
     local mode="$1"
     local oldpath="$2" i newpath
@@ -370,38 +368,136 @@ validateContent2582295() {
     fi
     return 1
 }
+Rcm_parse_url() {
+    # Reset
+    PHP_URL_SCHEME=
+    PHP_URL_HOST=
+    PHP_URL_PORT=
+    PHP_URL_USER=
+    PHP_URL_PASS=
+    PHP_URL_PATH=
+    PHP_URL_QUERY=
+    PHP_URL_FRAGMENT=
+    PHP_URL_SCHEME="$(echo "$1" | grep :// | sed -e's,^\(.*\)://.*,\1,g')"
+    _PHP_URL_SCHEME_SLASH="${PHP_URL_SCHEME}://"
+    _PHP_URL_SCHEME_REVERSE="$(echo ${1/${_PHP_URL_SCHEME_SLASH}/})"
+    if grep -q '#' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_FRAGMENT=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f1)
+    fi
+    if grep -q '\?' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_QUERY=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f1)
+    fi
+    _PHP_URL_USER_PASS="$(echo $_PHP_URL_SCHEME_REVERSE | grep @ | cut -d@ -f1)"
+    PHP_URL_PASS=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f2`
+    if [ -n "$PHP_URL_PASS" ]; then
+        PHP_URL_USER=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f1`
+    else
+        PHP_URL_USER=$_PHP_URL_USER_PASS
+    fi
+    _PHP_URL_HOST_PORT="$(echo ${_PHP_URL_SCHEME_REVERSE/$_PHP_URL_USER_PASS@/} | cut -d/ -f1)"
+    PHP_URL_HOST="$(echo $_PHP_URL_HOST_PORT | sed -e 's,:.*,,g')"
+    if grep -q -E ':[0-9]+$' <<< "$_PHP_URL_HOST_PORT";then
+        PHP_URL_PORT="$(echo $_PHP_URL_HOST_PORT | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+    fi
+    _PHP_URL_HOST_PORT_LENGTH=${#_PHP_URL_HOST_PORT}
+    _LENGTH="$_PHP_URL_HOST_PORT_LENGTH"
+    if [ -n "$_PHP_URL_USER_PASS" ];then
+        _PHP_URL_USER_PASS_LENGTH=${#_PHP_URL_USER_PASS}
+        _LENGTH=$((_LENGTH + 1 + _PHP_URL_USER_PASS_LENGTH))
+    fi
+    PHP_URL_PATH="${_PHP_URL_SCHEME_REVERSE:$_LENGTH}"
+
+    # Debug
+    # e '"$PHP_URL_SCHEME"' "$PHP_URL_SCHEME"; _.
+    # e '"$PHP_URL_HOST"' "$PHP_URL_HOST"; _.
+    # e '"$PHP_URL_PORT"' "$PHP_URL_PORT"; _.
+    # e '"$PHP_URL_USER"' "$PHP_URL_USER"; _.
+    # e '"$PHP_URL_PASS"' "$PHP_URL_PASS"; _.
+    # e '"$PHP_URL_PATH"' "$PHP_URL_PATH"; _.
+    # e '"$PHP_URL_QUERY"' "$PHP_URL_QUERY"; _.
+    # e '"$PHP_URL_FRAGMENT"' "$PHP_URL_FRAGMENT"; _.
+}
+urlCompleteComponent() {
+    local tld_special _url_port _tld _url_path_correct
+    [[ $(type -t Rcm_parse_url) == function ]] || { error Function Rcm_parse_url not found.; x; }
+    [[ $(type -t ArraySearch) == function ]] || { error Function ArraySearch not found.; x; }
+    [[ -n "$url" ]] || { error Global variable url is not found or empty value.; x; }
+    [[ -n "$RCM_TLD_SPECIAL" ]] || { error Global variable RCM_TLD_SPECIAL is not found or empty value.; x; }
+    Rcm_parse_url "$url"
+    if [ -z "$PHP_URL_HOST" ];then
+        error Argument --url is not valid: '`'"$url"'`'.; x
+    fi
+    [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
+    if [ -z "$PHP_URL_PORT" ];then
+        case "$url_scheme" in
+            http) url_port=80;;
+            https) url_port=443;;
+        esac
+    else
+        url_port="$PHP_URL_PORT"
+    fi
+    url_host="$PHP_URL_HOST"
+    url_path="$PHP_URL_PATH"
+    url_path_clean=
+    url_path_clean_trailing=
+    if [[ "$url_path" == '/' ]];then
+        url_path=
+    fi
+    if [ -n "$url_path" ];then
+        # Trim leading and trailing slash.
+        url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
+        url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+        # Must leading with slash.
+        # Karena akan digunakan pada nginx configuration.
+        _url_path_correct="/${url_path_clean}"
+        if [ ! "$url_path_clean_trailing" == "$_url_path_correct" ];then
+            error "Argument --url-path not valid."; x
+        fi
+    fi
+    _tld="${url_host##*.}"
+    # Explode by space.
+    read -ra tld_special -d '' <<< "$RCM_TLD_SPECIAL"
+    is_tld_special=
+    if ArraySearch "$_tld" tld_special[@];then
+        # Paksa menjadi http.
+        url_scheme=http
+        if [ -z "$PHP_URL_PORT" ];then
+            url_port=80
+        fi
+        is_tld_special=1
+    fi
+    _url_port=
+    if [ -n "$url_port" ];then
+        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+            _url_port=
+        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+            _url_port=
+        else
+            _url_port=":${url_port}"
+        fi
+    fi
+    # Modify variable url, auto add scheme.
+    # Modify variable url, auto trim trailing slash, auto add port.
+    url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
+}
 
 # Require, validate, and populate value.
 chapter Dump variable.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
-if [ -z "$url_scheme" ];then
-    error "Argument --url-scheme required."; x
+if [ -z "$url" ];then
+    error "Argument --url required."; x
 fi
-if [ -z "$url_host" ];then
-    error "Argument --url-host required."; x
-fi
-if [ -z "$url_port" ];then
-    error "Argument --url-port required."; x
-fi
-if [[ "$url_path" == '/' ]];then
-    url_path=
-fi
-if [ -n "$url_path" ];then
-    # Trim leading and trailing slash.
-    url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
-    url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
-    # Must leading with slash.
-    # Karena akan digunakan pada nginx configuration.
-    _url_path_correct="/${url_path_clean}"
-    if [ ! "$url_path_clean_trailing" == "$_url_path_correct" ];then
-        error "Argument --url-path not valid."; x
-    fi
-fi
+code 'url="'$url'"'
+urlCompleteComponent
+code 'url="'$url'"'
 code 'url_scheme="'$url_scheme'"'
 code 'url_host="'$url_host'"'
 code 'url_port="'$url_port'"'
 code 'url_path="'$url_path'"'
 code 'url_path_clean="'$url_path_clean'"'
+code 'url_path_clean_trailing="'$url_path_clean_trailing'"'
 if [ -z "$php_version" ];then
     error "Argument --php-version required."; x
 fi
@@ -521,36 +617,24 @@ if [ -n "$url_path" ];then
 fi
 
 chapter Prepare Arguments.
-master_root="$nginx_config_root"
-master_include="${nginx_config_dir}/*"
-master_include_2="$nginx_config_file"
-master_filename="$filename"
-master_url_host="$url_host"
-master_url_scheme="$url_scheme"
-master_url_port="$url_port"
-slave_root=
-slave_filename="${url_path_clean//\//.}"
+web_root=
 slave_dirname="$nginx_config_dir"
-slave_fastcgi_pass="$fastcgi_pass"
+slave_filename="${url_path_clean//\//.}"
 slave_url_path="$url_path_clean_trailing"
-slave_url_path_clean="$url_path_clean"
 if [ -z "$url_path" ];then
-    slave_filename="$(basename "$nginx_config_file")"
+    web_root="$root"
     slave_dirname="$(dirname "$nginx_config_file")"
+    slave_filename="$(basename "$nginx_config_file")"
     slave_url_path=
-    slave_root="$root"
 fi
-code 'master_root="'$master_root'"'
-code 'master_include="'$master_include'"'
-code 'master_include_2="'$master_include_2'"'
-code 'master_filename="'$master_filename'"'
-code 'master_url_host="'$master_url_host'"'
-code 'master_url_scheme="'$master_url_scheme'"'
-code 'master_url_port="'$master_url_port'"'
-code 'slave_root="'$slave_root'"'
+code 'nginx_config_root="'$nginx_config_root'"'
+code 'nginx_config_dir="'$nginx_config_dir'"'
+code 'nginx_config_file="'$nginx_config_file'"'
+code 'url="'$url'"'
+code 'web_root="'$web_root'"'
+code 'fastcgi_pass="'$fastcgi_pass'"'
 code 'slave_filename="'$slave_filename'"'
 code 'slave_dirname="'$slave_dirname'"'
-code 'slave_fastcgi_pass="'$slave_fastcgi_pass'"'
 code 'slave_url_path="'$slave_url_path'"'
 ____
 
@@ -581,32 +665,26 @@ rcm-nginx-virtual-host-autocreate-php-multiple-root $isfast \
     $is_certbot_obtain \
     --without-nginx-reload \
     --tempfile-trigger-reload="$tempfile" \
-    --master-root="$master_root" \
-    --master-include="$master_include" \
-    --master-include-2="$master_include_2" \
-    --master-filename="$master_filename" \
-    --master-url-host="$master_url_host" \
-    --master-url-scheme="$master_url_scheme" \
-    --master-url-port="$master_url_port" \
-    --slave-root="$slave_root" \
-    --slave-filename="$slave_filename" \
-    --slave-dirname="$slave_dirname" \
-    --slave-fastcgi-pass="$slave_fastcgi_pass" \
-    --slave-url-path="$slave_url_path" \
-    --master-certbot-certificate-name="$certificate_name" \
+    --url="$url" \
+    --nginx-config-root="$nginx_config_root" \
+    --nginx-config-file="$nginx_config_file" \
+    --nginx-config-dir="$nginx_config_dir" \
+    --web-root="$web_root" \
+    --fastcgi-pass="$fastcgi_pass" \
+    --certbot-certificate-name="$certificate_name" \
     ; [ ! $? -eq 0 ] && x
 
-chapter Solusi sementara untuk bug Drupal Core.
-url=https://www.drupal.org/project/drupal/issues/2582295
-_ "$url"; _.
-path="${slave_dirname}/${slave_filename}-2582295"
-filename="${slave_filename}-2582295"
-isFileExists "$path"
-slave_url_path_clean=$(echo "$slave_url_path" | sed -E 's|(^/\|/$)+||g')
-code 'slave_url_path_clean="'$slave_url_path_clean'"'
-____
+if [ -n "$url_path" ];then
+    chapter Solusi sementara untuk bug Drupal Core.
+    url=https://www.drupal.org/project/drupal/issues/2582295
+    _ "$url"; _.
+    path="${slave_dirname}/${slave_filename}-2582295"
+    filename="${slave_filename}-2582295"
+    isFileExists "$path"
+    slave_url_path_clean=$(echo "$slave_url_path" | sed -E 's|(^/\|/$)+||g')
+    code 'slave_url_path_clean="'$slave_url_path_clean'"'
+    ____
 
-if [ -n "$slave_url_path" ];then
     create_new=
     if [ -n "$found" ];then
         chapter Memeriksa konten.
@@ -706,10 +784,7 @@ exit 0
 # --help
 # )
 # VALUE=(
-# --url-scheme
-# --url-host
-# --url-port
-# --url-path
+# --url
 # --project-dir
 # --php-version
 # --php-fpm-section
