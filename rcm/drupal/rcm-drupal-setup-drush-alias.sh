@@ -11,14 +11,8 @@ while [[ $# -gt 0 ]]; do
         --project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_name="$2"; shift; fi; shift ;;
         --project-parent-name=*) project_parent_name="${1#*=}"; shift ;;
         --project-parent-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --url-host=*) url_host="${1#*=}"; shift ;;
-        --url-host) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_host="$2"; shift; fi; shift ;;
-        --url-path=*) url_path="${1#*=}"; shift ;;
-        --url-path) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_path="$2"; shift; fi; shift ;;
-        --url-port=*) url_port="${1#*=}"; shift ;;
-        --url-port) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_port="$2"; shift; fi; shift ;;
-        --url-scheme=*) url_scheme="${1#*=}"; shift ;;
-        --url-scheme) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url_scheme="$2"; shift; fi; shift ;;
+        --url=*) url="${1#*=}"; shift ;;
+        --url) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then url="$2"; shift; fi; shift ;;
         --[^-]*) shift ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
@@ -53,6 +47,7 @@ DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 DRUPAL_BINARY_DIRNAME=${DRUPAL_BINARY_DIRNAME:=bin}
 DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
+RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
 # Functions.
 printVersion() {
@@ -67,10 +62,12 @@ printHelp() {
 Usage: rcm-drupal-setup-drush-alias [options]
 
 Options:
-   --project-name
-        Set the project name. This should be in machine name format.
    --project-parent-name
         Set the project parent name.
+   --project-name *
+        Set the project name. This should be in machine name format.
+   --url
+        Set the additional URL.
 
 Global Options.
    --fast
@@ -110,6 +107,16 @@ while IFS= read -r line; do
 done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 # Functions.
+ArraySearch() {
+    local index match="$1"
+    local source=("${!2}")
+    for index in "${!source[@]}"; do
+       if [[ "${source[$index]}" == "${match}" ]]; then
+           _return=$index; return 0
+       fi
+    done
+    return 1
+}
 resolve_relative_path() {
     if [ -d "$1" ];then
         cd "$1" || return 1
@@ -151,131 +158,6 @@ isFileExists() {
         __ File '`'$(basename "$1")'`' tidak ditemukan.
         notfound=1
     fi
-}
-backupFile() {
-    local mode="$1"
-    local oldpath="$2" i newpath
-    local target_dir="$3"
-    i=1
-    dirname=$(dirname "$oldpath")
-    basename=$(basename "$oldpath")
-    if [ -n "$target_dir" ];then
-        case "$target_dir" in
-            parent) dirname=$(dirname "$dirname") ;;
-            *) dirname="$target_dir"
-        esac
-    fi
-    [ -d "$dirname" ] || { echo 'Directory is not exists.' >&2; return 1; }
-    newpath="${dirname}/${basename}.${i}"
-    if [ -f "$newpath" ]; then
-        let i++
-        newpath="${dirname}/${basename}.${i}"
-        while [ -f "$newpath" ] ; do
-            let i++
-            newpath="${dirname}/${basename}.${i}"
-        done
-    fi
-    case $mode in
-        move)
-            mv "$oldpath" "$newpath" ;;
-        copy)
-            local user=$(stat -c "%U" "$oldpath")
-            local group=$(stat -c "%G" "$oldpath")
-            cp "$oldpath" "$newpath"
-            chown ${user}:${group} "$newpath"
-    esac
-}
-backupDir() {
-    local oldpath="$1" i newpath
-    # Trim trailing slash.
-    oldpath=$(echo "$oldpath" | sed -E 's|/+$||g')
-    i=1
-    newpath="${oldpath}.${i}"
-    if [ -e "$newpath" ]; then
-        let i++
-        newpath="${oldpath}.${i}"
-        while [ -e "$newpath" ] ; do
-            let i++
-            newpath="${oldpath}.${i}"
-        done
-    fi
-    mv "$oldpath" "$newpath"
-}
-link_symbolic() {
-    local source="$1"
-    local target="$2"
-    local sudo="$3"
-    local source_mode="$4"
-    local create
-    [ "$sudo" == - ] && sudo=
-    [ "$source_mode" == absolute ] || source_mode=
-    [ -e "$source" ] || { error Source not exist: $source.; x; }
-    [ -f "$source" ] || { error Source exists but not file: $source.; x; }
-    [ -n "$target" ] || { error Target not defined.; x; }
-    [[ $(type -t backupFile) == function ]] || { error Function backupFile not found.; x; }
-    [[ $(type -t backupDir) == function ]] || { error Function backupDir not found.; x; }
-    chapter Membuat symbolic link.
-    __ source: '`'$source'`'
-    __ target: '`'$target'`'
-    if [ -f "$target" ];then
-        if [ -h "$target" ];then
-            __ Path target saat ini sudah merupakan file symbolic link: '`'$target'`'
-            local _readlink=$(readlink "$target")
-            __; magenta readlink "$target"; _.
-            _ $_readlink; _.
-            if [[ "$_readlink" =~ ^[^/\.] ]];then
-                local target_parent=$(dirname "$target")
-                local _dereference="${target_parent}/${_readlink}"
-            elif [[ "$_readlink" =~ ^[\.] ]];then
-                local target_parent=$(dirname "$target")
-                local _dereference="${target_parent}/${_readlink}"
-                _dereference=$(realpath -s "$_dereference")
-            else
-                _dereference="$_readlink"
-            fi
-            __; _, Mengecek apakah link merujuk ke '`'$source'`':' '
-            if [[ "$source" == "$_dereference" ]];then
-                _, merujuk.; _.
-            else
-                _, tidak merujuk.; _.
-                __ Melakukan backup.
-                backupFile move "$target"
-                create=1
-            fi
-        else
-            __ Melakukan backup regular file: '`'"$target"'`'.
-            backupFile move "$target"
-            create=1
-        fi
-    elif [ -d "$target" ];then
-        __ Melakukan backup direktori: '`'"$target"'`'.
-        backupDir "$target"
-        create=1
-    else
-        create=1
-    fi
-    if [ -n "$create" ];then
-        __ Membuat symbolic link: '`'$target'`'.
-        local target_parent=$(dirname "$target")
-        code mkdir -p "$target_parent"
-        mkdir -p "$target_parent"
-        if [ -z "$source_mode" ];then
-            source=$(realpath -s --relative-to="$target_parent" "$source")
-        fi
-        if [ -n "$sudo" ];then
-            code sudo -u '"'$sudo'"' ln -s '"'$source'"' '"'$target'"'
-            sudo -u "$sudo" ln -s "$source" "$target"
-        else
-            code ln -s '"'$source'"' '"'$target'"'
-            ln -s "$source" "$target"
-        fi
-        if [ $? -eq 0 ];then
-            __; green Symbolic link berhasil dibuat.; _.
-        else
-            __; red Symbolic link gagal dibuat.; x
-        fi
-    fi
-    ____
 }
 dirMustExists() {
     # global used:
@@ -346,6 +228,120 @@ url2Filename() {
     filename="${filename//\//.}"
     echo "$filename"
 }
+Rcm_parse_url() {
+    # Reset
+    PHP_URL_SCHEME=
+    PHP_URL_HOST=
+    PHP_URL_PORT=
+    PHP_URL_USER=
+    PHP_URL_PASS=
+    PHP_URL_PATH=
+    PHP_URL_QUERY=
+    PHP_URL_FRAGMENT=
+    PHP_URL_SCHEME="$(echo "$1" | grep :// | sed -e's,^\(.*\)://.*,\1,g')"
+    _PHP_URL_SCHEME_SLASH="${PHP_URL_SCHEME}://"
+    _PHP_URL_SCHEME_REVERSE="$(echo ${1/${_PHP_URL_SCHEME_SLASH}/})"
+    if grep -q '#' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_FRAGMENT=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d# -f1)
+    fi
+    if grep -q '\?' <<< "$_PHP_URL_SCHEME_REVERSE";then
+        PHP_URL_QUERY=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f2)
+        _PHP_URL_SCHEME_REVERSE=$(echo $_PHP_URL_SCHEME_REVERSE | cut -d? -f1)
+    fi
+    _PHP_URL_USER_PASS="$(echo $_PHP_URL_SCHEME_REVERSE | grep @ | cut -d@ -f1)"
+    PHP_URL_PASS=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f2`
+    if [ -n "$PHP_URL_PASS" ]; then
+        PHP_URL_USER=`echo $_PHP_URL_USER_PASS | grep : | cut -d: -f1`
+    else
+        PHP_URL_USER=$_PHP_URL_USER_PASS
+    fi
+    _PHP_URL_HOST_PORT="$(echo ${_PHP_URL_SCHEME_REVERSE/$_PHP_URL_USER_PASS@/} | cut -d/ -f1)"
+    PHP_URL_HOST="$(echo $_PHP_URL_HOST_PORT | sed -e 's,:.*,,g')"
+    if grep -q -E ':[0-9]+$' <<< "$_PHP_URL_HOST_PORT";then
+        PHP_URL_PORT="$(echo $_PHP_URL_HOST_PORT | sed -e 's,^.*:,:,g' -e 's,.*:\([0-9]*\).*,\1,g' -e 's,[^0-9],,g')"
+    fi
+    _PHP_URL_HOST_PORT_LENGTH=${#_PHP_URL_HOST_PORT}
+    _LENGTH="$_PHP_URL_HOST_PORT_LENGTH"
+    if [ -n "$_PHP_URL_USER_PASS" ];then
+        _PHP_URL_USER_PASS_LENGTH=${#_PHP_URL_USER_PASS}
+        _LENGTH=$((_LENGTH + 1 + _PHP_URL_USER_PASS_LENGTH))
+    fi
+    PHP_URL_PATH="${_PHP_URL_SCHEME_REVERSE:$_LENGTH}"
+
+    # Debug
+    # e '"$PHP_URL_SCHEME"' "$PHP_URL_SCHEME"; _.
+    # e '"$PHP_URL_HOST"' "$PHP_URL_HOST"; _.
+    # e '"$PHP_URL_PORT"' "$PHP_URL_PORT"; _.
+    # e '"$PHP_URL_USER"' "$PHP_URL_USER"; _.
+    # e '"$PHP_URL_PASS"' "$PHP_URL_PASS"; _.
+    # e '"$PHP_URL_PATH"' "$PHP_URL_PATH"; _.
+    # e '"$PHP_URL_QUERY"' "$PHP_URL_QUERY"; _.
+    # e '"$PHP_URL_FRAGMENT"' "$PHP_URL_FRAGMENT"; _.
+}
+urlCompleteComponent() {
+    local tld_special _url_port _tld _url_path_correct
+    [[ $(type -t Rcm_parse_url) == function ]] || { error Function Rcm_parse_url not found.; x; }
+    [[ $(type -t ArraySearch) == function ]] || { error Function ArraySearch not found.; x; }
+    [[ -n "$url" ]] || { error Global variable url is not found or empty value.; x; }
+    [[ -n "$RCM_TLD_SPECIAL" ]] || { error Global variable RCM_TLD_SPECIAL is not found or empty value.; x; }
+    Rcm_parse_url "$url"
+    if [ -z "$PHP_URL_HOST" ];then
+        error Argument --url is not valid: '`'"$url"'`'.; x
+    fi
+    [ -n "$PHP_URL_SCHEME" ] && url_scheme="$PHP_URL_SCHEME" || url_scheme=https
+    if [ -z "$PHP_URL_PORT" ];then
+        case "$url_scheme" in
+            http) url_port=80;;
+            https) url_port=443;;
+        esac
+    else
+        url_port="$PHP_URL_PORT"
+    fi
+    url_host="$PHP_URL_HOST"
+    url_path="$PHP_URL_PATH"
+    url_path_clean=
+    url_path_clean_trailing=
+    if [[ "$url_path" == '/' ]];then
+        url_path=
+    fi
+    if [ -n "$url_path" ];then
+        # Trim leading and trailing slash.
+        url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
+        url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
+        # Must leading with slash.
+        # Karena akan digunakan pada nginx configuration.
+        _url_path_correct="/${url_path_clean}"
+        if [ ! "$url_path_clean_trailing" == "$_url_path_correct" ];then
+            error "Argument --url-path not valid."; x
+        fi
+    fi
+    _tld="${url_host##*.}"
+    # Explode by space.
+    read -ra tld_special -d '' <<< "$RCM_TLD_SPECIAL"
+    is_tld_special=
+    if ArraySearch "$_tld" tld_special[@];then
+        # Paksa menjadi http.
+        url_scheme=http
+        if [ -z "$PHP_URL_PORT" ];then
+            url_port=80
+        fi
+        is_tld_special=1
+    fi
+    _url_port=
+    if [ -n "$url_port" ];then
+        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
+            _url_port=
+        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
+            _url_port=
+        else
+            _url_port=":${url_port}"
+        fi
+    fi
+    # Modify variable url, auto add scheme.
+    # Modify variable url, auto trim trailing slash, auto add port.
+    url="${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}"
+}
 
 # Require, validate, and populate value.
 chapter Dump variable.
@@ -359,14 +355,17 @@ code 'BINARY_DIRECTORY="'$BINARY_DIRECTORY'"'
 if [ -z "$project_name" ];then
     error "Argument --project-name required."; x
 fi
-code 'url_scheme="'$url_scheme'"'
-code 'url_host="'$url_host'"'
-code 'url_port="'$url_port'"'
-code 'url_path="'$url_path'"'
-url_path_clean=$(echo "$url_path" | sed -E 's|(^/+\|/+$)||g')
-url_path_clean_trailing=$(echo "$url_path" | sed -E 's|/+$||g')
-code 'url_path_clean="'$url_path_clean'"'
-code 'url_path_clean_trailing="'$url_path_clean_trailing'"'
+code 'url="'$url'"'
+if [ -n "$url" ];then
+    urlCompleteComponent
+    code 'url="'$url'"'
+    code 'url_scheme="'$url_scheme'"'
+    code 'url_host="'$url_host'"'
+    code 'url_port="'$url_port'"'
+    code 'url_path="'$url_path'"'
+    code 'url_path_clean="'$url_path_clean'"'
+    code 'url_path_clean_trailing="'$url_path_clean_trailing'"'
+fi
 code 'project_name="'$project_name'"'
 code 'project_parent_name="'$project_parent_name'"'
 project_dir_basename="$project_name"
@@ -404,18 +403,8 @@ if [ -n "$notfound" ];then
 fi
 
 list_uri=("${drupal_fqdn_localhost}")
-if [ -n "$url_host" ];then
-    _url_port=
-    if [ -n "$url_port" ];then
-        if [[ "$url_scheme" == https && "$url_port" == 443 ]];then
-            _url_port=
-        elif [[ "$url_scheme" == http && "$url_port" == 80 ]];then
-            _url_port=
-        else
-            _url_port=":${url_port}"
-        fi
-    fi
-    list_uri+=("${url_scheme}://${url_host}${_url_port}${url_path_clean_trailing}")
+if [ -n "$url" ];then
+    list_uri+=("$url")
 fi
 
 for uri in "${list_uri[@]}";do
@@ -425,117 +414,64 @@ for uri in "${list_uri[@]}";do
     dirname="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/${DRUPAL_SITES_DIRNAME}"
     isFileExists "$fullpath"
     if [ -n "$found" ];then
-        __ Mengecek versi '`'${filename}'`' command.
-        __; magenta ${filename} --version; _.
-        if [ -z "$mktemp" ];then
-            mktemp=$(mktemp -p /dev/shm)
+        __ Cleaning variables.
+        code DRUPAL_SITE_URL=
+        code DRUPAL_SITE_CREATED=
+        code DRUPAL_PROJECT_ROOT=
+        code DRUPAL_PROJECT_NAME=
+        code DRUPAL_PROJECT_PARENT_NAME=
+        code RCM_DRUPAL_VERSION=
+        DRUPAL_SITE_URL=
+        DRUPAL_PROJECT_ROOT=
+        DRUPAL_SITE_CREATED=
+        DRUPAL_PROJECT_NAME=
+        DRUPAL_PROJECT_PARENT_NAME=
+        RCM_DRUPAL_VERSION=
+        __ Load script.
+        code source "$fullpath"
+        source "$fullpath"
+        old_version="$RCM_DRUPAL_VERSION"
+        if [ -z "$DRUPAL_SITE_CREATED" ];then
+            DRUPAL_SITE_CREATED=$(date +%s)
         fi
-        "$fullpath" --version 2>/dev/null > $mktemp
-        while read line; do e "$line"; _.; done < $mktemp
-        old_version=$(head -1 $mktemp)
-        if [[ "$old_version" =~ [^0-9\.]+ ]];then
-            old_version=0
-        fi
-        vercomp $print_version $old_version
-        if [[ $? -eq 1 ]];then
-            __ Command perlu diupdate. Versi saat ini ${print_version}.
+        if [ -z "$old_version" ];then
+            __ Shell script perlu diupdate.
             found=
             notfound=1
         else
-            __ Command tidak perlu diupdate. Versi saat ini ${print_version}.
+            if [[ "$old_version" =~ [^0-9\.]+ ]];then
+                 old_version=0
+            fi
+            vercomp $print_version $old_version
+            if [[ $? -eq 1 ]];then
+                __ Site shell script perlu diupdate. Versi terbaru saat ini ${print_version}.
+                found=
+                notfound=1
+            else
+                __ Site shell script tidak perlu diupdate. Versi terbaru saat ini ${print_version}.
+            fi
         fi
     fi
     if [ -n "$notfound" ];then
         __ Membuat file '`'"$fullpath"'`'.
         mkdir -p "$dirname"
+        _target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir_basename}/drupal"
+        _dereference=$(stat "$_target" -c %N)
+        drupal_project_root=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
         touch "$fullpath"
         chmod a+x "$fullpath"
-        cat << 'SHELLSCRIPT' > "$fullpath"
-#!/bin/bash
-
-_new_arguments=()
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --version) version=1; shift ;;
-        --url) url=1; shift ;;
-        --drush-status) drush_status=1; shift ;;
-        --[^-]*) shift ;;
-        --) shift
-            while [[ $# -gt 0 ]]; do
-                case "$1" in
-                    *) _new_arguments+=("$1"); shift ;;
-                esac
-            done
-            ;;
-        *) _new_arguments+=("$1"); shift ;;
-    esac
-done
-set -- "${_new_arguments[@]}"
-unset _new_arguments
-
-DRUPAL_PREFIX=__DRUPAL_PREFIX__
-DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
-PROJECT_ROOT=__PROJECT_ROOT__
-SITE=__URI__
-_target="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${PROJECT_ROOT}/drupal"
-_dereference=$(stat "$_target" -c %N)
-PROJECT_ROOT=$(grep -Eo "' -> '.*'$" <<< "$_dereference" | sed -E "s/' -> '(.*)'$/\1/")
-
-printVersion() {
-    echo '__CURRENT_VERSION__'
-}
-printUrl() {
-    echo '__URI__'
-}
-drushStatus() {
-    "$PROJECT_ROOT/vendor/bin/drush" --uri="$SITE" status "$@"
-}
-unsetvariables() {
-    unalias drush 2>/dev/null
-    unset date
-}
-
-if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
-    [ -n "$version" ] && { printVersion; exit 1; }
-    [ -n "$url" ] && { printUrl; exit 1; }
-    [ -n "$drush_status" ] && { drushStatus "$@"; exit 1; }
-else
-    [ -n "$version" ] && { printVersion; return; }
-    [ -n "$url" ] && { printUrl; return; }
-    [ -n "$drush_status" ] && { drushStatus "$@"; return; }
-    unsetvariables
-fi
-
-export PROJECT_ROOT="$PROJECT_ROOT"
-export SITE="$SITE"
-echo -e "\e[95m"export"\e[39m" PROJECT_ROOT="\e[93m"'"'$PROJECT_ROOT'"'"\e[39m"
-echo -e "\e[95m"export"\e[39m" '        'SITE="\e[93m"'"'"$SITE"'"'"\e[39m"
-echo -e "\e[95m"alias"\e[39m" '       '"\e[92m"' 'drush"\e[39m"="\e[93m"'"''$PROJECT_ROOT'/vendor/bin/drush --uri='$SITE''"'"\e[39m"
-echo -e "\e[95m"cd"\e[39m" "\e[93m"'                 "$PROJECT_ROOT"'"\e[39m"' && [ '"\e[95m"'-f'"\e[39m"' .rc ] && . .rc'
-
-if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
-    date=$(date +%Y%m%d-%H%M%S)
-    date+=-$RANDOM-$RANDOM
-    echo 'alias drush="$PROJECT_ROOT/vendor/bin/drush --uri=$SITE" # delete this line '"$date" >> "${HOME}/.bashrc"
-    echo '[ -f "${PROJECT_ROOT}/.rc" ] && . "${PROJECT_ROOT}/.rc"  # delete this line '"$date" >> "${HOME}/.bashrc"
-    echo 'sed "/'"$date"'/d" -i "'"${HOME}"'/.bashrc"              # delete this line '"$date" >> "${HOME}/.bashrc"
-    bash -c 'cd "'"${PROJECT_ROOT}"'"; bash'
-else
-    alias drush="$PROJECT_ROOT/vendor/bin/drush --uri=$SITE"
-    cd "$PROJECT_ROOT" && [ -f .rc ] && . .rc
-fi
+        cat << SHELLSCRIPT > "$fullpath"
+DRUPAL_SITE_URL=$uri
+DRUPAL_SITE_CREATED=$DRUPAL_SITE_CREATED
+DRUPAL_PROJECT_ROOT=$drupal_project_root
+DRUPAL_PROJECT_NAME=$project_name
+DRUPAL_PROJECT_PARENT_NAME=$project_parent_name
+RCM_DRUPAL_VERSION=$print_version
 SHELLSCRIPT
-        sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
-        sed -i "s|__DRUPAL_PROJECTS_DIRNAME__|${DRUPAL_PROJECTS_DIRNAME}|g" "$fullpath"
-        sed -i "s|__PROJECT_ROOT__|${project_dir_basename}|g" "$fullpath"
-        sed -i "s|__URI__|${uri}|g" "$fullpath"
-        sed -i "s|__CURRENT_VERSION__|${print_version}|g" "$fullpath"
         fileMustExists "$fullpath"
     fi
     ____
 
-    # Dimatikan sejak version 0.11.34 karena bikin penuh.
-    # link_symbolic "$fullpath" "$BINARY_DIRECTORY/cd-drupal-${filename}"
 done
 
 if [ -n "$mktemp" ];then
@@ -560,10 +496,7 @@ exit 0
 # VALUE=(
 # --project-name
 # --project-parent-name
-# --url-scheme
-# --url-host
-# --url-port
-# --url-path
+# --url
 # )
 # MULTIVALUE=(
 # )
