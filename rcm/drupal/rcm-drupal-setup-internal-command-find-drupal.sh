@@ -340,10 +340,12 @@ if [ -n "$notfound" ];then
     chmod a+x "$fullpath"
     cat << 'FINDRUPAL' > "$fullpath"
 #!/bin/bash
+
 [[ -f "$0" && ! "$0" == $(command -v bash) ]] || {
     echo -e "\e[91m""Invalid execution: "'`'. find-drupal'`'"\e[39m". Try this one: '`'find-drupal'`'.
     return
 }
+
 _new_arguments=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -364,10 +366,13 @@ error() { echo -n "$INDENT" >&2; red '#' "$@" >&2; echo >&2; }
 _() { echo -n "$INDENT" >&2; echo -n "#"' ' >&2; [ -n "$1" ] && echo -n "$@" >&2; }
 _,() { echo -n "$@" >&2; }
 _.() { echo >&2; }
-__() { echo -n "$INDENT" >&2; echo -n "# ${RCM_INDENT}" >&2; [ -n "$1" ] && echo "$@" >&2; }
 
 # Define variables and constants.
-RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
+DRUPAL_PREFIX=__DRUPAL_PREFIX__
+DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
+DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
+DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
+whoami=`whoami`
 
 printVersion() {
     echo '__CURRENT_VERSION__'
@@ -400,19 +405,12 @@ Options:
         Print version of this script.
    --help
         Show this help.
-
 EOL
 }
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
-
-DRUPAL_PREFIX=__DRUPAL_PREFIX__
-DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
-DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
-DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
-whoami=`whoami`
 
 if [ "$EUID" -eq 0 ];then
     prefix="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"
@@ -478,25 +476,38 @@ done
 set -- "${_new_arguments[@]}"
 unset _new_arguments
 if [ -z "$command" ];then
-    for project in "${projects[@]}"; do
-        if [ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project}/${DRUPAL_SITES_DIRNAME}" ];then
-            path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project}/${DRUPAL_SITES_DIRNAME}"
-            while read file; do
-                echo -n "${project} "
-                "${path}/${file}" --url
+    for project_dir in "${projects[@]}"; do
+        if [ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}" ];then
+            path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
+            while read site_file; do
+                echo -n "${project_dir} "
+                # Versi 0.11.x
+                DRUPAL_SITE_URL=$("${path}/${site_file}" --url)
+                if [ -n "$DRUPAL_SITE_URL" ];then
+                    echo "$DRUPAL_SITE_URL"
+                else
+                    # Versi >= 0.12.x
+                    # Load variable.
+                    . "${path}/${site_file}"
+                    echo "$DRUPAL_SITE_URL"
+                fi
             done <<< `ls "$path"`
         fi
     done
 else
-    sites=
-    for project in "${projects[@]}"; do
-        if [ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project}/${DRUPAL_SITES_DIRNAME}" ];then
-            path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project}/${DRUPAL_SITES_DIRNAME}"
-            _sites=
-            while read file; do
-                url=$("${path}/${file}" --url)
-                if [ -n "$(echo "$url" | bash -c "cat - ${command}")" ] ;then
-                    echo "${project} ${url}"
+    for project_dir in "${projects[@]}"; do
+        if [ -d "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}" ];then
+            path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
+            while read site_file; do
+                # Versi 0.11.x
+                DRUPAL_SITE_URL=$("${path}/${site_file}" --url)
+                if [ -z "$DRUPAL_SITE_URL" ];then
+                    # Versi >= 0.12.x
+                    # Load variable.
+                    . "${path}/${site_file}"
+                fi
+                if [ -n "$(echo "$DRUPAL_SITE_URL" | bash -c "cat - ${command}")" ] ;then
+                    echo "${project_dir} ${DRUPAL_SITE_URL}"
                 fi
             done <<< `ls "$path"`
         fi
