@@ -340,10 +340,12 @@ if [ -n "$notfound" ];then
     chmod a+x "$fullpath"
     cat << 'LSDRUPAL' > "$fullpath"
 #!/bin/bash
+
 [[ -f "$0" && ! "$0" == $(command -v bash) ]] || {
     echo -e "\e[91m""Invalid execution: "'`'. ls-drupal'`'"\e[39m". Try this one: '`'ls-drupal'`'.
     return
 }
+
 # Parse Options.
 _new_arguments=()
 while [[ $# -gt 0 ]]; do
@@ -351,6 +353,13 @@ while [[ $# -gt 0 ]]; do
         --help) help=1; shift ;;
         --version) version=1; shift ;;
         --[^-]*) shift ;;
+        --) shift
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    *) _new_arguments+=("$1"); shift ;;
+                esac
+            done
+            ;;
         *) _new_arguments+=("$1"); shift ;;
     esac
 done
@@ -365,22 +374,26 @@ error() { echo -n "$INDENT" >&2; red '#' "$@" >&2; echo >&2; }
 _() { echo -n "$INDENT" >&2; echo -n "#"' ' >&2; [ -n "$1" ] && echo -n "$@" >&2; }
 _,() { echo -n "$@" >&2; }
 _.() { echo >&2; }
-__() { echo -n "$INDENT" >&2; echo -n "# ${RCM_INDENT}" >&2; [ -n "$1" ] && echo "$@" >&2; }
 
 # Define variables and constants.
-RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
+DRUPAL_PREFIX=__DRUPAL_PREFIX__
+DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
+DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
+DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
+whoami=`whoami`
 
 printVersion() {
     echo '__CURRENT_VERSION__'
 }
 printHelp() {
     cat << 'HELP'
-Usage: ls-drupal [project] [site_url]
+Usage: ls-drupal [options]
+       ls-drupal [project] [site_url] [-- [drush_options]...]
 
        List the Drupal projects or sites.
        If [project] omitted, it will list all project name.
        If [site_url] omitted, it will list the site url of [project].
-       If all operand is valid, it will execute drush status.
+       If all operand is valid, it will execute drush status with [drush_options].
 
 Options:
    --version
@@ -414,11 +427,20 @@ url2Filename() {
 [ -n "$help" ] && { printHelp; exit 1; }
 [ -n "$version" ] && { printVersion; exit 1; }
 
-DRUPAL_PREFIX=__DRUPAL_PREFIX__
-DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
-DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
-DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
-whoami=`whoami`
+if [ ! -t 0 ]; then
+    if [ -p /dev/stdin ];then
+        # error Execute as subshell may have unexpected behaviour.
+        # Standard Input tersedia, berarti eksekusi adalah:
+        # find-drupal drupalid | ls-drupal
+        # atau
+        # ssh server ls-drupal
+        while true; do break; done
+    else
+        error Execute as subshell may have unexpected behaviour.
+        # Standard Input tidak ada, berarti eksekusi adalah:
+        # find-drupal drupalid | xargs ls-drupal
+    fi
+fi
 
 if [ "$EUID" -eq 0 ];then
     prefix="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"
@@ -437,6 +459,7 @@ if [ -n "$1" ];then
         error Project is not exists.; exit 1
     fi
 fi
+
 if [ -n "$1" ];then
     site_url="$1"
     shift
@@ -457,7 +480,7 @@ fi
 
 case "$print" in
     projects)
-        ls "${prefix}"
+        ls -1 "${prefix}"
         ;;
     sites)
         path="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}"
@@ -465,11 +488,41 @@ case "$print" in
         # apt-get install bsdmainutils
         # https://debian.pkgs.org/12/debian-main-amd64/bsdextrautils_2.38.1-5+deb12u3_amd64.deb.html
         while read site_file; do
-            "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --url
+            # Versi 0.11.x
+            RCM_DRUPAL_VERSION=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --version)
+            if [ -n "$RCM_DRUPAL_VERSION" ];then
+                "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --url
+            else
+                # Versi >= 0.12.x
+                DRUPAL_SITE_URL=
+                . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+                [ -n "$DRUPAL_SITE_URL" ] && echo "$DRUPAL_SITE_URL"
+            fi
         done <<< `ls "$path"`
         ;;
     status)
-        "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --drush-status
+        # Versi 0.11.x
+        RCM_DRUPAL_VERSION=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --version)
+        if [ -n "$RCM_DRUPAL_VERSION" ];then
+            case "$RCM_DRUPAL_VERSION" in
+                0.11.35)
+                    "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --drush-status
+                    ;;
+                0.11.34)
+                    "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --drush-status
+                    ;;
+                # Versi 0.11.33 kebawah tidak ada efek.
+                *)
+            esac
+        else
+            # Versi >= 0.12.x
+            DRUPAL_PROJECT_ROOT=
+            . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+            if [ -n "$DRUPAL_PROJECT_ROOT" ];then
+                drush="${DRUPAL_PROJECT_ROOT}/vendor/bin/drush"
+                $drush status "$@"
+            fi
+        fi
         ;;
 esac
 LSDRUPAL
