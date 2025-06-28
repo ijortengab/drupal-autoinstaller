@@ -356,6 +356,7 @@ unset _new_arguments
 
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
+green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 yellow() { echo -ne "\e[93m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 magenta() { echo -ne "\e[95m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 error() { echo -n "$INDENT" >&2; red '#' "$@" >&2; echo >&2; }
@@ -366,6 +367,12 @@ __() { echo -n "$INDENT" >&2; echo -n "# ${RCM_INDENT}" >&2; [ -n "$1" ] && echo
 
 # Define variables and constants.
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
+DRUPAL_PREFIX=__DRUPAL_PREFIX__
+DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
+DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
+DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
+whoami=`whoami`
+source=()
 
 printVersion() {
     echo '__CURRENT_VERSION__'
@@ -391,6 +398,8 @@ unsetvariables() {
     unset site_file
     unset value
     unset count
+    unset help
+    unset version
 }
 printSelectDialog() {
     _; _.
@@ -479,27 +488,46 @@ if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
     [ -n "$version" ] && { printVersion; exit 1; }
 else
     # Help and Version.
-    [ -n "$help" ] && { printHelp; return; }
-    [ -n "$version" ] && { printVersion; return; }
+    _return=
+    [ -n "$help" ] && { printHelp; _return=1; }
+    [ -n "$version" ] && { printVersion; _return=1; }
     unsetvariables
+    [ -n "$_return" ] && { unset _return; return; }
 fi
 
-DRUPAL_PREFIX=__DRUPAL_PREFIX__
-DRUPAL_PROJECTS_DIRNAME=__DRUPAL_PROJECTS_DIRNAME__
-DRUPAL_USERS_DIRNAME=__DRUPAL_USERS_DIRNAME__
-DRUPAL_SITES_DIRNAME=__DRUPAL_SITES_DIRNAME__
-whoami=`whoami`
-source=()
+if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+    if [ ! -t 0 ]; then
+        # Sub shell. Example:
+        # find-drupal drupalid | xargs cd-drupal
+        # find-drupal drupalid | cd-drupal
+        if [ -p /dev/stdin ];then
+            # Standard Input tersedia, berarti eksekusi adalah:
+            # find-drupal drupalid | cd-drupal
+            error Execute as subshell may have unexpected behaviour. 1
+            exit
+        else
+            # Standard Input tidak ada, berarti eksekusi adalah:
+            # find-drupal drupalid | xargs cd-drupal
+            error Execute as subshell may have unexpected behaviour. 2
+            exit
+        fi
+    else
+        _; yellow 'It is recommend to execute this command as dot command.'; _.
+        _; yellow 'i.e. '; magenta '. cd-drupal'; _.
+        _; yellow 'Otherwise, it will start new shell as a child process.'; _.
+        _;_.
+    fi
+else
+    if [ ! -t 0 ]; then
+        # Sub shell. Example:
+        # find-drupal drupalid | . cd-drupal
+        error Execute as subshell may have unexpected behaviour. 3
+        return
+    fi
+fi
 
 _; _, Change the shell working directory to Drupal Project.; _.
 _;_.
-
-if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
-    _; yellow 'It is recommend to execute this command as dot command.'; _.
-    _; yellow 'i.e. '; magenta '. cd-drupal'; _.
-    _; yellow 'Otherwise, it will start new shell as a child process.'; _.
-    _;_.
-fi
 
 if [ "$EUID" -eq 0 ];then
     prefix="${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}"
@@ -600,11 +628,21 @@ if [ -z "$site_file" ];then
     declare -i count
     for ((i = 0 ; i < ${#source[@]} ; i++)); do
         count+=1
-        label=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${source[$i]}" --url)
-        if [ $count -lt 10 ];then
-            __; _, '['; yellow $count; _, ']'; _, ' '; _, "${label}"; _.
+        site_file="${source[$i]}"
+        # Versi 0.11.x
+        RCM_DRUPAL_VERSION=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --version)
+        if [ -n "$RCM_DRUPAL_VERSION" ];then
+            DRUPAL_SITE_URL=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --url)
         else
-            __; _, '['$count']' "${source[$i]}"; _.
+            # Versi >= 0.12.x
+            DRUPAL_SITE_URL=
+            . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+            [ -n "$DRUPAL_SITE_URL" ] || DRUPAL_SITE_URL=-
+        fi
+        if [ $count -lt 10 ];then
+            __; _, '['; yellow $count; _, ']'; _, ' '; _, "$DRUPAL_SITE_URL"; _.
+        else
+            __; _, '['$count']' "$DRUPAL_SITE_URL"; _.
         fi
     done
     printSelectDialog
@@ -618,11 +656,51 @@ if [ -z "$site_file" ];then
     site_file=$value
 fi
 
-# Execute
-if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
-    "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+# Versi 0.11.x
+RCM_DRUPAL_VERSION=$("${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}" --version)
+if [ -n "$RCM_DRUPAL_VERSION" ];then
+    case "$RCM_DRUPAL_VERSION" in
+        0\.11\.35|0\.11\.34)
+            if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+                "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+            else
+                . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+            fi
+            ;;
+        # Versi 0.11.33 kebawah tidak bisa dieksekusi sebagai non dot command..
+        *)
+            if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+                echo -e "\e[91m""Usage: . "$(basename "$0") "\e[39m";
+                exit
+            else
+                . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+            fi
+    esac
 else
+    # Versi >= 0.12.x
+    # Load variable.
     . "${DRUPAL_PREFIX}/${DRUPAL_PROJECTS_DIRNAME}/${project_dir}/${DRUPAL_SITES_DIRNAME}/${site_file}"
+    export DRUPAL_PROJECT_ROOT="$DRUPAL_PROJECT_ROOT"
+    export DRUPAL_SITE_URL="$DRUPAL_SITE_URL"
+    magenta export;_, ' 'DRUPAL_PROJECT_ROOT=; yellow '"'$DRUPAL_PROJECT_ROOT'"';_.
+    magenta export;_, ' 'DRUPAL_SITE_URL=;yellow '"'"$DRUPAL_SITE_URL"'"';_.
+    magenta alias;_, ' '; green drush; _, =; yellow '"''$DRUPAL_PROJECT_ROOT'/vendor/bin/drush --uri='$DRUPAL_SITE_URL''"';_.
+    magenta cd;yellow ' "$DRUPAL_PROJECT_ROOT"'; _, ' && [ '; magenta '-f'; _, ' .rc ] && . .rc';_.
+    _;_.
+    _ The current working directory has been changed.;_.
+    _ Command; _, ' '; green drush; _, ' 'ready to use.;_.
+    _;_.
+    if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
+        date=$(date +%Y%m%d-%H%M%S)
+        date+=-$RANDOM-$RANDOM
+        echo 'alias drush="$DRUPAL_PROJECT_ROOT/vendor/bin/drush --uri=$DRUPAL_SITE_URL" # delete this line '"$date" >> "${HOME}/.bashrc"
+        echo '[ -f "${DRUPAL_PROJECT_ROOT}/.rc" ] && . "${DRUPAL_PROJECT_ROOT}/.rc"  # delete this line '"$date" >> "${HOME}/.bashrc"
+        echo 'sed "/'"$date"'/d" -i "'"${HOME}"'/.bashrc"              # delete this line '"$date" >> "${HOME}/.bashrc"
+        bash -c 'cd "'"${DRUPAL_PROJECT_ROOT}"'"; bash'
+    else
+        alias drush="$DRUPAL_PROJECT_ROOT/vendor/bin/drush --uri=$DRUPAL_SITE_URL"
+        cd "$DRUPAL_PROJECT_ROOT" && [ -f .rc ] && . .rc
+    fi
 fi
 CDDRUPAL
     sed -i "s|__DRUPAL_PREFIX__|${DRUPAL_PREFIX}|g" "$fullpath"
