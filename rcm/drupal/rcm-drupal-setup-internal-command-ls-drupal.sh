@@ -351,6 +351,7 @@ _new_arguments=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
+        --is-exists) is_exists=1; shift ;;
         --version) version=1; shift ;;
         --[^-]*) shift ;;
         --) shift
@@ -455,7 +456,7 @@ fi
 if [ -n "$1" ];then
     project_dir="$1"
     shift
-    if [ ! -d "${prefix}/$project_dir" ];then
+    if [ ! -d "${prefix}/${project_dir}" ];then
         error Project is not exists.; exit 1
     fi
 fi
@@ -468,6 +469,10 @@ if [ -n "$1" ];then
     if [ ! -f "$path" ];then
         error Site URL is not exists.; exit 1
     fi
+fi
+
+if [ -n "$is_exists" ];then
+    exit 0
 fi
 
 print=status
