@@ -63,6 +63,7 @@ if [ -n "$1" ];then
 fi
 
 # Define variables and constants.
+[ -z "$fast" ] && fast="$RCM_FAST"; [ "$fast" == 0 ] && fast=
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 DRUPAL_DB_USER_HOST=${DRUPAL_DB_USER_HOST:=localhost}
