@@ -415,7 +415,7 @@ code 'certbot_obtain="'$certbot_obtain'"'
 ____
 
 INDENT+="    " \
-rcm $operand_setup_basic -- \
+rcm $operand_setup_basic \
     $isfast \
     $is_update_system \
     $is_upgrade_system \
