@@ -409,7 +409,7 @@ urlCompleteComponent() {
 }
 
 # Requirement, validate, and populate value.
-chapter Dump variable.
+chapter Variable dump.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 # Random value, berapapun gak ngaruh, asal diatas angka 7.
 drupal_version=8

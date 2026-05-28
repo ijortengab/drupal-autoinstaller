@@ -274,7 +274,7 @@ ArraySearch() {
 }
 
 # Requirement, validate, and populate value.
-chapter Dump variable.
+chapter Variable dump.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 if [ -f /etc/os-release ];then
     . /etc/os-release

@@ -148,7 +148,7 @@ url2Filename() {
 }
 
 # Require, validate, and populate value.
-chapter Dump variable.
+chapter Variable dump.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 __FILE__=$(resolve_relative_path "$0")
 __DIR__=$(dirname "$__FILE__")

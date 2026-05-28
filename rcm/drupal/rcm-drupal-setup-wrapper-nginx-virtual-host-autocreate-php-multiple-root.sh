@@ -485,7 +485,7 @@ urlCompleteComponent() {
 }
 
 # Require, validate, and populate value.
-chapter Dump variable.
+chapter Variable dump.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 if [ -z "$url" ];then
     error "Argument --url required."; x

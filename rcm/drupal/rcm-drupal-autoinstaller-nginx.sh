@@ -1085,7 +1085,7 @@ EOF
 }
 
 # Requirement, validate, and populate value.
-chapter Dump variable.
+chapter Variable dump.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 code 'DRUPAL_DB_USER_HOST="'$DRUPAL_DB_USER_HOST'"'
 if [ -z "$project_name" ];then
@@ -1649,7 +1649,7 @@ for uri in "${list_url[@]}" ;do
     ____
 done
 
-chapter Dump variable installed.
+chapter Variable dump installed.
 code install_type="$install_type"
 code no_sites_default="$no_sites_default"
 code default_installed="$default_installed"

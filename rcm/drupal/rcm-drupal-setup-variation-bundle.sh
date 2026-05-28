@@ -989,7 +989,7 @@ urlCompleteComponent() {
 }
 
 # Requirement, validate, and populate value.
-chapter Dump variable.
+chapter Variable dump.
 [ -n "$fast" ] && isfast=' --fast' || isfast=''
 PREFIX_MASTER=${PREFIX_MASTER:=/usr/local/share/drupal}
 code 'PREFIX_MASTER="'$PREFIX_MASTER'"'

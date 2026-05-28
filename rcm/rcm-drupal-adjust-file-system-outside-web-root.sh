@@ -307,7 +307,7 @@ link_symbolic_dir() {
 }
 
 # Requirement, validate, and populate value.
-chapter Dump variable.
+chapter Variable dump.
 code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
 code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
 code 'project_name="'$project_name'"'
