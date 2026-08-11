@@ -48,10 +48,8 @@ unset _new_arguments
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Nginx Setup
-    _ 'Variation '; yellow Drupal; _.
     cat << EOF
 
 Reference:
@@ -89,8 +87,6 @@ EOF
 # Title.
 title rcm-nginx-setup-drupal
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

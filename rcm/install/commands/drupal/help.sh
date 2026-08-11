@@ -101,7 +101,7 @@ if [ -n "$command" ];then
     esac
 fi
 
-# Functions.
+# Usage Functions.
 usage() {
     title Drupal Auto-Installer
     _ 'Homepage '; yellow https://github.com/ijortengab/drupal-autoinstaller; _.
@@ -721,7 +721,6 @@ wordWrapCommand() {
     done
 }
 
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

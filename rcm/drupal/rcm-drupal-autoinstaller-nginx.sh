@@ -77,11 +77,8 @@ MARIADB_PREFIX=${MARIADB_PREFIX:=/usr/local/share/mariadb}
 MARIADB_USERS_DIRNAME=${MARIADB_USERS_DIRNAME:=users}
 RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Drupal Auto-Installer
-    _ 'Variation '; yellow Nginx PHP-FPM; _.
-    _.
     # Populate variable $users.
     users=`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','`
     nginx_user=
@@ -219,8 +216,6 @@ fi
 # Title.
 title rcm-drupal-autoinstaller-nginx
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

@@ -69,11 +69,8 @@ unset _new_arguments
 RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Drupal Setup
-    _ 'Variation '; yellow LEMP Stack; _, . Setup Linux, '(E)'Nginx, MySQL/MariaDB, PHP. ; _.
-    _.
     # Populate variable $users.
     users=`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','`
     nginx_user=
@@ -179,7 +176,6 @@ while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { error Unable to proceed, command not found: '`'`cut -d: -f1 <<< "${line}"`'`'.; x; }
 done <<< `usage 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 #  Functions.
 validateMachineName() {

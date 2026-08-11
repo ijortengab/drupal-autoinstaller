@@ -53,11 +53,8 @@ RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM ISPConfig Setup Wrapper
-    _ 'Variation '; yellow Nginx Virtual Host Autocreate PHP-FPM; _.
-    _.
     cat << 'EOF'
 Usage: rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root [options]
 
@@ -94,8 +91,6 @@ EOF
 # Title.
 title rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

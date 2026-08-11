@@ -71,11 +71,8 @@ if [ -n "$command" ];then
     esac
 fi
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Drupal Setup
-    _ 'Variation '; yellow MultiSite; _, . Multi Site in one codebase. ; _.
-    _.
     cat << EOF
 Usage: rcm-drupal-setup-variation-multisite [options]
 
@@ -169,8 +166,6 @@ fi
 # Title.
 title rcm-drupal-setup-variation-multisite
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

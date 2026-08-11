@@ -66,11 +66,8 @@ RCM_DELAY=${RCM_DELAY:=.5}; [ -n "$fast" ] && unset RCM_DELAY
 RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Drupal Setup
-    _ 'Variation '; yellow Bundle; _.
-    _.
     # Populate variable $users.
     users=`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','`
     nginx_user=
@@ -764,8 +761,6 @@ fi
 # Title.
 title rcm-drupal-setup-variation-bundle
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

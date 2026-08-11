@@ -46,11 +46,8 @@ RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
 DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Drupal Adjust File System
-    _ 'Variation '; yellow Outside Web Root; _.
-    _.
     cat << EOF
 Usage: rcm-drupal-adjust-file-system-outside-web-root
 
@@ -87,8 +84,6 @@ EOF
 # Title.
 title rcm-drupal-adjust-file-system-outside-web-root
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

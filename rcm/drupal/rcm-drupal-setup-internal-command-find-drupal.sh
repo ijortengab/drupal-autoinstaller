@@ -46,11 +46,8 @@ DRUPAL_BINARY_DIRNAME=${DRUPAL_BINARY_DIRNAME:=bin}
 DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Drupal Setup Internal Command
-    _ 'Variation '; yellow find-drupal; _.
-    _.
     cat << EOF
 Usage: rcm-drupal-setup-internal-command-find-drupal [options]
 
@@ -87,8 +84,6 @@ EOF
 # Title.
 title rcm-drupal-setup-internal-command-find-drupal
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

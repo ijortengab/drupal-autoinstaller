@@ -47,11 +47,8 @@ BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
 DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Drupal Setup Dump Variables
-    _ 'Variation '; yellow Default; _.
-    _.
     cat << EOF
 Usage: rcm-drupal-setup-dump-variables [options]
 
@@ -86,8 +83,6 @@ EOF
 # Title.
 title rcm-drupal-setup-dump-variables
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do

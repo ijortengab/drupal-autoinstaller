@@ -52,11 +52,8 @@ DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
-# Functions.
+# Usage Functions.
 usage() {
-    title RCM Drupal Setup
-    _ 'Variation '; yellow Drush Alias; _.
-    _.
     cat << EOF
 Usage: rcm-drupal-setup-drush-alias [options]
 
@@ -97,8 +94,6 @@ EOF
 # Title.
 title rcm-drupal-setup-drush-alias
 ____
-
-[ "$EUID" -ne 0 ] && { error This script needs to be run with superuser privileges.; x; }
 
 # Dependency.
 while IFS= read -r line; do
