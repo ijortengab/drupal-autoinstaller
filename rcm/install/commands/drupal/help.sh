@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RCM_EXTENSION_VERSION=0.12.0
+
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -100,13 +102,9 @@ if [ -n "$command" ];then
 fi
 
 # Functions.
-printVersion() {
-    echo '0.12.0'
-}
 printHelp() {
     title Drupal Auto-Installer
     _ 'Homepage '; yellow https://github.com/ijortengab/drupal-autoinstaller; _.
-    _ 'Version '; yellow `printVersion`; _.
     _.
     cat << EOF
 Usage: rcm-drupal [command] [options]
@@ -140,7 +138,7 @@ EOF
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
-[ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 ArraySearch() {
     local index match="$1"
@@ -750,7 +748,7 @@ if [ -z "$mode" ];then
     error "Argument --mode required."; x
 fi
 code 'mode="'$mode'"'
-print_version=`printVersion`
+print_version=$RCM_EXTENSION_VERSION
 ____
 
 case "$mode" in

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RCM_EXTENSION_VERSION=0.12.0
+
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -51,13 +53,9 @@ BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
 # Functions.
-printVersion() {
-    echo '0.12.0'
-}
 printHelp() {
     title RCM Drupal Setup
     _ 'Variation '; yellow Drush Alias; _.
-    _ 'Version '; yellow `printVersion`; _.
     _.
     cat << EOF
 Usage: rcm-drupal-setup-drush-alias [options]
@@ -94,7 +92,7 @@ EOF
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
-[ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 # Title.
 title rcm-drupal-setup-drush-alias
@@ -385,7 +383,7 @@ code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
 code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
 code 'DRUPAL_BINARY_DIRNAME="'$DRUPAL_BINARY_DIRNAME'"'
 code 'DRUPAL_SITES_DIRNAME="'$DRUPAL_SITES_DIRNAME'"'
-print_version=`printVersion`
+print_version=$RCM_EXTENSION_VERSION
 code 'print_version="'$print_version'"'
 mktemp=
 ____

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RCM_EXTENSION_VERSION=0.12.0
+
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -76,13 +78,9 @@ MARIADB_USERS_DIRNAME=${MARIADB_USERS_DIRNAME:=users}
 RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
 # Functions.
-printVersion() {
-    echo '0.12.0'
-}
 printHelp() {
     title RCM Drupal Auto-Installer
     _ 'Variation '; yellow Nginx PHP-FPM; _.
-    _ 'Version '; yellow `printVersion`; _.
     _.
     # Populate variable $users.
     users=`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','`
@@ -186,7 +184,7 @@ Dependency:
    composer
    pwgen
    curl
-   rcm-nginx-setup-drupal:`printVersion`
+   rcm-nginx-setup-drupal:$RCM_EXTENSION_VERSION
    rcm-mariadb-setup-project-database
 
 Download:
@@ -196,7 +194,7 @@ EOF
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
-[ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 command-drupal-version-available() {
     if [ "$1" == 1 ];then

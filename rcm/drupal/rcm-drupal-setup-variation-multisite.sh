@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RCM_EXTENSION_VERSION=0.12.0
+
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -70,13 +72,9 @@ if [ -n "$command" ];then
 fi
 
 # Functions.
-printVersion() {
-    echo '0.12.0'
-}
 printHelp() {
     title RCM Drupal Setup
     _ 'Variation '; yellow MultiSite; _, . Multi Site in one codebase. ; _.
-    _ 'Version '; yellow `printVersion`; _.
     _.
     cat << EOF
 Usage: rcm-drupal-setup-variation-multisite [options]
@@ -130,9 +128,9 @@ Environment Variables.
 Dependency:
    rcm-php-setup-adjust-cli-version
    rcm-wsl-setup-lemp-stack
-   rcm-drupal-autoinstaller-nginx:`printVersion`
-   rcm-drupal-setup-drush-alias:`printVersion`
-   rcm-drupal-setup-dump-variables:`printVersion`
+   rcm-drupal-autoinstaller-nginx:$RCM_EXTENSION_VERSION
+   rcm-drupal-setup-drush-alias:$RCM_EXTENSION_VERSION
+   rcm-drupal-setup-dump-variables:$RCM_EXTENSION_VERSION
    rcm-php-fpm-setup-project-config
    rcm-dig-watch-domain-exists
 
@@ -145,7 +143,7 @@ EOF
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
-[ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 command-config-line-suggestion() {
     if [ "$1" == 1 ];then

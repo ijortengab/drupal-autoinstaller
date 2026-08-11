@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RCM_EXTENSION_VERSION=0.12.0
+
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -75,13 +77,9 @@ RCM_INDENT='    '; [ "$(tput cols)" -le 80 ] && RCM_INDENT='  '
 RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
 # Functions.
-printVersion() {
-    echo '0.12.0'
-}
 printHelp() {
     title RCM Drupal Setup
     _ 'Variation '; yellow Default; _.
-    _ 'Version '; yellow `printVersion`; _.
     _.
     # Populate variable $users.
     users=`cut -d: -f1 /etc/passwd | while read line; do [ -d /home/$line ] && echo " ${line}"; done | tr $'\n' ','`
@@ -196,13 +194,13 @@ Dependency:
    rcm-php-setup-adjust-cli-version
    rcm-wsl-setup-lemp-stack
    rcm-composer-autoinstaller
-   rcm-drupal-autoinstaller-nginx:`printVersion`
-   rcm-drupal-setup-drush-alias:`printVersion`
-   rcm-drupal-setup-internal-command-cd-drupal:`printVersion`
-   rcm-drupal-setup-internal-command-ls-drupal:`printVersion`
-   rcm-drupal-setup-internal-command-find-drupal:`printVersion`
-   rcm-drupal-setup-dump-variables:`printVersion`
-   rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root:`printVersion`
+   rcm-drupal-autoinstaller-nginx:$RCM_EXTENSION_VERSION
+   rcm-drupal-setup-drush-alias:$RCM_EXTENSION_VERSION
+   rcm-drupal-setup-internal-command-cd-drupal:$RCM_EXTENSION_VERSION
+   rcm-drupal-setup-internal-command-ls-drupal:$RCM_EXTENSION_VERSION
+   rcm-drupal-setup-internal-command-find-drupal:$RCM_EXTENSION_VERSION
+   rcm-drupal-setup-dump-variables:$RCM_EXTENSION_VERSION
+   rcm-drupal-setup-wrapper-nginx-virtual-host-autocreate-php-multiple-root:$RCM_EXTENSION_VERSION
    rcm-php-fpm-setup-project-config
    rcm-certbot-apt
    rcm-dig-watch-domain-exists
@@ -220,7 +218,7 @@ EOF
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
-[ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 command-drupal-version-available() {
     if [ "$1" == 1 ];then

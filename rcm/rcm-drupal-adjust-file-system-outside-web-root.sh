@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RCM_EXTENSION_VERSION=0.12.0
+
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -45,13 +47,9 @@ DRUPAL_PREFIX=${DRUPAL_PREFIX:=/usr/local/share/drupal}
 DRUPAL_PROJECTS_DIRNAME=${DRUPAL_PROJECTS_DIRNAME:=projects}
 
 # Functions.
-printVersion() {
-    echo '0.12.0'
-}
 printHelp() {
     title RCM Drupal Adjust File System
     _ 'Variation '; yellow Outside Web Root; _.
-    _ 'Version '; yellow `printVersion`; _.
     _.
     cat << EOF
 Usage: rcm-drupal-adjust-file-system-outside-web-root
@@ -84,7 +82,7 @@ EOF
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
-[ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 # Title.
 title rcm-drupal-adjust-file-system-outside-web-root

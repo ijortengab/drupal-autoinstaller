@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RCM_EXTENSION_VERSION=0.12.0
+
 # Common Functions.
 red() { echo -ne "\e[91m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
 green() { echo -ne "\e[92m" >&2; echo -n "$@" >&2; echo -ne "\e[39m" >&2; }
@@ -45,13 +47,9 @@ DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 
 # Functions.
-printVersion() {
-    echo '0.12.0'
-}
 printHelp() {
     title RCM Drupal Setup Internal Command
     _ 'Variation '; yellow cd-drupal; _.
-    _ 'Version '; yellow `printVersion`; _.
     _.
     cat << EOF
 Usage: rcm-drupal-setup-internal-command-cd-drupal [options]
@@ -84,7 +82,7 @@ EOF
 
 # Help and Version.
 [ -n "$help" ] && { printHelp; exit 1; }
-[ -n "$version" ] && { printVersion; exit 1; }
+[ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 # Title.
 title rcm-drupal-setup-internal-command-cd-drupal
@@ -300,7 +298,7 @@ code 'DRUPAL_PREFIX="'$DRUPAL_PREFIX'"'
 code 'DRUPAL_PROJECTS_DIRNAME="'$DRUPAL_PROJECTS_DIRNAME'"'
 code 'DRUPAL_BINARY_DIRNAME="'$DRUPAL_BINARY_DIRNAME'"'
 code 'DRUPAL_SITES_DIRNAME="'$DRUPAL_SITES_DIRNAME'"'
-print_version=`printVersion`
+print_version=$RCM_EXTENSION_VERSION
 code 'print_version="'$print_version'"'
 mktemp=
 ____
@@ -341,6 +339,8 @@ if [ -n "$notfound" ];then
     chmod a+x "$fullpath"
     cat << 'CDDRUPAL' > "$fullpath"
 #!/bin/bash
+
+RCM_EXTENSION_VERSION=0.12.0
 
 # Parse Options.
 _new_arguments=()
@@ -486,7 +486,7 @@ url2Filename() {
 if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
     # Help and Version.
     [ -n "$help" ] && { printHelp; exit 1; }
-    [ -n "$version" ] && { printVersion; exit 1; }
+    [ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 else
     # Help and Version.
     _return=
