@@ -77,8 +77,6 @@ Other options (For expert only):
         Set COMPOSER_DISABLE_NETWORK=1 to composer.
 
 Global Options.
-   --fast
-        No delay every subtask.
    --version
         Print version of this script.
    --help
@@ -130,7 +128,6 @@ while [[ $# -gt 0 ]]; do
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
         --drush-install) drush_install=1; shift ;;
-        --fast) fast=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
         --php-fpm-section=*) php_fpm_section="${1#*=}"; shift ;;
         --php-fpm-section) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_section="$2"; shift; fi; shift ;;
@@ -1862,7 +1859,6 @@ exit 0
 # --no-error-invalid-options \
 # --no-error-require-arguments << EOF | clip
 # FLAG=(
-# --fast
 # --version
 # --help
 # --no-sites-default

@@ -105,8 +105,6 @@ Other options (For expert only):
         new name of certificate that to be obtained.
 
 Global Options.
-   --fast
-        No delay every subtask.
    --version
         Print version of this script.
    --help
@@ -154,7 +152,6 @@ while [[ $# -gt 0 ]]; do
         --drupalcms-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupalcms_version="$2"; shift; fi; shift ;;
         --drupal-version=*) drupal_version="${1#*=}"; shift ;;
         --drupal-version) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then drupal_version="$2"; shift; fi; shift ;;
-        --fast) fast=1; shift ;;
         --no-auto-add-group) no_auto_add_group=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
@@ -710,7 +707,6 @@ exit 0
 # --no-error-invalid-options \
 # --no-error-require-arguments << EOF | clip
 # FLAG=(
-# --fast
 # --version
 # --help
 # --no-sites-default

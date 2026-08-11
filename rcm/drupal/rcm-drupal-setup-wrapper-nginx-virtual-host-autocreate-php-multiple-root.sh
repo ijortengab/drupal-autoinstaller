@@ -18,8 +18,6 @@ Options:
         Set the version of PHP FPM.
 
 Global Options:
-   --fast
-        No delay every subtask.
    --version
         Print version of this script.
    --help
@@ -44,7 +42,6 @@ while [[ $# -gt 0 ]]; do
         --version) version=1; shift ;;
         --certificate-name=*) certificate_name="${1#*=}"; shift ;;
         --certificate-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then certificate_name="$2"; shift; fi; shift ;;
-        --fast) fast=1; shift ;;
         --php-fpm-section=*) php_fpm_section="${1#*=}"; shift ;;
         --php-fpm-section) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_section="$2"; shift; fi; shift ;;
         --php-version=*) php_version="${1#*=}"; shift ;;
@@ -754,7 +751,6 @@ exit 0
 # --no-error-invalid-options \
 # --no-error-require-arguments << EOF | clip
 # FLAG=(
-# --fast
 # --version
 # --help
 # )

@@ -15,8 +15,6 @@ Options:
         Select the setup mode. Values available from command: rcm-drupal(mode-available).
 
 Global Options.
-   --fast
-        No delay every subtask.
    --version
         Print version of this script.
    --help
@@ -47,7 +45,6 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --help) help=1; shift ;;
         --version) version=1; shift ;;
-        --fast) fast=1; shift ;;
         --mode=*) mode="${1#*=}"; shift ;;
         --mode) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then mode="$2"; shift; fi; shift ;;
         --non-interactive) non_interactive=1; shift ;;
@@ -772,7 +769,6 @@ exit 0
     # '--verbose|-v'
 # )
 # FLAG=(
-# --fast
 # --version
 # --help
 # --non-interactive

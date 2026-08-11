@@ -79,8 +79,6 @@ Other Options (For expert only):
         Execute upgrade system. Default to --without-upgrade-system.
 
 Global Options.
-   --fast
-        No delay every subtask.
    --version
         Print version of this script.
    --help
@@ -107,7 +105,6 @@ while [[ $# -gt 0 ]]; do
         --version) version=1; shift ;;
         --certificate-name=*) certificate_name="${1#*=}"; shift ;;
         --certificate-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then certificate_name="$2"; shift; fi; shift ;;
-        --fast) fast=1; shift ;;
         --no-auto-add-group) no_auto_add_group=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
         --no-sites-default) no_sites_default=1; shift ;;
@@ -431,7 +428,6 @@ exit 0
 # --no-error-invalid-options \
 # --no-error-require-arguments << EOF | clip
 # FLAG=(
-# --fast
 # --version
 # --help
 # --no-sites-default

@@ -40,8 +40,6 @@ Other options (For expert only):
         new name of certificate that to be obtained.
 
 Global Options.
-   --fast
-        No delay every subtask.
    --version
         Print version of this script.
    --help
@@ -82,7 +80,6 @@ while [[ $# -gt 0 ]]; do
         --certificate-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then certificate_name="$2"; shift; fi; shift ;;
         --existing-project-name=*) project_parent_name="${1#*=}"; shift ;;
         --existing-project-name) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then project_parent_name="$2"; shift; fi; shift ;;
-        --fast) fast=1; shift ;;
         --no-drush-install) no_drush_install=1; shift ;;
         --php-fpm-config=*) php_fpm_config+=("${1#*=}"); shift ;;
         --php-fpm-config) if [[ ! $2 == "" && ! $2 =~ (^--$|^-[^-]|^--[^-]) ]]; then php_fpm_config+=("$2"); shift; fi; shift ;;
@@ -647,7 +644,6 @@ exit 0
 # --no-error-invalid-options \
 # --no-error-require-arguments << EOF | clip
 # FLAG=(
-# --fast
 # --version
 # --help
 # --no-drush-install
