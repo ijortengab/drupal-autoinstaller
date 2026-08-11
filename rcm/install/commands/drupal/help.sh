@@ -102,7 +102,7 @@ if [ -n "$command" ];then
 fi
 
 # Functions.
-printHelp() {
+usage() {
     title Drupal Auto-Installer
     _ 'Homepage '; yellow https://github.com/ijortengab/drupal-autoinstaller; _.
     _.
@@ -137,7 +137,7 @@ EOF
 }
 
 # Help and Version.
-[ -n "$help" ] && { printHelp; exit 1; }
+[ -n "$help" ] && { usage; exit 1; }
 [ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 ArraySearch() {
@@ -726,7 +726,7 @@ wordWrapCommand() {
 # Dependency.
 while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { error Unable to proceed, command not found: '`'`cut -d: -f1 <<< "${line}"`'`'.; x; }
-done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
+done <<< `usage 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 # Require, validate, and populate value.
 chapter Variable dump.
@@ -759,7 +759,7 @@ case "$mode" in
     *) error "Argument --mode not valid."; x ;;
 esac
 
-_help=$(printHelp 2>/dev/null)
+_help=$(usage 2>/dev/null)
 _download=$(echo "$_help" | sed -n '/^Download:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g')
 if [ -n "$_download" ];then
     [ -n "$table_downloads" ] && table_downloads+=$'\n'

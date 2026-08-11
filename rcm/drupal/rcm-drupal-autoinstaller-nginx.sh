@@ -78,7 +78,7 @@ MARIADB_USERS_DIRNAME=${MARIADB_USERS_DIRNAME:=users}
 RCM_TLD_SPECIAL=${RCM_TLD_SPECIAL:=example test onion invalid local localhost alt}
 
 # Functions.
-printHelp() {
+usage() {
     title RCM Drupal Auto-Installer
     _ 'Variation '; yellow Nginx PHP-FPM; _.
     _.
@@ -193,7 +193,7 @@ EOF
 }
 
 # Help and Version.
-[ -n "$help" ] && { printHelp; exit 1; }
+[ -n "$help" ] && { usage; exit 1; }
 [ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 command-drupal-version-available() {
@@ -225,7 +225,7 @@ ____
 # Dependency.
 while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { error Unable to proceed, command not found: '`'`cut -d: -f1 <<< "${line}"`'`'.; x; }
-done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
+done <<< `usage 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 # Functions.
 ArraySearch() {

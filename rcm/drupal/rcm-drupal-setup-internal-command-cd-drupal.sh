@@ -47,7 +47,7 @@ DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 
 # Functions.
-printHelp() {
+usage() {
     title RCM Drupal Setup Internal Command
     _ 'Variation '; yellow cd-drupal; _.
     _.
@@ -81,7 +81,7 @@ EOF
 }
 
 # Help and Version.
-[ -n "$help" ] && { printHelp; exit 1; }
+[ -n "$help" ] && { usage; exit 1; }
 [ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 # Title.
@@ -93,7 +93,7 @@ ____
 # Dependency.
 while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { error Unable to proceed, command not found: '`'`cut -d: -f1 <<< "${line}"`'`'.; x; }
-done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
+done <<< `usage 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 # Functions.
 resolve_relative_path() {
@@ -378,7 +378,7 @@ source=()
 printVersion() {
     echo '__CURRENT_VERSION__'
 }
-printHelp() {
+usage() {
     cat << 'HELP'
 Usage: . cd-drupal [project_name] [site_url]
        cd-drupal [project_name] [site_url]
@@ -485,12 +485,12 @@ url2Filename() {
 
 if [[ -f "$0" && ! "$0" == $(command -v bash) ]];then
     # Help and Version.
-    [ -n "$help" ] && { printHelp; exit 1; }
+    [ -n "$help" ] && { usage; exit 1; }
     [ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 else
     # Help and Version.
     _return=
-    [ -n "$help" ] && { printHelp; _return=1; }
+    [ -n "$help" ] && { usage; _return=1; }
     [ -n "$version" ] && { printVersion; _return=1; }
     unsetvariables
     [ -n "$_return" ] && { unset _return; return; }

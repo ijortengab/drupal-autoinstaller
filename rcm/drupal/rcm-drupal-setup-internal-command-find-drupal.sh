@@ -47,7 +47,7 @@ DRUPAL_SITES_DIRNAME=${DRUPAL_SITES_DIRNAME:=sites}
 BINARY_DIRECTORY=${BINARY_DIRECTORY:=[__DIR__]}
 
 # Functions.
-printHelp() {
+usage() {
     title RCM Drupal Setup Internal Command
     _ 'Variation '; yellow find-drupal; _.
     _.
@@ -81,7 +81,7 @@ EOF
 }
 
 # Help and Version.
-[ -n "$help" ] && { printHelp; exit 1; }
+[ -n "$help" ] && { usage; exit 1; }
 [ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 # Title.
@@ -93,7 +93,7 @@ ____
 # Dependency.
 while IFS= read -r line; do
     [[ -z "$line" ]] || command -v `cut -d: -f1 <<< "${line}"` >/dev/null || { error Unable to proceed, command not found: '`'`cut -d: -f1 <<< "${line}"`'`'.; x; }
-done <<< `printHelp 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
+done <<< `usage 2>/dev/null | sed -n '/^Dependency:/,$p' | sed -n '2,/^\s*$/p' | sed 's/^ *//g'`
 
 # Functions.
 resolve_relative_path() {
@@ -378,7 +378,7 @@ whoami=`whoami`
 printVersion() {
     echo '__CURRENT_VERSION__'
 }
-printHelp() {
+usage() {
     cat << 'EOL'
 Usage: find-drupal
        find-drupal [filter1]... [ -- [filter2]...]
@@ -410,7 +410,7 @@ EOL
 }
 
 # Help and Version.
-[ -n "$help" ] && { printHelp; exit 1; }
+[ -n "$help" ] && { usage; exit 1; }
 [ -n "$version" ] && { e $RCM_EXTENSION_VERSION; x; }
 
 if [ "$EUID" -eq 0 ];then
